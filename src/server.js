@@ -4,28 +4,32 @@ const connectDB = require('./config/database');
 
 const app = express();
 
-// Middleware para entender JSON (Deve vir ANTES das rotas)
-app.use(express.json());
-
-// Conecta ao Banco de Dados
+// 1. CONEXÃO COM O BANCO
 connectDB();
 
-// Rota de Teste Base
+// 2. MIDDLEWARES GLOBAIS
+app.use(express.json()); // Permite que o Express entenda JSON no corpo das requisições
+
+// 3. ROTA DE TESTE (Health Check)
 app.get('/', (req, res) => {
-    res.json({ mensagem: 'API da Web-Wallet rodando com sucesso! ' });
+    res.json({
+        status: 'Online',
+        mensagem: 'API da Web-Wallet rodando com sucesso!'
+    });
 });
 
-// ==========================================
-// ROTAS DA APLICAÇÃO
-// ==========================================
-// Sistema de Login e Cadastro (Pública)
+// 4. DEFINIÇÃO DAS ROTAS (API)
+// Centralizamos as importações aqui para evitar duplicidade e confusão
+
+// Sistema de Login e Cadastro (Rotas Públicas)
 app.use('/api/auth', require('./routes/authRoutes'));
 
-// Sistema da Carteira (Protegida pelo Middleware)
+// Sistema da Carteira e Transações (Rotas Protegidas)
 app.use('/api/wallet', require('./routes/walletRoutes'));
-// ==========================================
 
+// 5. INICIALIZAÇÃO DO SERVIDOR
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(` Servidor rodando na porta ${PORT}`);
+    console.log(` Servidor voando na porta ${PORT}`);
+    console.log(` Rotas de carteira: http://localhost:${PORT}/api/wallet`);
 });
