@@ -2,7 +2,7 @@
 
 Uma API backend desenvolvida em **Node.js**, **Express** e **MongoDB** (Mongoose) para gerenciamento financeiro pessoal. O sistema permite criar uma conta, gerenciar carteiras mensais (com transferência de saldo entre meses), registrar receitas e despesas, além de definir limites de gastos por categoria.
 
-## 🚀 Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 - **Node.js** & **Express** - Criação da API e rotas
 - **MongoDB** & **Mongoose** - Banco de dados NoSQL e modelagem de dados
@@ -10,37 +10,8 @@ Uma API backend desenvolvida em **Node.js**, **Express** e **MongoDB** (Mongoose
 - **Bcrypt.js** - Criptografia de senhas
 - **Dotenv** - Gerenciamento de variáveis de ambiente
 
-## 📦 Instalação e Execução
+##  Execução
 
-1. **Clone o repositório:**
-   ```bash
-   git clone https://github.com/KauaCazzaniga/Web-Wallet.git
-   cd Web-Wallet
-   ```
-
-2. **Instale as dependências:**
-   ```bash
-   npm install
-   ```
-
-3. **Configuração de Variáveis de Ambiente:**
-   Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
-   ```env
-   PORT=3000
-   MONGO_URI=sua_string_de_conexao_mongodb
-   JWT_SECRET=sua_chave_secreta_jwt
-   ```
-
-4. **Inicie o servidor:**
-   ```bash
-   npm start
-   # ou usando node diretamente:
-   node src/server.js
-   ```
-
-O servidor iniciará na porta especificada (padrão: 3000).
-
-## 🔀 Rotas da API
 
 ### 🔐 Autenticação (`/api/auth`)
 - `POST /registrar`: Cria um novo usuário (criptografa a senha).
