@@ -1,9 +1,10 @@
 import React, { useState, useContext } from 'react';
 import styled from 'styled-components';
 import { useNavigate, Link } from 'react-router-dom'; // Adicionado Link
-import { Wallet, Mail, Lock, Loader2 } from 'lucide-react'; // Adicionado Loader2
+import { ArrowLeft, Wallet, Mail, Lock, Loader2, Moon, SunMedium } from 'lucide-react'; // Adicionado Loader2
 
 import { AuthContext } from '../contexts/AuthContext';
+import { ThemeContext } from '../contexts/ThemeContext';
 
 // --- ESTILOS ---
 const Container = styled.div`
@@ -11,19 +12,22 @@ const Container = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #0f172a; 
-  background-image: radial-gradient(circle at 50% -20%, #1e293b, #0f172a);
+  background-color: ${p => p.$dark ? '#0f172a' : '#eef5ff'}; 
+  background-image: ${p => p.$dark
+    ? 'radial-gradient(circle at 50% -20%, #1e293b, #0f172a)'
+    : 'radial-gradient(circle at 50% -20%, #dbeafe, #eef5ff)'};
   font-family: 'Inter', sans-serif;
   padding: 1rem;
+  position: relative;
 `;
 
 const LoginBox = styled.div`
-  background: rgba(30, 41, 59, 0.7);
+  background: ${p => p.$dark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.88)'};
   backdrop-filter: blur(12px);
   padding: 3.5rem 3rem;
   border-radius: 1.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: ${p => p.$dark ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : '0 25px 50px -12px rgba(37, 99, 235, 0.18)'};
+  border: 1px solid ${p => p.$dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(148, 163, 184, 0.18)'};
   text-align: center;
   width: 100%;
   max-width: 420px;
@@ -45,7 +49,7 @@ const IconHeader = styled.div`
   display: inline-flex;
   padding: 1rem;
   border-radius: 1rem;
-  background: rgba(59, 130, 246, 0.1);
+  background: ${p => p.$dark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.08)'};
   margin-bottom: 1rem;
 `;
 
@@ -60,7 +64,7 @@ const Title = styled.h2`
 `;
 
 const Subtitle = styled.p`
-  color: #94a3b8;
+  color: ${p => p.$dark ? '#94a3b8' : '#64748b'};
   font-weight: 500;
   margin-bottom: 2.5rem;
 `;
@@ -93,10 +97,10 @@ const IconWrapper = styled.div`
 const Input = styled.input`
   width: 100%;
   padding: 1.1rem 1rem 1.1rem 3.25rem;
-  background-color: #0f172a;
-  border: 2px solid #1e293b;
+  background-color: ${p => p.$dark ? '#0f172a' : '#f8fbff'};
+  border: 2px solid ${p => p.$dark ? '#1e293b' : '#d8e3f3'};
   border-radius: 0.75rem;
-  color: #f8fafc;
+  color: ${p => p.$dark ? '#f8fafc' : '#0f172a'};
   font-size: 1.05rem;
   font-weight: 600;
   transition: all 0.3s;
@@ -104,7 +108,7 @@ const Input = styled.input`
   &:focus {
     outline: none;
     border-color: #a855f7;
-    background-color: #1e293b;
+    background-color: ${p => p.$dark ? '#1e293b' : '#ffffff'};
     box-shadow: 0 0 15px rgba(168, 85, 247, 0.15);
   }
 `;
@@ -151,7 +155,7 @@ const ErrorMessage = styled.p`
 const Footer = styled.div`
   margin-top: 2rem;
   font-size: 0.95rem;
-  color: #94a3b8;
+  color: ${p => p.$dark ? '#94a3b8' : '#64748b'};
 
   a {
     color: #3b82f6;
@@ -164,11 +168,41 @@ const Footer = styled.div`
     }
   }
 `;
+const ThemeButton = styled.button`
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 999px;
+  border: 1px solid ${p => p.$dark ? 'rgba(255, 255, 255, 0.08)' : '#d8e3f3'};
+  background: ${p => p.$dark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255,255,255,0.92)'};
+  color: ${p => p.$dark ? '#f8fafc' : '#0f172a'};
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+`;
+const BackLink = styled(Link)`
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.72rem 0.95rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+  color: ${p => p.$dark ? '#dce8ff' : '#173155'};
+  background: ${p => p.$dark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255,255,255,0.92)'};
+  border: 1px solid ${p => p.$dark ? 'rgba(255, 255, 255, 0.08)' : '#d8e3f3'};
+`;
 
 // --- COMPONENTE ---
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
+  const { isDark, toggleTheme } = useContext(ThemeContext);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -195,18 +229,26 @@ export default function Login() {
   };
 
   return (
-    <Container>
-      <LoginBox>
-        <IconHeader>
+    <Container $dark={isDark}>
+      <BackLink to="/" $dark={isDark}>
+        <ArrowLeft size={16} />
+        Landing
+      </BackLink>
+      <ThemeButton type="button" onClick={toggleTheme} $dark={isDark}>
+        {isDark ? <SunMedium size={18} /> : <Moon size={18} />}
+      </ThemeButton>
+      <LoginBox $dark={isDark}>
+        <IconHeader $dark={isDark}>
           <Wallet size={40} color="#a855f7" />
         </IconHeader>
         <Title>Web-Wallet</Title>
-        <Subtitle>Seja bem-vindo de volta!</Subtitle>
+        <Subtitle $dark={isDark}>Seja bem-vindo de volta!</Subtitle>
 
         <Form onSubmit={handleLogin}>
           <InputGroup>
             <IconWrapper><Mail size={20} /></IconWrapper>
             <Input
+              $dark={isDark}
               type="email"
               placeholder="Seu e-mail"
               value={email}
@@ -219,6 +261,7 @@ export default function Login() {
           <InputGroup>
             <IconWrapper><Lock size={20} /></IconWrapper>
             <Input
+              $dark={isDark}
               type="password"
               placeholder="Sua senha"
               value={password}
@@ -242,7 +285,7 @@ export default function Login() {
           </Button>
         </Form>
 
-        <Footer>
+        <Footer $dark={isDark}>
           Não tem uma conta?
           <Link to="/register">Cadastre-se agora</Link>
         </Footer>
