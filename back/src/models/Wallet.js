@@ -6,7 +6,8 @@ const transacaoSchema = new mongoose.Schema({
     categoria: { type: String, required: true },
     valor: { type: Number, required: true },
     descricao: { type: String, required: true },
-    tags: [{ type: String }]
+    tags: [{ type: String }],
+    deletadoEm: { type: Date, default: null }
 });
 
 const walletSchema = new mongoose.Schema({
@@ -28,7 +29,8 @@ const walletSchema = new mongoose.Schema({
     transacoes: [transacaoSchema],
     limites_gastos: {
         type: Map,
-        of: Number
+        of: Number,
+        default: {}
     }
 }, {
     timestamps: true
