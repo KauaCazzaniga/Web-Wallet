@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors'); // 1. Importa o "segurança" das portas
+const cors = require('cors');
 const connectDB = require('./config/database');
 
 const app = express();
@@ -9,29 +9,42 @@ const app = express();
 connectDB();
 
 // --- 2. MIDDLEWARES GLOBAIS ---
-// IMPORTANTE: O CORS deve vir ANTES das rotas
-app.use(cors()); // Libera o acesso para o seu Front (Vite na porta 5173)
-app.use(express.json()); // Permite que o Express entenda JSON no corpo das requisições
+app.use(cors());
+app.use(express.json());
 
 // --- 3. ROTA DE TESTE (Health Check) ---
 app.get('/', (req, res) => {
     res.json({
         status: 'Online',
-        mensagem: 'API da Web-Wallet rodando com sucesso!'
+        mensagem: 'API da Web-Wallet rodando com sucesso!',
+        timestamp: new Date().toISOString() // Bom para monitoramento de uptime
     });
 });
 
 // --- 4. DEFINIÇÃO DAS ROTAS (API) ---
-// Sistema de Login e Cadastro (Rotas Públicas)
 app.use('/api/auth', require('./routes/authRoutes'));
-
-// Sistema da Carteira e Transações (Rotas Protegidas)
 app.use('/api/wallet', require('./routes/walletRoutes'));
 
-// --- 5. INICIALIZAÇÃO DO SERVIDOR ---
+// --- 5. MIDDLEWARE DE TRATAMENTO DE ERRO (O "Pulo do Gato" de Infra) ---
+// Se alguma rota der erro interno, este middleware captura e responde em JSON
+// Evitando que o servidor mande aquele HTML de erro padrão do Express
+app.use((err, req, res, next) => {
+    console.error(`[SERVER ERROR] ${new Date().toISOString()}:`, err.stack);
+
+    res.status(500).json({
+        error: 'Erro interno no servidor',
+        mensagem: err.message
+    });
+});
+
+// --- 6. ROTA 404 (Endpoint não encontrado) ---
+app.use((req, res) => {
+    res.status(404).json({ error: 'Endpoint não encontrado. Verifique a URL e o método (GET/POST).' });
+});
+
+// --- 7. INICIALIZAÇÃO DO SERVIDOR ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Servidor voando na porta ${PORT}`);
-    console.log(`✅ CORS habilitado para comunicação com o Front-end`);
-    console.log(`📡 Rotas de carteira: http://localhost:${PORT}/api/wallet`);
+    console.log(`✅ Infraestrutura: CORS, JSON e ErrorHandler ativos.`);
 });

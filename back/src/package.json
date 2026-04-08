@@ -19,7 +19,7 @@
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.7.0",
     "mongoose": "^9.3.3",
-    "node": "^25.8.2",
+    "node": "^25.9.0",
     "react-router-dom": "^7.13.2"
   },
   "devDependencies": {

@@ -222,6 +222,10 @@ const CTA = styled(Link)`
   box-shadow: ${p => p.$secondary
     ? (p.$dark ? '0 14px 30px rgba(2,12,27,.28)' : '0 16px 28px rgba(15,23,42,.07)')
     : '0 18px 36px rgba(37,99,235,.28)'};
+  ${hoverLift}
+  ${p => p.$float && css`
+    animation: ${float} 6.4s ease-in-out infinite;
+  `}
 `;
 
 const SignalRow = styled.div`
@@ -246,16 +250,24 @@ const Signal = styled.div`
 
 const Preview = styled.div`
   position: relative;
+  padding-top: 2.35rem;
+  padding-right: 1.35rem;
   animation: ${fadeUp} .8s ease .12s both;
+
+  @media (max-width: 1020px) {
+    padding-top: 0;
+    padding-right: 0;
+  }
 `;
 
 const LiveChip = styled.div`
   position: absolute;
-  right: -0.6rem;
-  top: 1.5rem;
+  right: 0;
+  top: 0;
   z-index: 2;
-  padding: .85rem 1rem;
-  border-radius: 1rem;
+  width: min(15rem, calc(100% - 1rem));
+  padding: 1rem 1.1rem;
+  border-radius: 1.2rem;
   background: ${p => p.$dark ? 'rgba(8,24,44,.92)' : '#fff'};
   border: 1px solid ${p => p.$dark ? 'rgba(34,211,238,.2)' : '#dbe7f6'};
   box-shadow: ${p => p.$dark ? '0 16px 36px rgba(2,12,27,.38)' : '0 16px 36px rgba(15,23,42,.1)'};
@@ -268,6 +280,43 @@ const LiveChip = styled.div`
     top: auto;
     margin-bottom: 1rem;
   }
+`;
+
+const LiveChipLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  color: ${p => p.$dark ? '#d8e6ff' : '#1e293b'};
+  font-size: .94rem;
+  font-weight: 800;
+  line-height: 1.2;
+
+  &::before {
+    content: '';
+    width: .72rem;
+    height: .72rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #22d3ee 0%, #2563eb 68%, #4f46e5 100%);
+    box-shadow: 0 0 0 6px rgba(59,130,246,.14);
+    flex: 0 0 auto;
+  }
+`;
+
+const LiveChipValue = styled.div`
+  margin-top: .45rem;
+  font-size: clamp(1.24rem, 2.2vw, 1.65rem);
+  font-weight: 900;
+  letter-spacing: -.04em;
+  line-height: 1.05;
+  color: ${p => p.$dark ? '#f8fbff' : '#0f172a'};
+`;
+
+const LiveChipDelta = styled.small`
+  display: block;
+  margin-top: .35rem;
+  color: ${p => p.$dark ? '#7dd3fc' : '#2563eb'};
+  font-weight: 800;
+  line-height: 1.3;
 `;
 
 const Mock = styled.div`
@@ -287,6 +336,10 @@ const Mock = styled.div`
     background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
     animation: ${sweep} 5.6s linear infinite;
   }
+
+  @media (min-width: 1021px) {
+    padding-top: 4.9rem;
+  }
 `;
 
 const MockInner = styled.div`
@@ -300,6 +353,7 @@ const TopMetrics = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: .8rem;
+  align-items: stretch;
 
   @media (max-width: 720px) {
     grid-template-columns: 1fr;
@@ -307,12 +361,19 @@ const TopMetrics = styled.div`
 `;
 
 const Metric = styled.div`
-  padding: 1rem;
+  min-height: 5.9rem;
+  padding: 1.1rem 1.15rem;
   border-radius: 1.1rem;
   background: ${p => p.$highlight
-    ? 'linear-gradient(135deg, rgba(14,165,233,.22), rgba(37,99,235,.32))'
+    ? 'linear-gradient(135deg, rgba(14,165,233,.26), rgba(37,99,235,.34), rgba(79,70,229,.28))'
     : (p.$dark ? 'rgba(9,22,40,.88)' : '#f8fbff')};
   border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.14)' : '#dbe7f6'};
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: ${p => p.$highlight
+    ? '0 18px 34px rgba(37,99,235,.2)'
+    : 'none'};
 
   small {
     display: block;
@@ -324,8 +385,9 @@ const Metric = styled.div`
   }
 
   strong {
-    font-size: 1.42rem;
+    font-size: ${p => p.$highlight ? '1.62rem' : '1.42rem'};
     letter-spacing: -.04em;
+    color: ${p => p.$highlight ? (p.$dark ? '#f8fbff' : '#102038') : 'inherit'};
   }
   ${hoverLift}
 `;
@@ -334,6 +396,7 @@ const MockGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  align-items: stretch;
 
   @media (max-width: 720px) {
     grid-template-columns: 1fr;
@@ -345,6 +408,7 @@ const Widget = styled.div`
   padding: 1.1rem;
   background: ${p => p.$dark ? 'rgba(8,19,37,.92)' : 'rgba(244,248,255,.95)'};
   border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.14)' : '#dbe7f6'};
+  min-height: 23rem;
   ${hoverLift}
 `;
 
@@ -375,7 +439,7 @@ const Flow = styled.div`
 
 const FlowRow = styled.div`
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: .7rem;
   align-items: center;
   padding: .85rem .9rem;
@@ -384,8 +448,27 @@ const FlowRow = styled.div`
   border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.12)' : '#e0e9f7'};
 
   strong { font-size: .94rem; }
+  > strong {
+    white-space: nowrap;
+    text-align: right;
+    align-self: start;
+    font-size: .82rem;
+    line-height: 1.15;
+  }
   span { color: ${p => p.$dark ? '#89a0c7' : '#64748b'}; font-size: .82rem; }
   ${hoverLift}
+`;
+
+const FlowCopy = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: .18rem;
+  min-width: 0;
+
+  strong,
+  span {
+    display: block;
+  }
 `;
 
 const Dot = styled.div`
@@ -583,7 +666,7 @@ const features = [
   { icon: Wallet, title: 'Dashboard operacional', text: 'Receitas, despesas, saldo e visão consolidada em uma leitura só.' },
   { icon: BarChart3, title: 'Metas por categoria', text: 'Acompanhamento visual do orçamento com progresso e alertas.' },
   { icon: CreditCard, title: 'Lançamentos rápidos', text: 'Cadastro ágil de entradas e saídas com atualização imediata.' },
-  { icon: ShieldCheck, title: 'Fluxo protegido', text: 'Login, cadastro e acesso seguro às rotas privadas do sistema.' },
+  { icon: ShieldCheck, title: 'Fluxo protegido', text: 'Seus dados protegidos com login seguro e acesso autenticado.' },
 ];
 
 const rotating = [
@@ -635,37 +718,36 @@ export default function Index() {
           <HeroCopy>
             <Badge $dark={isDark}>
               <Sparkles size={16} />
-              Plataforma pessoal com identidade fintech e tema alternável
+              Controle financeiro pessoal com visual de produto profissional
             </Badge>
             <HeroTitle>
-              Seu controle financeiro com
-              <span>presença tecnológica de verdade</span>
+              Seu dinheiro organizado com
+              <span>com controle de verdade</span>
             </HeroTitle>
             <HeroText $dark={isDark}>
-              O Web-Wallet organiza receitas, despesas, metas por categoria e transações recentes
-              em um dashboard pensado para leitura rápida, contraste forte e sensação de produto financeiro moderno.
+              Veja receitas, despesas e metas em um painel direto sem enrolação, sem planilha.
             </HeroText>
 
             <CTAGroup>
-              <CTA to={authenticated ? '/dashboard' : '/register'}>
-                {authenticated ? 'Abrir dashboard' : 'Criar minha conta'}
+              <CTA to="/login" $float>
+                Entrar na plataforma
                 <ArrowRight size={18} />
               </CTA>
-              <CTA to="/login" $secondary $dark={isDark}>Entrar na plataforma</CTA>
+              <CTA to="/register" $secondary $dark={isDark}>Criar minha conta</CTA>
             </CTAGroup>
 
             <SignalRow>
-              <Signal $dark={isDark}><BadgeCheck size={16} /> Sessão autenticada</Signal>
-              <Signal $dark={isDark}><Landmark size={16} /> Competência mensal</Signal>
-              <Signal $dark={isDark}><Zap size={16} /> Feedback visual imediato</Signal>
+              <Signal $dark={isDark}><BadgeCheck size={16} /> ✅ Login seguro</Signal>
+              <Signal $dark={isDark}><Landmark size={16} /> 📅 Resumo mensal automático</Signal>
+              <Signal $dark={isDark}><Zap size={16} /> ⚡ Atualizações em tempo real</Signal>
             </SignalRow>
           </HeroCopy>
 
           <Preview>
             <LiveChip $dark={isDark}>
-              <strong>{rotating[active].label}</strong>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '.3rem' }}>{rotating[active].value}</div>
-              <small style={{ color: isDark ? '#7dd3fc' : '#2563eb', fontWeight: 800 }}>{rotating[active].delta}</small>
+              <LiveChipLabel $dark={isDark}>{rotating[active].label}</LiveChipLabel>
+              <LiveChipValue $dark={isDark}>{rotating[active].value}</LiveChipValue>
+              <LiveChipDelta $dark={isDark}>{rotating[active].delta}</LiveChipDelta>
             </LiveChip>
 
             <Mock $dark={isDark}>
@@ -678,7 +760,7 @@ export default function Index() {
 
                 <MockGrid>
                   <Widget $dark={isDark}>
-                    <WidgetTitle><span>Saúde financeira</span><BarChart3 size={16} color={isDark ? '#7dd3fc' : '#2563eb'} /></WidgetTitle>
+                    <WidgetTitle><span>Como estão suas metas</span><BarChart3 size={16} color={isDark ? '#7dd3fc' : '#2563eb'} /></WidgetTitle>
                     <Ring $dark={isDark}>
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '1.55rem', fontWeight: 800 }}>68%</div>
@@ -688,21 +770,21 @@ export default function Index() {
                   </Widget>
 
                   <Widget $dark={isDark}>
-                    <WidgetTitle><span>Fluxo operacional</span><Wallet size={16} color={isDark ? '#7dd3fc' : '#2563eb'} /></WidgetTitle>
+                    <WidgetTitle><span>Entradas e saídas recentes</span><Wallet size={16} color={isDark ? '#7dd3fc' : '#2563eb'} /></WidgetTitle>
                     <Flow>
                       <FlowRow $dark={isDark}>
                         <Dot $bg="#22c55e" $ring="rgba(34,197,94,.18)" />
-                        <div><strong>Salário confirmado</strong><span>entrada conciliada</span></div>
+                        <FlowCopy><strong>Salário confirmado</strong><span>entrada conciliada</span></FlowCopy>
                         <strong>+R$ 8.500</strong>
                       </FlowRow>
                       <FlowRow $dark={isDark}>
                         <Dot $bg="#38bdf8" $ring="rgba(56,189,248,.16)" />
-                        <div><strong>Meta alimentação</strong><span>42% utilizada</span></div>
+                        <FlowCopy><strong>Meta alimentação</strong><span>42% utilizada</span></FlowCopy>
                         <strong>R$ 630</strong>
                       </FlowRow>
                       <FlowRow $dark={isDark}>
                         <Dot $bg="#f59e0b" $ring="rgba(245,158,11,.16)" />
-                        <div><strong>Lazer em atenção</strong><span>alerta preventivo</span></div>
+                        <FlowCopy><strong>Lazer em atenção</strong><span>alerta preventivo</span></FlowCopy>
                         <strong>82%</strong>
                       </FlowRow>
                     </Flow>
@@ -715,9 +797,9 @@ export default function Index() {
 
         <Section id="funcionalidades">
           <SectionHead $dark={isDark}>
-            <span><Sparkles size={14} /> Funcionalidades centrais</span>
-            <h2>Uma experiência de gestão pessoal com leitura direta e foco operacional.</h2>
-            <p>O produto foi desenhado para comunicar prioridade, risco, saldo e metas sem navegação confusa.</p>
+            <span><Sparkles size={14} /> O que você vai usar todo dia</span>
+            <h2>Tudo que você precisa ver, na primeira tela que abrir.</h2>
+            <p>O Saldo, metas e gastos organizados para você entender de relance  sem precisar clicar em nada.</p>
           </SectionHead>
 
           <FeatureGrid>
@@ -737,7 +819,7 @@ export default function Index() {
         <Section id="monitoramento">
           <SectionHead $dark={isDark}>
             <span><BarChart3 size={14} /> Monitoramento contínuo</span>
-            <h2>Metas, orçamento e comportamento financeiro traduzidos em um painel único.</h2>
+            <h2>Metas e orçamento que se atualizam sozinhos conforme você gasta.</h2>
             <p>As telas do projeto priorizam feedback imediato, barras de progresso, cards de resumo e sinais visuais de atenção.</p>
           </SectionHead>
 
@@ -776,7 +858,7 @@ export default function Index() {
                   <Sparkles size={18} color="#38bdf8" />
                 </SignalCard>
                 <SignalCard $dark={isDark}>
-                  <div><strong>Fluxo protegido</strong><small>Login, cadastro e saída segura da sessão</small></div>
+                  <div><strong>Histórico completo</strong><small>odas as transações registradas e filtráveis.</small></div>
                   <ShieldCheck size={18} color="#6366f1" />
                 </SignalCard>
               </SignalBoard>
@@ -786,20 +868,20 @@ export default function Index() {
 
         <Section id="seguranca">
           <SectionHead $dark={isDark}>
-            <span><ShieldCheck size={14} /> Jornada do usuário</span>
-            <h2>Landing, autenticação e dashboard conectados por um tema global persistente.</h2>
-            <p>O switch do produto alterna o sistema entre modo claro e uma leitura escura azulada, com atmosfera mais técnica e fintech.</p>
+            <span><ShieldCheck size={14} /> Como funciona na prática</span>
+            <h2>Entre, configure e comece a usar em menos de 2 minutos</h2>
+            <p>Escolha o tema que preferir  o sistema lembra sua escolha em todas as telas.</p>
           </SectionHead>
 
           <FinalCTA $dark={isDark}>
-            <h3>Explore o produto em modo claro ou escuro e entre no fluxo completo.</h3>
-            <p>Você pode navegar pela landing, seguir para cadastro ou login e depois operar o dashboard com o mesmo tema mantido entre as páginas.</p>
+            <h3>Comece a organizar suas finanças agora. É grátis.</h3>
+            <p>Crie sua conta em segundos e veja seu painel financeiro pronto para uso..</p>
             <CTAGroup>
               <CTA to={authenticated ? '/dashboard' : '/register'}>
                 {authenticated ? 'Entrar no dashboard' : 'Cadastrar usuário'}
                 <ArrowRight size={18} />
               </CTA>
-              <CTA to="/login" $secondary $dark={isDark}>Abrir login</CTA>
+              <CTA to="/login" $secondary $dark={isDark}>Criar conta grátis</CTA>
             </CTAGroup>
           </FinalCTA>
         </Section>
