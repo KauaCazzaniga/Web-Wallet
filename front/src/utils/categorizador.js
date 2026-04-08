@@ -2,7 +2,6 @@ export const CATEGORIAS_IMPORTACAO = [
   'Alimentação',
   'Transporte',
   'Lazer',
-  'Moradia',
   'Saúde',
   'Salário',
   'Investimentos',
@@ -22,7 +21,7 @@ export const CATEGORIAS_IMPORTACAO = [
 
 const REGRAS = [
   // Gastos fixos (mais específicos primeiro para evitar conflito com Moradia/Lazer)
-  { categoria: 'gastos_fixos.aluguel', termos: ['aluguel', 'financiamento imovel', 'financiamento imóvel', 'prestacao imovel', 'prestação imóvel'] },
+  { categoria: 'gastos_fixos.aluguel', termos: ['aluguel', 'financiamento imovel', 'financiamento imóvel', 'prestacao imovel', 'prestação imóvel', 'iptu'] },
   { categoria: 'gastos_fixos.energia', termos: ['energia eletrica', 'energia elétrica', 'conta de luz', 'cpfl', 'enel', 'cemig', 'celesc', 'copel', 'light'] },
   { categoria: 'gastos_fixos.agua', termos: ['agua e esgoto', 'água e esgoto', 'saneamento', 'sabesp', 'copasa', 'casan', 'embasa'] },
   { categoria: 'gastos_fixos.internet', termos: ['internet', 'fibra', 'banda larga', 'provedor'] },
@@ -36,7 +35,6 @@ const REGRAS = [
   { categoria: 'Transporte', termos: ['uber', '99', 'combustivel', 'combustível', 'posto'] },
   { categoria: 'Alimentação', termos: ['restaurante', 'ifood', 'mercado', 'supermercado', 'padaria'] },
   { categoria: 'Lazer', termos: ['cinema', 'steam', 'game'] },
-  { categoria: 'Moradia', termos: ['iptu'] },
   { categoria: 'Saúde', termos: ['farmacia', 'farmácia', 'hospital', 'medico', 'médico'] },
   { categoria: 'Salário', termos: ['salario', 'salário', 'holerite', 'pagamento empresa'] },
 ];

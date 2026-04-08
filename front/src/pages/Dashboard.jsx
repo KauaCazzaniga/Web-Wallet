@@ -95,21 +95,21 @@ const ModalFooter = styled.div`
   .danger { background: #ef4444; color: #fff;    &:hover { background: #dc2626; } }
 `;
 const GoalItem = styled.div`
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; gap: 12px; width: 100%;
   padding: 0.85rem 1rem; background: var(--dash-surface-muted); border: 1px solid var(--dash-border);
-  border-radius: 0.75rem; margin-bottom: 0.65rem; gap: 0.75rem;
+  border-radius: 0.75rem; margin-bottom: 0.65rem;
   box-shadow: var(--dash-soft-shadow);
   .goal-info {
-    display: flex; align-items: center; gap: 0.9rem; flex: 1; min-width: 0;
+    display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; justify-content: space-between; width: 100%;
   }
   span { font-size: 0.95rem; white-space: nowrap; color: var(--dash-heading); }
   input {
-    width: 180px; padding: 0.6rem 0.8rem; border: 1px solid var(--dash-border-strong);
+    width: 7rem; padding: 0.6rem 0.8rem; border: 1px solid var(--dash-border-strong);
     border-radius: 0.625rem; font-size: 0.875rem; outline: none; background: var(--dash-input-bg);
-    color: var(--dash-heading); -webkit-text-fill-color: var(--dash-heading);
+    color: var(--dash-heading); -webkit-text-fill-color: var(--dash-heading); flex-shrink: 0;
     &:focus { border-color: var(--dash-primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.14); }
   }
-  button { color: #ef4444; border: none; background: none; cursor: pointer; padding: 0.35rem; border-radius: 0.375rem; &:hover { background: #fef2f2; } }
+  button { color: #ef4444; border: none; background: none; cursor: pointer; padding: 0.35rem; border-radius: 0.375rem; flex-shrink: 0; &:hover { background: #fef2f2; } }
 `;
 
 // ==========================================
@@ -676,7 +676,7 @@ const DeleteModal = ({ onConfirm, onCancel }) => (
 // CONSTANTES
 // ==========================================
 const CAT_ICONS = {
-  "Alimentação": "🍔", "Moradia": "🏠", "Transporte": "🚗",
+  "Alimentação": "🍔", "Transporte": "🚗",
   "Lazer": "🎉", "Saúde": "💊", "Salário": "💰", "Investimentos": "📈", "Outros": "📦"
 };
 const CATS = Object.keys(CAT_ICONS);
