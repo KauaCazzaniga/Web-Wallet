@@ -1,9 +1,23 @@
-import React, { useState, useEffect, useCallback, useContext } from "react";
+import React, { useState, useEffect, useCallback, useContext, useMemo } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
 import api from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
 import { ThemeContext } from '../contexts/ThemeContext';
+import { useFinance } from '../context/FinanceContext';
+import ImportButton from '../components/ImportButton';
+import ImportModal from '../components/ImportModal';
+import { extractTextFromPdf } from '../utils/pdfExtractor';
+import { parseBankStatement } from '../utils/geminiParser';
+import {
+  GASTOS_FIXOS, GASTOS_FIXOS_PREFIX, GASTOS_FIXOS_MAP,
+  resolverGastoFixo, labelCategoria, iconeCategoria,
+} from '../constants/gastosFixos';
+import {
+  CATEGORIAS_IMPORTACAO,
+  gerarChaveTransacao,
+  prepararTransacoesImportadas,
+} from '../utils/categorizador';
 import {
   Home, ArrowUpCircle, ArrowDownCircle, Wallet,
   Plus, AlertTriangle, X, Trash2, Settings, FileText, CheckCircle, LogOut, Moon, SunMedium, Sparkles
@@ -212,6 +226,13 @@ const Header = styled.header`
   backdrop-filter: blur(18px);
 `;
 const HeaderTitle = styled.h2`font-size: 1.125rem; font-weight: 600; color: var(--dash-heading);`;
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+`;
 const AddButton = styled.button`
   background: linear-gradient(135deg, #06b6d4 0%, var(--dash-primary) 52%, #4f46e5 100%);
   color: #fff; padding: 0.5rem 1rem; border-radius: 0.5rem;
@@ -271,6 +292,94 @@ const MainGrid = styled.div`
 const Panel = styled.div`
   background: var(--dash-surface); padding: 1.5rem; border-radius: 0.875rem;
   border: 1px solid var(--dash-border); box-shadow: var(--dash-soft-shadow);
+`;
+const InvestmentPanel = styled(Panel)`
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+`;
+const InvestmentHead = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--dash-heading);
+
+  strong {
+    display: block;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  span {
+    display: block;
+    color: var(--dash-muted);
+    font-size: 0.82rem;
+    margin-top: 0.15rem;
+  }
+`;
+const InvestmentIcon = styled.div`
+  width: 2.8rem;
+  height: 2.8rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.9rem;
+  font-size: 1.35rem;
+  background: rgba(127, 119, 221, 0.14);
+  color: #7F77DD;
+  box-shadow: inset 0 0 0 1px rgba(127, 119, 221, 0.2);
+`;
+const InvestmentStats = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+`;
+const InvestmentStat = styled.div`
+  padding: 1rem 1.1rem;
+  border-radius: 0.9rem;
+  background: var(--dash-surface-muted);
+  border: 1px solid var(--dash-border);
+
+  span {
+    display: block;
+    font-size: 0.76rem;
+    color: var(--dash-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.45rem;
+  }
+
+  strong {
+    display: block;
+    font-size: 1.35rem;
+    color: var(--dash-heading);
+    letter-spacing: -0.04em;
+  }
+`;
+const InvestmentAction = styled.button`
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.78rem 1rem;
+  border: none;
+  border-radius: 0.8rem;
+  cursor: pointer;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #7F77DD 0%, #5b67ff 100%);
+  box-shadow: 0 14px 28px rgba(127,119,221,0.26);
+  transition: transform .22s ease, filter .22s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.05);
+  }
 `;
 const BudgetPanel = styled(Panel)`display:flex; flex-direction:column; align-items:center;`;
 const CategoryPanel = styled(Panel)`@media(min-width:1024px){ grid-column: span 2; }`;
@@ -340,6 +449,43 @@ const BarFill = styled.div`
 `;
 
 // ==========================================
+// GASTOS FIXOS — ACORDEÃO
+// ==========================================
+const GFPaiRow = styled.div`
+  display:flex; align-items:center; gap:0.875rem; cursor:pointer;
+  padding:0.5rem 0.35rem; border-radius:0.625rem; transition:background 0.15s;
+  &:hover { background:var(--dash-surface-muted); }
+`;
+const GFChevron = styled.span`
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:0.7rem; color:var(--dash-muted); transition:transform 0.3s ease;
+  transform:rotate(${p => p.$open ? '90deg' : '0deg'});
+  flex-shrink:0; width:1rem;
+`;
+const GFFilhosWrap = styled.div`
+  overflow:hidden; transition:max-height 0.3s ease;
+  max-height:${p => p.$open ? '1200px' : '0px'};
+`;
+const GFFilhoRow = styled.div`
+  display:flex; align-items:flex-start; gap:0.75rem;
+  margin-left:24px; padding:0.45rem 0; position:relative;
+  &::before {
+    content:''; position:absolute; left:-12px; top:0; bottom:0;
+    width:1px; background:var(--dash-muted); opacity:0.3;
+  }
+`;
+const GFFilhoIcon = styled.div`
+  width:1.85rem; height:1.85rem; border-radius:50%; background:var(--dash-surface-muted);
+  display:flex; align-items:center; justify-content:center; font-size:0.95rem; flex-shrink:0;
+`;
+const GFFilhoName = styled.p`font-size:0.8125rem; font-weight:600; color:var(--dash-heading); margin-bottom:0.3rem;`;
+const GFBarTrack = styled.div`height:4px; background:var(--dash-border); border-radius:99px; overflow:hidden;`;
+const GFBarFill = styled.div`
+  height:100%; border-radius:99px; transition:width 0.6s ease;
+  width:${p => p.$w}%; background:${p => p.$c};
+`;
+
+// ==========================================
 // TABELA
 // ==========================================
 const TxPanel = styled(Panel)`overflow:hidden; padding:0;`;
@@ -378,6 +524,10 @@ const EmptyBtn = styled.button`
 // ==========================================
 const parseDate = (raw) => {
   if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(raw))) {
+    const [y, m, d] = String(raw).split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
   const d1 = new Date(raw);
   if (!isNaN(d1.getTime())) return d1;
   const parts = String(raw).split('/');
@@ -390,6 +540,7 @@ const parseDate = (raw) => {
 };
 
 const fmt = (v) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+const fmtCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v || 0));
 
 const normalizeAmountMap = (raw) => {
   if (!raw) return {};
@@ -424,6 +575,35 @@ const competenciaHoje = () => {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
 };
 
+const getTransactionRawDate = (transaction) =>
+  transaction?.data ||
+  transaction?.data_hora ||
+  transaction?.createdAt ||
+  transaction?.date ||
+  transaction?.importedAt ||
+  null;
+
+const getTransactionCompetencia = (transaction) => {
+  if (transaction?.competencia) return transaction.competencia;
+
+  const rawDate = String(getTransactionRawDate(transaction) || '');
+  return rawDate.length >= 7 ? rawDate.slice(0, 7) : null;
+};
+
+const sortTransactionsByDateDesc = (left, right) => {
+  const leftValue = parseDate(getTransactionRawDate(left))?.getTime() || 0;
+  const rightValue = parseDate(getTransactionRawDate(right))?.getTime() || 0;
+  return rightValue - leftValue;
+};
+
+const EMPTY_IMPORT_STATE = {
+  banco: null,
+  periodo: { inicio: null, fim: null },
+  transacoes: [],
+  total_transacoes: 0,
+  observacoes: null,
+};
+
 // ==========================================
 // COMPONENTES PUROS
 // ==========================================
@@ -446,11 +626,20 @@ const DonutChart = ({ spent, budget }) => {
   );
 };
 
-const ProgressBar = ({ spent, limit }) => {
+/** Cor progressiva para barras de Gastos Fixos */
+const getBarColorGF = (pct) => {
+  if (pct >= 100) return '#E24B4A';
+  if (pct >= 86)  return '#D85A30';
+  if (pct >= 61)  return '#EF9F27';
+  return '#378ADD';
+};
+
+const ProgressBar = ({ spent, limit, category }) => {
   const has = limit > 0;
   const pct = has ? (spent / limit) * 100 : 0;
   const over = pct > 100;
-  const col = !has ? '#cbd5e1' : over ? '#dc2626' : pct > 75 ? '#eab308' : '#4f46e5';
+  const baseCol = category === 'Investimentos' ? '#7F77DD' : '#4f46e5';
+  const col = !has ? '#cbd5e1' : over ? '#dc2626' : pct > 75 ? '#eab308' : baseCol;
   return (
     <BarWrap>
       <BarInfo $over={over}>
@@ -488,17 +677,32 @@ const DeleteModal = ({ onConfirm, onCancel }) => (
 // ==========================================
 const CAT_ICONS = {
   "Alimentação": "🍔", "Moradia": "🏠", "Transporte": "🚗",
-  "Lazer": "🎉", "Saúde": "💊", "Salário": "💰", "Outros": "📦"
+  "Lazer": "🎉", "Saúde": "💊", "Salário": "💰", "Investimentos": "📈", "Outros": "📦"
 };
 const CATS = Object.keys(CAT_ICONS);
+
+/** Resolve label e ícone para qualquer categoria (normal ou gastos_fixos.*) */
+const resolveCatDisplay = (cat) => {
+  const fixo = resolverGastoFixo(cat);
+  if (fixo) return { label: fixo.label, icon: fixo.icon };
+  return { label: cat, icon: CAT_ICONS[cat] || '📦' };
+};
 
 // ==========================================
 // DASHBOARD
 // ==========================================
-export default function Dashboard() {
+function DashboardContent() {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
   const { isDark, toggleTheme } = useContext(ThemeContext);
+  const {
+    importedTransactions,
+    investimentos,
+    highlightedIds,
+    importTransactionsBatch,
+    removeImportedTransaction,
+    adicionarAporte,
+  } = useFinance();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -518,12 +722,24 @@ export default function Dashboard() {
   // --- modais ---
   const [txModal, setTxModal] = useState(false);
   const [goalModal, setGoalModal] = useState(false);
+  const [importModal, setImportModal] = useState(false);
   const [delConfirm, setDelConfirm] = useState({ open: false, id: null });
+  const [importingExtract, setImportingExtract] = useState(false);
+  const [importingSave, setImportingSave] = useState(false);
+  const [importData, setImportData] = useState(EMPTY_IMPORT_STATE);
 
   // --- formulários ---
   const [txForm, setTxForm] = useState({ tipo: 'despesa', valor: '', descricao: '', categoria: 'Alimentação' });
   const [goalDrafts, setGoalDrafts] = useState({});
   const [newGoal, setNewGoal] = useState({ categoria: 'Alimentação', valor: '' });
+  const [gfDrafts, setGfDrafts] = useState({});
+  const [investmentModal, setInvestmentModal] = useState(false);
+  const [savingInvestment, setSavingInvestment] = useState(false);
+  const [investmentForm, setInvestmentForm] = useState({
+    mes: competenciaHoje(),
+    valor: '',
+    descricao: '',
+  });
 
   // --- toast ---
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -563,9 +779,148 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (goalModal) {
-      setGoalDrafts(toGoalDrafts(limites));
+      // Separar limites normais e gastos fixos
+      const normais = {};
+      const fixos = {};
+      Object.entries(normalizeAmountMap(limites)).forEach(([k, v]) => {
+        if (k.startsWith(GASTOS_FIXOS_PREFIX)) {
+          const subKey = k.slice(GASTOS_FIXOS_PREFIX.length);
+          fixos[subKey] = String(v);
+        } else {
+          normais[k] = String(v);
+        }
+      });
+      setGoalDrafts(normais);
+      // Preencher todas as subcategorias (com 0 como default)
+      const gfInit = {};
+      GASTOS_FIXOS.forEach(({ key }) => { gfInit[key] = String(fixos[key] || '0'); });
+      setGfDrafts(gfInit);
     }
   }, [goalModal, limites]);
+
+  const fetchTransactionsByCompetencia = useCallback(async (competencias = []) => {
+    const unicas = Array.from(new Set(competencias.filter(Boolean)));
+    const respostas = await Promise.all(unicas.map(async (comp) => {
+      try {
+        const { data } = await api.get(`/wallet/extrato/${comp}`);
+        return data?.transacoes || [];
+      } catch (error) {
+        if (error?.response?.status === 404) return [];
+        throw error;
+      }
+    }));
+
+    return respostas.flat();
+  }, []);
+
+  const closeImportModal = () => {
+    setImportModal(false);
+    setImportData(EMPTY_IMPORT_STATE);
+  };
+
+  const handleImportFile = async (file) => {
+    setImportingExtract(true);
+
+    try {
+      const textoExtraido = await extractTextFromPdf(file);
+      const parsed = await parseBankStatement(textoExtraido);
+      const transacoesPreparadas = prepararTransacoesImportadas(parsed.transacoes);
+
+      if (!transacoesPreparadas.length) {
+        throw new Error('Nenhuma transação identificada neste extrato');
+      }
+
+      const competenciasExtrato = transacoesPreparadas
+        .map((transaction) => transaction.data?.slice(0, 7))
+        .filter(Boolean);
+
+      const transacoesServidor = await fetchTransactionsByCompetencia(competenciasExtrato);
+      const transacoesImportadas = importedTransactions.filter((transaction) =>
+        competenciasExtrato.includes(getTransactionCompetencia(transaction)),
+      );
+
+      const chavesExistentes = new Set(
+        [...transacoesServidor, ...transacoesImportadas].map((transaction) =>
+          gerarChaveTransacao({
+            data: String(getTransactionRawDate(transaction) || '').slice(0, 10),
+            valor: transaction.valor,
+            descricao: transaction.descricao,
+          }),
+        ),
+      );
+
+      const chavesNoArquivo = new Set();
+      const transacoesComDeduplicacao = transacoesPreparadas.map((transaction) => {
+        const chave = gerarChaveTransacao(transaction);
+        const duplicada = chavesExistentes.has(chave) || chavesNoArquivo.has(chave);
+        chavesNoArquivo.add(chave);
+
+        return {
+          ...transaction,
+          duplicada,
+          avisoDuplicata: duplicada ? 'Possível duplicata' : null,
+        };
+      });
+
+      setImportData({
+        ...parsed,
+        total_transacoes: transacoesComDeduplicacao.length,
+        transacoes: transacoesComDeduplicacao,
+      });
+      setImportModal(true);
+    } catch (error) {
+      notify(error?.message || 'Erro ao importar extrato', 'error');
+    } finally {
+      setImportingExtract(false);
+    }
+  };
+
+  const handleImportCategoryChange = (idLocal, categoria) => {
+    setImportData((current) => ({
+      ...current,
+      transacoes: current.transacoes.map((transaction) =>
+        transaction.idLocal === idLocal ? { ...transaction, categoria } : transaction,
+      ),
+    }));
+  };
+
+  const handleToggleImportedSelection = (idLocal) => {
+    setImportData((current) => ({
+      ...current,
+      transacoes: current.transacoes.map((transaction) =>
+        transaction.idLocal === idLocal
+          ? { ...transaction, incluir: !transaction.incluir }
+          : transaction,
+      ),
+    }));
+  };
+
+  const handleConfirmImport = async () => {
+    const selecionadas = importData.transacoes.filter((transaction) => transaction.incluir);
+
+    if (!selecionadas.length) {
+      notify('Selecione ao menos uma transação para importar', 'error');
+      return;
+    }
+
+    setImportingSave(true);
+
+    try {
+      const adicionadas = await importTransactionsBatch(
+        selecionadas.map((transaction) => ({
+          ...transaction,
+          competencia: transaction.data?.slice(0, 7) || competencia || competenciaHoje(),
+        })),
+      );
+
+      closeImportModal();
+      notify(`${adicionadas.length} transações importadas com sucesso`);
+    } catch (error) {
+      notify('Não foi possível salvar as transações importadas', 'error');
+    } finally {
+      setImportingSave(false);
+    }
+  };
 
   // ==========================================
   // SALVAR TRANSAÇÃO
@@ -599,7 +954,15 @@ export default function Dashboard() {
   // EXCLUIR TRANSAÇÃO — REMOÇÃO OTIMISTA
   // Remove da tela imediatamente, sincroniza com backend depois
   // ==========================================
-  const requestDelete = (id) => setDelConfirm({ open: true, id });
+  const requestDelete = (transaction) => {
+    if (transaction?.isImported) {
+      removeImportedTransaction(transaction._id);
+      notify('Transação importada removida!');
+      return;
+    }
+
+    setDelConfirm({ open: true, id: transaction?._id });
+  };
 
   const confirmDelete = async () => {
     const id = delConfirm.id;
@@ -686,16 +1049,62 @@ export default function Dashboard() {
     let final = sanitizeGoalDrafts(goalDrafts);
     if (newGoal.valor && Number(newGoal.valor) > 0)
       final[newGoal.categoria] = Number(newGoal.valor);
+    // Mesclar metas de gastos fixos com prefixo
+    Object.entries(gfDrafts).forEach(([key, val]) => {
+      const num = Number(val);
+      if (Number.isFinite(num) && num > 0) {
+        final[GASTOS_FIXOS_PREFIX + key] = num;
+      }
+    });
     await persistLimites(final);
     setGoalModal(false);
     setNewGoal({ categoria: 'Alimentação', valor: '' });
     notify("Metas atualizadas!");
   };
 
+  const resetInvestmentForm = () => {
+    setInvestmentForm({
+      mes: competenciaHoje(),
+      valor: '',
+      descricao: '',
+    });
+  };
+
+  const openInvestmentModal = () => {
+    resetInvestmentForm();
+    setInvestmentModal(true);
+  };
+
+  const handleSaveInvestment = async () => {
+    if (!investmentForm.valor || Number(investmentForm.valor) <= 0) {
+      notify('Informe um valor válido para o aporte', 'error');
+      return;
+    }
+
+    setSavingInvestment(true);
+    try {
+      adicionarAporte(investmentForm.mes, Number(investmentForm.valor), investmentForm.descricao);
+      setInvestmentModal(false);
+      resetInvestmentForm();
+      notify('Aporte registrado com sucesso!');
+    } catch (error) {
+      notify(error?.message || 'Não foi possível registrar o aporte', 'error');
+    } finally {
+      setSavingInvestment(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
+
+  const mesAtualInvestimentos = competenciaHoje();
+
+  const importedCurrentTransactions = useMemo(
+    () => [...importedTransactions].sort(sortTransactionsByDateDesc),
+    [importedTransactions],
+  );
 
   // ==========================================
   // DADOS DERIVADOS
@@ -707,16 +1116,114 @@ export default function Dashboard() {
     if (tx.tipo === 'despesa')
       fallbackGastos[tx.categoria] = (fallbackGastos[tx.categoria] || 0) + Number(tx.valor || 0);
   });
-  const gastosAtuais = Object.keys(gastos).length > 0 ? gastos : fallbackGastos;
+  const gastosAtuais = useMemo(() => {
+    const base = { ...(Object.keys(gastos).length > 0 ? gastos : fallbackGastos) };
+
+    importedCurrentTransactions.forEach((transaction) => {
+      if (transaction.tipo === 'despesa') {
+        base[transaction.categoria] = (base[transaction.categoria] || 0) + Number(transaction.valor || 0);
+      }
+    });
+
+    return base;
+  }, [fallbackGastos, gastos, importedCurrentTransactions]);
+
+  const resumoImportado = useMemo(() => importedCurrentTransactions.reduce((acc, transaction) => {
+    const valor = Number(transaction.valor || 0);
+
+    if (transaction.tipo === 'receita') acc.total_receitas += valor;
+    else acc.total_despesas += valor;
+
+    return acc;
+  }, { total_receitas: 0, total_despesas: 0 }), [importedCurrentTransactions]);
+
+  const resumoAtual = useMemo(() => ({
+    saldo_atual: Number(resumo.saldo_atual || 0) + resumoImportado.total_receitas - resumoImportado.total_despesas,
+    total_receitas: Number(resumo.total_receitas || 0) + resumoImportado.total_receitas,
+    total_despesas: Number(resumo.total_despesas || 0) + resumoImportado.total_despesas,
+  }), [resumo, resumoImportado]);
+
+  const tabelaTransacoes = useMemo(
+    () => [...importedCurrentTransactions, ...transactions].sort(sortTransactionsByDateDesc),
+    [importedCurrentTransactions, transactions],
+  );
 
   const todasCategorias = Array.from(new Set([
     ...Object.keys(gastosAtuais),
     ...Object.keys(limites)
-  ])).filter(c => c !== 'Salário' && c !== 'Receita');
+  ])).filter(c => c !== 'Salário' && c !== 'Receita' && !String(c).startsWith(GASTOS_FIXOS_PREFIX));
+
+  // ==== GASTOS FIXOS — dados derivados ====
+  const gfGastos = useMemo(() => {
+    const result = {};
+    GASTOS_FIXOS.forEach(({ key }) => {
+      const catKey = GASTOS_FIXOS_PREFIX + key;
+      result[key] = Number(gastosAtuais[catKey] || 0);
+    });
+    return result;
+  }, [gastosAtuais]);
+
+  const gfMetas = useMemo(() => {
+    const result = {};
+    GASTOS_FIXOS.forEach(({ key }) => {
+      result[key] = Number(limites[GASTOS_FIXOS_PREFIX + key] || 0);
+    });
+    return result;
+  }, [limites]);
+
+  const gfTotalGasto = useMemo(() => Object.values(gfGastos).reduce((a, b) => a + b, 0), [gfGastos]);
+  const gfTotalMeta = useMemo(() => {
+    // Só soma metas > 0 (filhas sem meta não entram)
+    return GASTOS_FIXOS.reduce((acc, { key }) => {
+      const meta = gfMetas[key];
+      return meta > 0 ? acc + meta : acc;
+    }, 0);
+  }, [gfMetas]);
+  const gfTotalPct = gfTotalMeta > 0 ? (gfTotalGasto / gfTotalMeta) * 100 : -1; // -1 = sem meta
+
+  // Acordeão: estado + auto-abertura se alerta
+  const [gastosFixosAberto, setGastosFixosAberto] = useState(() => {
+    try {
+      const saved = localStorage.getItem('webwallet_gastosfixos_aberto');
+      if (saved !== null) return saved === 'true';
+    } catch {}
+    return false;
+  });
+
+  // Auto-abrir se alguma filha >= 85%
+  useEffect(() => {
+    const alerta = GASTOS_FIXOS.some(({ key }) => {
+      const meta = gfMetas[key];
+      if (meta <= 0) return false;
+      return (gfGastos[key] / meta) * 100 >= 85;
+    });
+    if (alerta) {
+      setGastosFixosAberto(true);
+      try { localStorage.setItem('webwallet_gastosfixos_aberto', 'true'); } catch {}
+    }
+  }, [gfGastos, gfMetas]);
+
+  const toggleGastosFixos = useCallback(() => {
+    setGastosFixosAberto(prev => {
+      const next = !prev;
+      try { localStorage.setItem('webwallet_gastosfixos_aberto', String(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   const totalOrcamento = Object.values(limites).reduce((a, b) => a + Number(b), 0);
-  const totalDespesas = resumo.total_despesas || 0;
+  const totalDespesas = resumoAtual.total_despesas || 0;
   const acima = totalOrcamento > 0 && totalDespesas > totalOrcamento;
+  const totalInvestido = useMemo(
+    () => investimentos.reduce((acc, investimento) => acc + Number(investimento.valor || 0), 0),
+    [investimentos],
+  );
+  const aporteMesAtual = useMemo(
+    () => investimentos
+      .filter((investimento) => investimento.mes === mesAtualInvestimentos)
+      .reduce((acc, investimento) => acc + Number(investimento.valor || 0), 0),
+    [investimentos, mesAtualInvestimentos],
+  );
 
   // ==========================================
   // LOADING
@@ -783,6 +1290,11 @@ export default function Dashboard() {
               <label>Categoria</label>
               <select value={txForm.categoria} onChange={e => setTxForm({ ...txForm, categoria: e.target.value })}>
                 {CATS.map(c => <option key={c} value={c}>{CAT_ICONS[c]} {c}</option>)}
+                <optgroup label="── Gastos Fixos ──">
+                  {GASTOS_FIXOS.map(({ key, label, icon }) => (
+                    <option key={key} value={GASTOS_FIXOS_PREFIX + key}>{icon} {label}</option>
+                  ))}
+                </optgroup>
               </select>
             </FormGroup>
             <ModalFooter>
@@ -828,6 +1340,28 @@ export default function Dashboard() {
               }
             </div>
 
+            {/* Seção Gastos Fixos */}
+            <div style={{ borderTop: '1px solid var(--dash-border)', paddingTop: '1rem', marginBottom: '1.25rem' }}>
+              <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--dash-muted-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                🔗 Gastos Fixos
+              </p>
+              {GASTOS_FIXOS.map(({ key, label, icon }) => (
+                <GoalItem key={key}>
+                  <div className="goal-info">
+                    <span>{icon} <strong>{label}</strong></span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={gfDrafts[key] || '0'}
+                      onChange={e => setGfDrafts(prev => ({ ...prev, [key]: e.target.value }))}
+                      aria-label={`Meta de ${label}`}
+                    />
+                  </div>
+                </GoalItem>
+              ))}
+            </div>
+
             <div style={{ borderTop: '1px solid var(--dash-border)', paddingTop: '1rem' }}>
               <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--dash-muted-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
                 Adicionar nova meta
@@ -866,14 +1400,84 @@ export default function Dashboard() {
         </ModalOverlay>
       )}
 
+      {investmentModal && (
+        <ModalOverlay onClick={e => {
+          if (e.target === e.currentTarget) {
+            setInvestmentModal(false);
+            resetInvestmentForm();
+          }
+        }}>
+          <ModalContent $sm>
+            <ModalHeader>
+              <h3>Registrar aporte</h3>
+              <button onClick={() => {
+                setInvestmentModal(false);
+                resetInvestmentForm();
+              }}><X size={18} /></button>
+            </ModalHeader>
+            <FormGroup>
+              <label>Mês/Ano</label>
+              <input
+                type="month"
+                value={investmentForm.mes}
+                onChange={e => setInvestmentForm({ ...investmentForm, mes: e.target.value })}
+              />
+            </FormGroup>
+            <FormGroup>
+              <label>Valor</label>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                placeholder="0,00"
+                value={investmentForm.valor}
+                onChange={e => setInvestmentForm({ ...investmentForm, valor: e.target.value })}
+              />
+            </FormGroup>
+            <FormGroup>
+              <label>Descrição</label>
+              <input
+                type="text"
+                placeholder="Ex: CDB, Ações"
+                value={investmentForm.descricao}
+                onChange={e => setInvestmentForm({ ...investmentForm, descricao: e.target.value })}
+              />
+            </FormGroup>
+            <ModalFooter>
+              <button className="cancel" onClick={() => {
+                setInvestmentModal(false);
+                resetInvestmentForm();
+              }} disabled={savingInvestment}>Cancelar</button>
+              <button className="save" onClick={handleSaveInvestment} disabled={savingInvestment}>
+                {savingInvestment ? 'Salvando...' : 'Salvar'}
+              </button>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      <ImportModal
+        open={importModal}
+        parsedData={importData}
+        categories={CATEGORIAS_IMPORTACAO}
+        saving={importingSave}
+        onClose={closeImportModal}
+        onConfirm={handleConfirmImport}
+        onChangeCategory={handleImportCategoryChange}
+        onToggleInclude={handleToggleImportedSelection}
+      />
+
       {/* SIDEBAR */}
       <Sidebar>
         <LogoArea><Wallet size={22} /> Web-Wallet</LogoArea>
         <NavMenu>
-          <NavItem $active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')}>
+          <NavItem $active={activeTab === 'dashboard'} onClick={() => {
+            setActiveTab('dashboard');
+            navigate('/dashboard');
+          }}>
             <Home size={17} /> Dashboard
           </NavItem>
-          <NavItem onClick={() => notify('Relatórios em breve!', 'error')}>
+          <NavItem onClick={() => navigate('/relatorios')}>
             <FileText size={17} /> Relatórios
           </NavItem>
           <NavItem onClick={() => notify('Configurações em breve!', 'error')}>
@@ -885,8 +1489,8 @@ export default function Dashboard() {
             <ThemeToggleMeta>
               {isDark ? <Moon size={18} color="#60a5fa" /> : <SunMedium size={18} color="#2563eb" />}
               <div>
-                <strong>Tema fintech</strong>
-                <span>{isDark ? 'Escuro azul tecnológico' : 'Claro clean'}</span>
+                <strong>Mode</strong>
+                <span>{isDark ? 'Dark Mode' : 'Light Mode'}</span>
               </div>
             </ThemeToggleMeta>
             <SwitchTrack $on={isDark} $dark={isDark}>
@@ -906,9 +1510,16 @@ export default function Dashboard() {
       <MainContent>
         <Header>
           <HeaderTitle>Visão Geral</HeaderTitle>
-          <AddButton onClick={() => setTxModal(true)}>
-            <Plus size={15} /> Nova Transação
-          </AddButton>
+          <HeaderActions>
+            <ImportButton
+              loading={importingExtract}
+              onSelectFile={handleImportFile}
+              onError={(message) => notify(message, 'error')}
+            />
+            <AddButton onClick={() => setTxModal(true)}>
+              <Plus size={15} /> Nova Transação
+            </AddButton>
+          </HeaderActions>
         </Header>
 
         <ContentArea>
@@ -921,23 +1532,51 @@ export default function Dashboard() {
                   <h3>Receitas</h3>
                   <IconBox $t="in"><ArrowUpCircle size={18} /></IconBox>
                 </KpiHeader>
-                <KpiVal>R$ {fmt(resumo.total_receitas)}</KpiVal>
+                <KpiVal>R$ {fmt(resumoAtual.total_receitas)}</KpiVal>
               </KpiCard>
               <KpiCard>
                 <KpiHeader>
                   <h3>Despesas</h3>
                   <IconBox $t="out"><ArrowDownCircle size={18} /></IconBox>
                 </KpiHeader>
-                <KpiVal>R$ {fmt(resumo.total_despesas)}</KpiVal>
+                <KpiVal>R$ {fmt(resumoAtual.total_despesas)}</KpiVal>
               </KpiCard>
               <HighlightCard>
                 <HiHeader>
                   <h3>Saldo Atual</h3>
                   <IconBox $t="bal"><Wallet size={18} /></IconBox>
                 </HiHeader>
-                <HiVal>R$ {fmt(resumo.saldo_atual)}</HiVal>
+                <HiVal>R$ {fmt(resumoAtual.saldo_atual)}</HiVal>
               </HighlightCard>
             </KpiGrid>
+
+            <InvestmentPanel>
+              <InvestmentHead>
+                <InvestmentIcon>📈</InvestmentIcon>
+                <div>
+                  <strong>Investimentos</strong>
+                  <span>Aportes acumulados para acompanhar sua evolução patrimonial.</span>
+                </div>
+              </InvestmentHead>
+
+              <InvestmentStats>
+                <InvestmentStat>
+                  <span>Total acumulado</span>
+                  <strong>{fmtCurrency(totalInvestido)}</strong>
+                </InvestmentStat>
+                <InvestmentStat>
+                  <span>Aporte este mês</span>
+                  <strong>{fmtCurrency(aporteMesAtual)}</strong>
+                </InvestmentStat>
+              </InvestmentStats>
+
+              <InvestmentAction onClick={openInvestmentModal}>
+                <Plus size={16} />
+                Registrar aporte
+              </InvestmentAction>
+            </InvestmentPanel>
+
+            {/* TODO: gráfico cumulativo e tabela de aportes → src/pages/Relatorios.jsx */}
 
             {/* ORÇAMENTO + CATEGORIAS */}
             <MainGrid>
@@ -964,7 +1603,66 @@ export default function Dashboard() {
                   </TextLink>
                 </PanelHeader>
                 <CatList>
-                  {todasCategorias.length === 0
+                  {/* GASTOS FIXOS — grupo expansível */}
+                  <div>
+                    <GFPaiRow onClick={toggleGastosFixos}>
+                      <CatIcon>🔗</CatIcon>
+                      <div style={{ flex: 1, paddingTop: '0.2rem' }}>
+                        <CatName>Gastos Fixos</CatName>
+                        <BarWrap>
+                          <BarInfo $over={gfTotalPct > 100}>
+                            <span>
+                              R$ {fmt(gfTotalGasto)}
+                              {gfTotalMeta > 0 && <span style={{ color: 'var(--dash-muted)' }}> / R$ {fmt(gfTotalMeta)}</span>}
+                            </span>
+                            <span>{gfTotalPct < 0 ? '—' : `${Math.min(gfTotalPct, 999).toFixed(0)}%`}</span>
+                          </BarInfo>
+                          <BarTrack>
+                            <BarFill
+                              $w={gfTotalPct < 0 ? 100 : Math.min(gfTotalPct, 100)}
+                              $c={gfTotalPct < 0 ? '#cbd5e1' : getBarColorGF(gfTotalPct)}
+                            />
+                          </BarTrack>
+                        </BarWrap>
+                      </div>
+                      <GFChevron $open={gastosFixosAberto}>▶</GFChevron>
+                    </GFPaiRow>
+
+                    <GFFilhosWrap $open={gastosFixosAberto}>
+                      {GASTOS_FIXOS.map(({ key, label, icon }) => {
+                        const gasto = gfGastos[key];
+                        const meta = gfMetas[key];
+                        const hasMeta = meta > 0;
+                        const pct = hasMeta ? (gasto / meta) * 100 : 0;
+                        return (
+                          <GFFilhoRow key={key}>
+                            <GFFilhoIcon>{icon}</GFFilhoIcon>
+                            <div style={{ flex: 1, paddingTop: '0.15rem' }}>
+                              <GFFilhoName>{label}</GFFilhoName>
+                              <BarWrap>
+                                <BarInfo $over={pct > 100} style={{ fontSize: '0.7rem' }}>
+                                  <span style={{ fontSize: '0.7rem' }}>
+                                    R$ {fmt(gasto)}
+                                    {hasMeta && <span style={{ color: 'var(--dash-muted)' }}> / R$ {fmt(meta)}</span>}
+                                  </span>
+                                  <span style={{ fontSize: '0.7rem' }}>{hasMeta ? `${Math.min(pct, 999).toFixed(0)}%` : 'Sem meta'}</span>
+                                </BarInfo>
+                                <GFBarTrack>
+                                  <GFBarFill
+                                    $w={hasMeta ? Math.min(pct, 100) : 100}
+                                    $c={!hasMeta ? '#cbd5e1' : getBarColorGF(pct)}
+                                  />
+                                </GFBarTrack>
+                              </BarWrap>
+                            </div>
+                          </GFFilhoRow>
+                        );
+                      })}
+                    </GFFilhosWrap>
+                  </div>
+
+                  {/* Categorias normais */}
+                  {todasCategorias.length === 0 && gfTotalGasto === 0
                     ? <p style={{ fontSize: '0.875rem', color: 'var(--dash-muted)', textAlign: 'center', padding: '1rem 0' }}>
                       Nenhuma transação ou meta registrada.
                     </p>
@@ -976,6 +1674,7 @@ export default function Dashboard() {
                           <ProgressBar
                             spent={Number(gastosAtuais[cat] || 0)}
                             limit={Number(limites[cat] || 0)}
+                            category={cat}
                           />
                         </div>
                       </CatRow>
@@ -996,7 +1695,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.length === 0 ? (
+                  {tabelaTransacoes.length === 0 ? (
                     <tr>
                       <EmptyRow colSpan={5}>
                         Nenhuma transação registrada neste mês.
@@ -1005,21 +1704,35 @@ export default function Dashboard() {
                         </EmptyBtn>
                       </EmptyRow>
                     </tr>
-                  ) : transactions.map(tx => {
-                    const raw = tx.data || tx.createdAt || tx.date;
+                  ) : tabelaTransacoes.map(tx => {
+                    const raw = getTransactionRawDate(tx);
                     const dt = parseDate(raw);
                     const dStr = dt ? dt.toLocaleDateString('pt-BR') : '—';
                     const isIn = tx.tipo === 'receita';
+                    const highlighted = highlightedIds.includes(tx._id);
                     return (
-                      <tr key={tx._id}>
-                        <td style={{ fontWeight: 500 }}>{tx.descricao}</td>
-                        <TdMuted>{CAT_ICONS[tx.categoria] || '📦'} {tx.categoria}</TdMuted>
+                      <tr
+                        key={tx._id}
+                        style={highlighted ? {
+                          background: 'rgba(59,130,246,0.10)',
+                          boxShadow: 'inset 0 0 0 1px var(--dash-primary)',
+                        } : undefined}
+                      >
+                        <td style={{ fontWeight: 500 }}>
+                          {tx.descricao}
+                          {tx.isImported && (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--dash-primary)', marginTop: '0.2rem', fontWeight: 700 }}>
+                              Importada via PDF
+                            </div>
+                          )}
+                        </td>
+                        <TdMuted>{resolveCatDisplay(tx.categoria).icon} {resolveCatDisplay(tx.categoria).label}</TdMuted>
                         <TdMuted>{dStr}</TdMuted>
                         <td style={{ color: isIn ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
                           {isIn ? '+' : '-'} R$ {fmt(tx.valor)}
                         </td>
                         <td>
-                          <DelBtn onClick={() => requestDelete(tx._id)} title="Excluir">
+                          <DelBtn onClick={() => requestDelete(tx)} title="Excluir">
                             <Trash2 size={14} />
                           </DelBtn>
                         </td>
@@ -1035,4 +1748,8 @@ export default function Dashboard() {
       </MainContent>
     </AppContainer>
   );
+}
+
+export default function Dashboard() {
+  return <DashboardContent />;
 }
