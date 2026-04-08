@@ -13,6 +13,8 @@ export const CATEGORIAS_IMPORTACAO = [
   'gastos_fixos.internet',
   'gastos_fixos.celular',
   'gastos_fixos.gas',
+  'gastos_fixos.cartaoCredito',
+  'gastos_fixos.assinaturasIA',
   'gastos_fixos.streaming',
   'gastos_fixos.planoSaude',
   'gastos_fixos.seguroCarro',

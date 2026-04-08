@@ -1,6 +1,7 @@
 import React from 'react';
 import styled, { css } from 'styled-components';
 import { AlertTriangle } from 'lucide-react';
+import { GASTOS_FIXOS, GASTOS_FIXOS_PREFIX } from '../constants/gastosFixos';
 
 const Row = styled.div`
   display: grid;
@@ -170,11 +171,20 @@ export default function TransacaoCategorizavel({
         value={transaction.categoria}
         onChange={(event) => onChangeCategory(transaction.idLocal, event.target.value)}
       >
-        {categories.map((categoria) => (
-          <option key={categoria} value={categoria}>
-            {categoria}
-          </option>
-        ))}
+        {categories
+          .filter((categoria) => !String(categoria).startsWith(GASTOS_FIXOS_PREFIX))
+          .map((categoria) => (
+            <option key={categoria} value={categoria}>
+              {categoria}
+            </option>
+          ))}
+        <optgroup label="── Gastos Fixos ──">
+          {GASTOS_FIXOS.map((item) => (
+            <option key={item.key} value={GASTOS_FIXOS_PREFIX + item.key}>
+              {item.label}
+            </option>
+          ))}
+        </optgroup>
       </Select>
 
       <ToggleButton
