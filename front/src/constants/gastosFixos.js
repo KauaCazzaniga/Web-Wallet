@@ -10,6 +10,8 @@ export const GASTOS_FIXOS = [
   { key: 'celular',     label: 'Celular',                 icon: '📱' },
   { key: 'gas',         label: 'Gás',                     icon: '🔥' },
   { key: 'streaming',   label: 'Streaming',               icon: '📺' },
+  { key: 'cartaoCredito', label: 'Cartão de crédito',       icon: '💳' },
+  { key: 'assinaturasIA', label: 'Assinaturas de IA',       icon: '🤖' },
   { key: 'planoSaude',  label: 'Plano de saúde',          icon: '🏥' },
   { key: 'seguroCarro', label: 'Seguro do carro',         icon: '🚗' },
   { key: 'condominio',  label: 'Condomínio',              icon: '📦' },
