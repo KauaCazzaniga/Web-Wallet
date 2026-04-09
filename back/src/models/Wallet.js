@@ -7,6 +7,7 @@ const transacaoSchema = new mongoose.Schema({
     valor: { type: Number, required: true },
     descricao: { type: String, required: true },
     tags: [{ type: String }],
+    importadoViaPdf: { type: Boolean, default: false },
     deletadoEm: { type: Date, default: null }
 });
 

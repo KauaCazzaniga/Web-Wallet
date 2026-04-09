@@ -5,7 +5,7 @@ import { GASTOS_FIXOS, GASTOS_FIXOS_PREFIX } from '../constants/gastosFixos';
 
 const Row = styled.div`
   display: grid;
-  grid-template-columns: 110px minmax(0, 1fr) 130px 180px 110px;
+  grid-template-columns: 110px minmax(0, 1fr) 130px 140px 180px 110px;
   gap: 0.9rem;
   align-items: center;
   padding: 0.95rem 1rem;
@@ -142,6 +142,7 @@ export default function TransacaoCategorizavel({
   transaction,
   categories,
   onChangeCategory,
+  onChangeType,
   onToggleInclude,
 }) {
   return (
@@ -166,6 +167,14 @@ export default function TransacaoCategorizavel({
           </DuplicateBadge>
         )}
       </MetaColumn>
+
+      <Select
+        value={transaction.tipo}
+        onChange={(event) => onChangeType(transaction.idLocal, event.target.value)}
+      >
+        <option value="receita">Entrada</option>
+        <option value="despesa">Saída</option>
+      </Select>
 
       <Select
         value={transaction.categoria}

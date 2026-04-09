@@ -7,11 +7,12 @@ import { ThemeContext } from '../contexts/ThemeContext';
 import { useFinance } from '../context/FinanceContext';
 import ImportButton from '../components/ImportButton';
 import ImportModal from '../components/ImportModal';
+import GerenciarMetas from '../components/GerenciarMetas';
 import { extractTextFromPdf } from '../utils/pdfExtractor';
 import { parseBankStatement } from '../utils/geminiParser';
 import {
   GASTOS_FIXOS, GASTOS_FIXOS_PREFIX, GASTOS_FIXOS_MAP,
-  resolverGastoFixo, labelCategoria, iconeCategoria,
+  resolverGastoFixo,
 } from '../constants/gastosFixos';
 import {
   CATEGORIAS_IMPORTACAO,
@@ -20,7 +21,7 @@ import {
 } from '../utils/categorizador';
 import {
   Home, ArrowUpCircle, ArrowDownCircle, Wallet,
-  Plus, AlertTriangle, X, Trash2, Settings, FileText, CheckCircle, LogOut, Moon, SunMedium, Sparkles
+  Plus, AlertTriangle, X, Trash2, Settings, FileText, CheckCircle, LogOut, Moon, SunMedium
 } from "lucide-react";
 
 // ==========================================
@@ -242,6 +243,49 @@ const AddButton = styled.button`
   &:hover { filter: brightness(1.05); }
   svg { transition: transform 0.2s ease, filter 0.2s ease; }
   &:hover svg { transform: translateY(-2px) scale(1.08); filter: brightness(1.15); }
+`;
+const MonthSelectorWrap = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+const MonthSelect = styled.select`
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0.5rem 2.25rem 0.5rem 0.875rem;
+  border: 1px solid var(--dash-border);
+  border-radius: 0.65rem;
+  background-color: var(--dash-surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2389a0c7' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  color: var(--dash-heading);
+  font-size: 0.875rem;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  box-shadow: var(--dash-soft-shadow);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  min-width: 13rem;
+  &:focus {
+    border-color: var(--dash-primary);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.14);
+  }
+  option { font-weight: 400; background: var(--dash-surface); color: var(--dash-heading); }
+`;
+const MesBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.65rem;
+  border-radius: 99px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: ${p => p.$hoje ? 'var(--dash-primary-soft)' : p.$dark ? 'rgba(120,80,0,0.25)' : '#fef3c7'};
+  border: 1px solid ${p => p.$hoje ? 'var(--dash-primary)' : p.$dark ? 'rgba(251,191,36,0.35)' : '#fcd34d'};
+  color: ${p => p.$hoje ? 'var(--dash-primary)' : p.$dark ? '#fcd34d' : '#92400e'};
 `;
 const ContentArea = styled.div`flex: 1; padding: 1.75rem; overflow-y: auto;`;
 const ContentWrapper = styled.div`
@@ -518,7 +562,48 @@ const EmptyBtn = styled.button`
   cursor:pointer; font-weight:500; font-size:0.875rem; display:block; margin-inline:auto;
   &:hover { text-decoration:underline; }
 `;
+const PaginacaoBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--dash-border);
+  background: var(--dash-table-head);
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+const PaginacaoInfo = styled.span`
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+`;
+const PaginacaoBtns = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+`;
+const PagBtn = styled.button`
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--dash-border);
+  border-radius: 0.45rem;
+  background: ${p => p.$active ? 'var(--dash-primary)' : 'var(--dash-surface)'};
+  color: ${p => p.$active ? '#fff' : 'var(--dash-heading)'};
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  &:disabled { opacity: 0.35; cursor: default; }
+  &:not(:disabled):hover { border-color: var(--dash-primary); color: ${p => p.$active ? '#fff' : 'var(--dash-primary)'}; }
+`;
 
+// ==========================================
+// MÊS SELECIONADO — seletor + badge
+// ==========================================
+const HistoricBadge = styled.div`
+  padding: 0.6rem 1rem; border-radius: 0.625rem; text-align: center; font-size: 0.75rem; font-weight: 500;
+  background: ${p => p.$dark ? 'rgba(120,80,0,0.25)' : '#fef3c7'};
+  border: 1px solid ${p => p.$dark ? 'rgba(251,191,36,0.35)' : '#fcd34d'};
+  color: ${p => p.$dark ? '#fcd34d' : '#92400e'};
+`;
 // ==========================================
 // UTILITÁRIOS
 // ==========================================
@@ -541,34 +626,13 @@ const parseDate = (raw) => {
 
 const fmt = (v) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 const fmtCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v || 0));
-
-const normalizeAmountMap = (raw) => {
-  if (!raw) return {};
-  const entries = raw instanceof Map
-    ? Array.from(raw.entries())
-    : Array.isArray(raw)
-      ? raw
-      : Object.entries(raw);
-
-  return entries.reduce((acc, [key, value]) => {
-    if (!key) return acc;
-    const numericValue = Number(value);
-    acc[key] = Number.isFinite(numericValue) ? numericValue : 0;
-    return acc;
-  }, {});
+const formatarCompetencia = (comp) => {
+  const [y, m] = String(comp).split('-').map(Number);
+  const d = new Date(y, m - 1, 1);
+  const s = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(d);
+  return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
-const toGoalDrafts = (raw) => Object.fromEntries(
-  Object.entries(normalizeAmountMap(raw)).map(([key, value]) => [key, String(value)])
-);
-
-const sanitizeGoalDrafts = (raw) => Object.entries(raw || {}).reduce((acc, [key, value]) => {
-  const numericValue = Number(value);
-  if (key && Number.isFinite(numericValue) && numericValue > 0) {
-    acc[key] = numericValue;
-  }
-  return acc;
-}, {});
 
 const competenciaHoje = () => {
   const n = new Date();
@@ -602,6 +666,15 @@ const EMPTY_IMPORT_STATE = {
   transacoes: [],
   total_transacoes: 0,
   observacoes: null,
+};
+
+const ITEMS_POR_PAGINA = 15;
+
+const EMPTY_RESUMO_MES = {
+  saldo_inicial: 0,
+  total_receitas: 0,
+  total_despesas: 0,
+  saldo_atual: 0,
 };
 
 // ==========================================
@@ -672,6 +745,24 @@ const DeleteModal = ({ onConfirm, onCancel }) => (
   </ModalOverlay>
 );
 
+const ConfirmActionModal = ({ title, message, confirmLabel, onConfirm, onCancel }) => (
+  <ModalOverlay>
+    <ModalContent $sm>
+      <ModalHeader>
+        <h3>{title}</h3>
+        <button onClick={onCancel}><X size={18} /></button>
+      </ModalHeader>
+      <p style={{ fontSize: '0.875rem', color: 'var(--dash-text)', lineHeight: 1.6, marginBottom: '0.5rem' }}>
+        {message} <strong style={{ color: 'var(--dash-heading)' }}>Esta ação não pode ser desfeita.</strong>
+      </p>
+      <ModalFooter>
+        <button className="cancel" onClick={onCancel}>Cancelar</button>
+        <button className="danger" onClick={onConfirm}>{confirmLabel}</button>
+      </ModalFooter>
+    </ModalContent>
+  </ModalOverlay>
+);
+
 // ==========================================
 // CONSTANTES
 // ==========================================
@@ -696,43 +787,34 @@ function DashboardContent() {
   const { logout } = useContext(AuthContext);
   const { isDark, toggleTheme } = useContext(ThemeContext);
   const {
-    importedTransactions,
     investimentos,
     highlightedIds,
+    legacyImportedTransactions,
+    metas,
+    gastosFixosMetas,
     importTransactionsBatch,
-    removeImportedTransaction,
     adicionarAporte,
+    clearLegacyImportedTransactions,
   } = useFinance();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // --- Dados do servidor ---
-  const [resumo, setResumo] = useState({ saldo_atual: 0, total_receitas: 0, total_despesas: 0 });
   const [transactions, setTransactions] = useState([]);  // estado próprio para remoção otimista
-  const [gastos, setGastos] = useState({});
-  const [competencia, setCompetencia] = useState(competenciaHoje());
-
-  // --- limites em estado SEPARADO e INDEPENDENTE ---
-  // Regra: só é sobrescrito pelo backend na primeira carga (limitesLoaded=false).
-  // Depois disso, apenas ações do usuário alteram esse estado.
-  const [limites, setLimites] = useState({});
-  const [limitesLoaded, setLimitesLoaded] = useState(false);
+  const [resumoMes, setResumoMes] = useState(EMPTY_RESUMO_MES);
 
   // --- modais ---
   const [txModal, setTxModal] = useState(false);
-  const [goalModal, setGoalModal] = useState(false);
   const [importModal, setImportModal] = useState(false);
-  const [delConfirm, setDelConfirm] = useState({ open: false, id: null });
+  const [delConfirm, setDelConfirm] = useState({ open: false, mode: 'single', id: null, count: 0 });
   const [importingExtract, setImportingExtract] = useState(false);
   const [importingSave, setImportingSave] = useState(false);
+  const [migratingLegacyImports, setMigratingLegacyImports] = useState(false);
   const [importData, setImportData] = useState(EMPTY_IMPORT_STATE);
 
   // --- formulários ---
   const [txForm, setTxForm] = useState({ tipo: 'despesa', valor: '', descricao: '', categoria: 'Alimentação' });
-  const [goalDrafts, setGoalDrafts] = useState({});
-  const [newGoal, setNewGoal] = useState({ categoria: 'Alimentação', valor: '' });
-  const [gfDrafts, setGfDrafts] = useState({});
   const [investmentModal, setInvestmentModal] = useState(false);
   const [savingInvestment, setSavingInvestment] = useState(false);
   const [investmentForm, setInvestmentForm] = useState({
@@ -743,60 +825,106 @@ function DashboardContent() {
 
   // --- toast ---
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  // --- mês selecionado ---
+  const [mesSelecionado, setMesSelecionado] = useState(() => {
+    try {
+      const saved = localStorage.getItem('webwallet_mes_selecionado');
+      if (saved && /^\d{4}-\d{2}$/.test(saved)) return saved;
+    } catch {
+      // Ignora falha de leitura do localStorage.
+    }
+    return competenciaHoje();
+  });
+  const [loadingMes, setLoadingMes] = useState(false);
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [mesesDisponiveis, setMesesDisponiveis] = useState([]);
+  const [addMesModal, setAddMesModal] = useState(false);
+  const [addMesForm, setAddMesForm] = useState(() => {
+    const hoje = new Date();
+    return { ano: hoje.getFullYear(), mes: hoje.getMonth() + 1 };
+  });
+
   const notify = useCallback((message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast(t => ({ ...t, show: false })), 3500);
   }, []);
 
   // ==========================================
-  // FETCH — não sobrescreve limites depois da 1ª carga
+  // MÊS SELECIONADO — lógica de navegação
   // ==========================================
-  const fetchDashboard = useCallback(async (forceLimits = false) => {
+  const mesAtual = competenciaHoje();
+  const ehMesAtual = mesSelecionado === mesAtual;
+
+  const labelMes = useMemo(() => {
+    const [y, m] = mesSelecionado.split('-').map(Number);
+    const d = new Date(y, m - 1, 1);
+    const s = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(d);
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }, [mesSelecionado]);
+
+  const handleMesSelecionadoChange = useCallback((next) => {
+    if (!/^\d{4}-\d{2}$/.test(next)) return;
+
+    setMesSelecionado(next);
     try {
-      const { data } = await api.get('/wallet/dashboard');
-      const gastosNormalizados = normalizeAmountMap(data.gastosPorCategoria);
-      const limitesNormalizados = normalizeAmountMap(data.limites);
+      localStorage.setItem('webwallet_mes_selecionado', next);
+    } catch {
+      // Ignora falha de persistencia do mes selecionado.
+    }
+  }, []);
 
-      setResumo(data.resumo || { saldo_atual: 0, total_receitas: 0, total_despesas: 0 });
-      setTransactions((data.recentTransactions || []).filter(tx => !tx.deletadoEm));
-      setGastos(gastosNormalizados);
-      if (data.competencia) setCompetencia(data.competencia);
+  const fetchMesesDisponiveis = useCallback(async () => {
+    try {
+      const { data } = await api.get('/wallet/meses');
+      setMesesDisponiveis(data.meses || []);
+    } catch {
+      setMesesDisponiveis([]);
+    }
+  }, []);
 
-      // Só carrega limites do backend na 1ª vez OU quando forceLimits=true
-      if (!limitesLoaded || forceLimits) {
-        setLimites(limitesNormalizados);
-        setLimitesLoaded(true);
-      }
+  useEffect(() => { fetchMesesDisponiveis(); }, [fetchMesesDisponiveis]);
+
+  const handleAddMes = () => {
+    const comp = `${addMesForm.ano}-${String(addMesForm.mes).padStart(2, '0')}`;
+    const hoje = new Date();
+    const anoHoje = hoje.getFullYear();
+    const mesHoje = hoje.getMonth() + 1;
+    const eFuturo = addMesForm.ano > anoHoje || (addMesForm.ano === anoHoje && addMesForm.mes > mesHoje);
+    if (eFuturo) { notify('Não é possível adicionar um mês futuro.', 'error'); return; }
+    if (mesesDisponiveis.includes(comp)) { notify('Este mês já está na lista.', 'error'); return; }
+    const novosMeses = [...mesesDisponiveis, comp].sort((a, b) => b.localeCompare(a));
+    setMesesDisponiveis(novosMeses);
+    handleMesSelecionadoChange(comp);
+    setAddMesModal(false);
+  };
+
+  const fetchMesSelecionado = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoadingMes(true);
+
+    try {
+      const { data } = await api.get(`/wallet/extrato/${mesSelecionado}`);
+      const transacoesAtivas = (data?.transacoes || []).filter((tx) => !tx.deletadoEm);
+
+      setTransactions(transacoesAtivas);
+      setResumoMes(data?.resumo || EMPTY_RESUMO_MES);
     } catch (err) {
-      console.error("Erro dashboard:", err);
-      notify("Não foi possível carregar os dados", "error");
+      if (err?.response?.status === 404) {
+        setTransactions([]);
+        setResumoMes(EMPTY_RESUMO_MES);
+      } else {
+        console.error("Erro dashboard:", err);
+        notify("Não foi possível carregar os dados", "error");
+      }
     } finally {
       setLoading(false);
+      if (!silent) setLoadingMes(false);
     }
-  }, [limitesLoaded, notify]);
+  }, [mesSelecionado, notify]);
 
-  useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
+  useEffect(() => { fetchMesSelecionado(); }, [fetchMesSelecionado]);
 
-  useEffect(() => {
-    if (goalModal) {
-      // Separar limites normais e gastos fixos
-      const normais = {};
-      const fixos = {};
-      Object.entries(normalizeAmountMap(limites)).forEach(([k, v]) => {
-        if (k.startsWith(GASTOS_FIXOS_PREFIX)) {
-          const subKey = k.slice(GASTOS_FIXOS_PREFIX.length);
-          fixos[subKey] = String(v);
-        } else {
-          normais[k] = String(v);
-        }
-      });
-      setGoalDrafts(normais);
-      // Preencher todas as subcategorias (com 0 como default)
-      const gfInit = {};
-      GASTOS_FIXOS.forEach(({ key }) => { gfInit[key] = String(fixos[key] || '0'); });
-      setGfDrafts(gfInit);
-    }
-  }, [goalModal, limites]);
+  useEffect(() => { setPaginaAtual(1); }, [mesSelecionado]);
 
   const fetchTransactionsByCompetencia = useCallback(async (competencias = []) => {
     const unicas = Array.from(new Set(competencias.filter(Boolean)));
@@ -812,6 +940,93 @@ function DashboardContent() {
 
     return respostas.flat();
   }, []);
+
+  useEffect(() => {
+    if (!legacyImportedTransactions.length || migratingLegacyImports) return;
+
+    let cancelled = false;
+
+    const migrarImportacoesLegadas = async () => {
+      setMigratingLegacyImports(true);
+
+      try {
+        const competenciasLegadas = Array.from(new Set(
+          legacyImportedTransactions.map((transaction) => getTransactionCompetencia(transaction)).filter(Boolean),
+        ));
+        const transacoesServidor = await fetchTransactionsByCompetencia(competenciasLegadas);
+        const chavesExistentes = new Set(
+          transacoesServidor.map((transaction) => gerarChaveTransacao({
+            data: String(getTransactionRawDate(transaction) || '').slice(0, 10),
+            valor: transaction.valor,
+            descricao: transaction.descricao,
+          })),
+        );
+
+        const payload = legacyImportedTransactions.reduce((acc, transaction) => {
+          const competenciaLegacy = getTransactionCompetencia(transaction);
+          if (!competenciaLegacy) return acc;
+
+          const chave = gerarChaveTransacao({
+            data: String(getTransactionRawDate(transaction) || '').slice(0, 10),
+            valor: transaction.valor,
+            descricao: transaction.descricao,
+          });
+
+          if (chavesExistentes.has(chave)) return acc;
+          chavesExistentes.add(chave);
+
+          acc.push({
+            tipo: transaction.tipo,
+            categoria: transaction.categoria,
+            valor: Number(transaction.valor),
+            descricao: transaction.descricao,
+            tags: Array.isArray(transaction.tags) ? transaction.tags : [],
+            competencia: competenciaLegacy,
+            data_hora: String(getTransactionRawDate(transaction) || '').slice(0, 10),
+          });
+          return acc;
+        }, []);
+
+        if (payload.length) {
+          const { data } = await api.post('/wallet/transacoes/importar', { transacoes: payload });
+          if (!cancelled) {
+            await importTransactionsBatch(data?.transacoes || []);
+            if (payload.some((transaction) => transaction.competencia === mesSelecionado)) {
+              await fetchMesSelecionado({ silent: true });
+            }
+            notify(`${payload.length} transações antigas foram migradas para o banco.`);
+          }
+        }
+
+        if (!cancelled) {
+          clearLegacyImportedTransactions();
+        }
+      } catch {
+        if (!cancelled) {
+          notify('Não foi possível migrar importações antigas para o banco', 'error');
+        }
+      } finally {
+        if (!cancelled) {
+          setMigratingLegacyImports(false);
+        }
+      }
+    };
+
+    migrarImportacoesLegadas();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    clearLegacyImportedTransactions,
+    fetchMesSelecionado,
+    fetchTransactionsByCompetencia,
+    importTransactionsBatch,
+    legacyImportedTransactions,
+    mesSelecionado,
+    migratingLegacyImports,
+    notify,
+  ]);
 
   const closeImportModal = () => {
     setImportModal(false);
@@ -830,17 +1045,16 @@ function DashboardContent() {
         throw new Error('Nenhuma transação identificada neste extrato');
       }
 
-      const competenciasExtrato = transacoesPreparadas
-        .map((transaction) => transaction.data?.slice(0, 7))
-        .filter(Boolean);
+      const competenciasExtrato = Array.from(new Set(
+        transacoesPreparadas
+          .map((transaction) => transaction.data?.slice(0, 7))
+          .filter(Boolean),
+      ));
 
       const transacoesServidor = await fetchTransactionsByCompetencia(competenciasExtrato);
-      const transacoesImportadas = importedTransactions.filter((transaction) =>
-        competenciasExtrato.includes(getTransactionCompetencia(transaction)),
-      );
 
       const chavesExistentes = new Set(
-        [...transacoesServidor, ...transacoesImportadas].map((transaction) =>
+        transacoesServidor.map((transaction) =>
           gerarChaveTransacao({
             data: String(getTransactionRawDate(transaction) || '').slice(0, 10),
             valor: transaction.valor,
@@ -868,8 +1082,9 @@ function DashboardContent() {
         transacoes: transacoesComDeduplicacao,
       });
       setImportModal(true);
-    } catch (error) {
-      notify(error?.message || 'Erro ao importar extrato', 'error');
+    } catch (err) {
+      console.error('[ImportarExtrato]', err);
+      notify(err?.message || 'Erro ao importar extrato', 'error');
     } finally {
       setImportingExtract(false);
     }
@@ -880,6 +1095,15 @@ function DashboardContent() {
       ...current,
       transacoes: current.transacoes.map((transaction) =>
         transaction.idLocal === idLocal ? { ...transaction, categoria } : transaction,
+      ),
+    }));
+  };
+
+  const handleImportTypeChange = (idLocal, tipo) => {
+    setImportData((current) => ({
+      ...current,
+      transacoes: current.transacoes.map((transaction) =>
+        transaction.idLocal === idLocal ? { ...transaction, tipo } : transaction,
       ),
     }));
   };
@@ -906,17 +1130,25 @@ function DashboardContent() {
     setImportingSave(true);
 
     try {
-      const adicionadas = await importTransactionsBatch(
-        selecionadas.map((transaction) => ({
-          ...transaction,
-          competencia: transaction.data?.slice(0, 7) || competencia || competenciaHoje(),
-        })),
-      );
+      const payload = selecionadas.map((transaction) => ({
+        tipo: transaction.tipo,
+        categoria: transaction.categoria,
+        valor: Number(transaction.valor),
+        descricao: transaction.descricao,
+        tags: Array.isArray(transaction.tags) ? transaction.tags : [],
+        competencia: transaction.data?.slice(0, 7) || mesSelecionado || competenciaHoje(),
+        data_hora: transaction.data,
+      }));
+      const { data } = await api.post('/wallet/transacoes/importar', { transacoes: payload });
+      const adicionadas = await importTransactionsBatch(data?.transacoes || []);
 
       closeImportModal();
+      await fetchMesSelecionado({ silent: true });
+      fetchMesesDisponiveis();
       notify(`${adicionadas.length} transações importadas com sucesso`);
-    } catch (error) {
-      notify('Não foi possível salvar as transações importadas', 'error');
+    } catch (err) {
+      console.error('[ConfirmarImport]', err);
+      notify(err?.message || 'Não foi possível salvar as transações importadas', 'error');
     } finally {
       setImportingSave(false);
     }
@@ -933,14 +1165,14 @@ function DashboardContent() {
 
     setSaving(true);
     try {
-      const comp = competencia || competenciaHoje();
-      await api.post('/wallet/iniciar', { competencia: comp }).catch(() => { });
+      const comp = mesSelecionado || competenciaHoje();
       await api.post('/wallet/transacao', {
         ...txForm, descricao: desc, valor: Number(txForm.valor), competencia: comp
       });
       setTxModal(false);
       setTxForm({ tipo: 'despesa', valor: '', descricao: '', categoria: 'Alimentação' });
-      await fetchDashboard(false); // não toca nos limites
+      await fetchMesSelecionado({ silent: true });
+      fetchMesesDisponiveis();
       notify("Transação registrada!");
     } catch (err) {
       console.error("Erro transação:", err);
@@ -955,13 +1187,16 @@ function DashboardContent() {
   // Remove da tela imediatamente, sincroniza com backend depois
   // ==========================================
   const requestDelete = (transaction) => {
-    if (transaction?.isImported) {
-      removeImportedTransaction(transaction._id);
-      notify('Transação importada removida!');
+    setDelConfirm({ open: true, mode: 'single', id: transaction?._id, count: 1 });
+  };
+
+  const requestDeleteAll = () => {
+    if (!transacoesMes.length) {
+      notify("NÃ£o hÃ¡ transaÃ§Ãµes para excluir neste mÃªs", "error");
       return;
     }
 
-    setDelConfirm({ open: true, id: transaction?._id });
+    setDelConfirm({ open: true, mode: 'all', id: null, count: transacoesMes.length });
   };
 
   const confirmDelete = async () => {
@@ -970,97 +1205,64 @@ function DashboardContent() {
 
     // 1. Remove da tela IMEDIATAMENTE
     setTransactions(prev => prev.filter(tx => tx._id !== id));
-    if (txToDelete) {
-      setResumo(prev => ({
-        ...prev,
-        total_receitas: txToDelete.tipo === 'receita'
-          ? Math.max(0, Number(prev.total_receitas || 0) - Number(txToDelete.valor || 0))
-          : Number(prev.total_receitas || 0),
-        total_despesas: txToDelete.tipo === 'despesa'
-          ? Math.max(0, Number(prev.total_despesas || 0) - Number(txToDelete.valor || 0))
-          : Number(prev.total_despesas || 0),
-        saldo_atual: Number(prev.saldo_atual || 0)
-          + (txToDelete.tipo === 'despesa' ? Number(txToDelete.valor || 0) : -Number(txToDelete.valor || 0))
-      }));
-
-      if (txToDelete.tipo === 'despesa') {
-        setGastos(prev => {
-          const updated = { ...prev };
-          const current = Math.max(0, Number(updated[txToDelete.categoria] || 0) - Number(txToDelete.valor || 0));
-
-          if (current === 0) delete updated[txToDelete.categoria];
-          else updated[txToDelete.categoria] = current;
-
-          return updated;
-        });
-      }
-    }
-    setDelConfirm({ open: false, id: null });
+    setDelConfirm({ open: false, mode: 'single', id: null, count: 0 });
     notify("Transação removida!");
 
     // 2. Persiste no backend (sem bloquear a UI)
     try {
-      const comp = competencia || competenciaHoje();
-      await api.delete(`/wallet/${comp}/transacao/${id}`);
-      await fetchDashboard(false); // atualiza resumo/saldo sem tocar em limites
+      await api.delete(`/wallet/transacao/${id}`, {
+        data: { competencia: getTransactionCompetencia(txToDelete) || mesSelecionado || competenciaHoje() },
+      });
+      await fetchMesSelecionado({ silent: true });
     } catch (err) {
       console.error("Erro ao excluir:", err);
       notify("Erro ao excluir — recarregue a página", "error");
-      await fetchDashboard(false); // reverte se falhou
+      await fetchMesSelecionado({ silent: true });
     }
   };
 
-  // ==========================================
-  // METAS — persiste no estado local E no backend
-  // ==========================================
-  const persistLimites = async (novoLimites) => {
-    const limitesNormalizados = normalizeAmountMap(novoLimites);
+  const confirmDeleteAll = async () => {
+    const quantidadeAtual = transacoesMes.length;
+    const transacoesParaExcluir = [...transacoesMes];
 
-    // Atualiza estado local imediatamente (não espera o backend)
-    setLimites(limitesNormalizados);
+    setTransactions([]);
+    setDelConfirm({ open: false, mode: 'single', id: null, count: 0 });
+
     try {
-      const comp = competencia || competenciaHoje();
-      await api.put(`/wallet/${comp}/limites`, { limites: limitesNormalizados });
+      let removidas = 0;
+
+      try {
+        const { data } = await api.delete(`/wallet/${mesSelecionado}/transacoes`);
+        removidas = Number(data?.removidas || quantidadeAtual);
+      } catch (bulkError) {
+        if (bulkError?.response?.status !== 404) {
+          throw bulkError;
+        }
+
+        const resultados = await Promise.allSettled(
+          transacoesParaExcluir.map((transaction) => {
+            const competencia = getTransactionCompetencia(transaction) || mesSelecionado || competenciaHoje();
+            return api.delete(`/wallet/${competencia}/transacao/${transaction._id}`);
+          }),
+        );
+
+        removidas = resultados.filter((resultado) => resultado.status === 'fulfilled').length;
+
+        if (!removidas) {
+          throw bulkError;
+        }
+      }
+
+      const data = { removidas };
+      await fetchMesSelecionado({ silent: true });
+      notify(`${data?.removidas || quantidadeAtual} transaÃ§Ãµes removidas!`);
     } catch (err) {
-      console.error("Erro limites:", err);
-      notify("Erro ao salvar meta no servidor", "error");
+      console.error("Erro ao excluir tudo:", err);
+      notify("Erro ao excluir transaÃ§Ãµes â€” recarregue a pÃ¡gina", "error");
+      await fetchMesSelecionado({ silent: true });
     }
   };
 
-  const handleGoalDraftChange = (cat, value) => {
-    setGoalDrafts(prev => ({ ...prev, [cat]: value }));
-  };
-
-  const handleAddGoal = () => {
-    if (!newGoal.valor || Number(newGoal.valor) <= 0)
-      return notify("Informe um valor válido", "error");
-
-    setGoalDrafts(prev => ({ ...prev, [newGoal.categoria]: newGoal.valor }));
-    setNewGoal({ categoria: 'Alimentação', valor: '' });
-  };
-
-  const handleRemoveGoal = (cat) => {
-    const updated = { ...goalDrafts };
-    delete updated[cat];
-    setGoalDrafts(updated);
-  };
-
-  const handleSaveAllGoals = async () => {
-    let final = sanitizeGoalDrafts(goalDrafts);
-    if (newGoal.valor && Number(newGoal.valor) > 0)
-      final[newGoal.categoria] = Number(newGoal.valor);
-    // Mesclar metas de gastos fixos com prefixo
-    Object.entries(gfDrafts).forEach(([key, val]) => {
-      const num = Number(val);
-      if (Number.isFinite(num) && num > 0) {
-        final[GASTOS_FIXOS_PREFIX + key] = num;
-      }
-    });
-    await persistLimites(final);
-    setGoalModal(false);
-    setNewGoal({ categoria: 'Alimentação', valor: '' });
-    notify("Metas atualizadas!");
-  };
 
   const resetInvestmentForm = () => {
     setInvestmentForm({
@@ -1099,54 +1301,54 @@ function DashboardContent() {
     navigate('/login', { replace: true });
   };
 
-  const mesAtualInvestimentos = competenciaHoje();
+  // ==========================================
+  // DADOS DERIVADOS — filtrados por mesSelecionado
+  // ==========================================
 
-  const importedCurrentTransactions = useMemo(
-    () => [...importedTransactions].sort(sortTransactionsByDateDesc),
-    [importedTransactions],
+  const transacoesMes = useMemo(
+    () => [...transactions].sort(sortTransactionsByDateDesc),
+    [transactions],
   );
 
-  // ==========================================
-  // DADOS DERIVADOS
-  // ==========================================
+  const mesesEfetivos = useMemo(() => {
+    const set = new Set(mesesDisponiveis);
+    if (!set.has(mesSelecionado)) {
+      return [mesSelecionado, ...mesesDisponiveis].sort((a, b) => b.localeCompare(a));
+    }
+    return mesesDisponiveis;
+  }, [mesesDisponiveis, mesSelecionado]);
 
-  // Fallback: calcula gastos das transações locais se backend não retornar
-  const fallbackGastos = {};
-  transactions.forEach(tx => {
-    if (tx.tipo === 'despesa')
-      fallbackGastos[tx.categoria] = (fallbackGastos[tx.categoria] || 0) + Number(tx.valor || 0);
-  });
+  const totalPaginas = Math.max(1, Math.ceil(transacoesMes.length / ITEMS_POR_PAGINA));
+
+  const transacoesPaginadas = useMemo(() => {
+    const inicio = (paginaAtual - 1) * ITEMS_POR_PAGINA;
+    return transacoesMes.slice(inicio, inicio + ITEMS_POR_PAGINA);
+  }, [transacoesMes, paginaAtual]);
+
+  const kpiReceitas = useMemo(
+    () => transacoesMes.filter(t => t.tipo === 'receita').reduce((acc, t) => acc + Number(t.valor || 0), 0),
+    [transacoesMes],
+  );
+  const kpiDespesas = useMemo(
+    () => transacoesMes.filter(t => t.tipo === 'despesa').reduce((acc, t) => acc + Number(t.valor || 0), 0),
+    [transacoesMes],
+  );
+  const kpiSaldo = Number(resumoMes.saldo_inicial || 0) + kpiReceitas - kpiDespesas;
+
   const gastosAtuais = useMemo(() => {
-    const base = { ...(Object.keys(gastos).length > 0 ? gastos : fallbackGastos) };
-
-    importedCurrentTransactions.forEach((transaction) => {
-      if (transaction.tipo === 'despesa') {
-        base[transaction.categoria] = (base[transaction.categoria] || 0) + Number(transaction.valor || 0);
-      }
+    const result = {};
+    transacoesMes.forEach(t => {
+      if (t.tipo === 'despesa') result[t.categoria] = (result[t.categoria] || 0) + Number(t.valor || 0);
     });
+    return result;
+  }, [transacoesMes]);
 
-    return base;
-  }, [fallbackGastos, gastos, importedCurrentTransactions]);
-
-  const resumoImportado = useMemo(() => importedCurrentTransactions.reduce((acc, transaction) => {
-    const valor = Number(transaction.valor || 0);
-
-    if (transaction.tipo === 'receita') acc.total_receitas += valor;
-    else acc.total_despesas += valor;
-
-    return acc;
-  }, { total_receitas: 0, total_despesas: 0 }), [importedCurrentTransactions]);
-
-  const resumoAtual = useMemo(() => ({
-    saldo_atual: Number(resumo.saldo_atual || 0) + resumoImportado.total_receitas - resumoImportado.total_despesas,
-    total_receitas: Number(resumo.total_receitas || 0) + resumoImportado.total_receitas,
-    total_despesas: Number(resumo.total_despesas || 0) + resumoImportado.total_despesas,
-  }), [resumo, resumoImportado]);
-
-  const tabelaTransacoes = useMemo(
-    () => [...importedCurrentTransactions, ...transactions].sort(sortTransactionsByDateDesc),
-    [importedCurrentTransactions, transactions],
-  );
+  // Deriva limites flat (compatível com ProgressBar, gfMetas, totalOrcamento)
+  const limites = useMemo(() => {
+    const result = { ...metas };
+    Object.entries(gastosFixosMetas).forEach(([k, v]) => { result[GASTOS_FIXOS_PREFIX + k] = v; });
+    return result;
+  }, [metas, gastosFixosMetas]);
 
   const todasCategorias = Array.from(new Set([
     ...Object.keys(gastosAtuais),
@@ -1186,7 +1388,9 @@ function DashboardContent() {
     try {
       const saved = localStorage.getItem('webwallet_gastosfixos_aberto');
       if (saved !== null) return saved === 'true';
-    } catch {}
+    } catch {
+      // Ignora falha de leitura do localStorage.
+    }
     return false;
   });
 
@@ -1199,30 +1403,34 @@ function DashboardContent() {
     });
     if (alerta) {
       setGastosFixosAberto(true);
-      try { localStorage.setItem('webwallet_gastosfixos_aberto', 'true'); } catch {}
+      try { localStorage.setItem('webwallet_gastosfixos_aberto', 'true'); } catch {
+        // Ignora falha de persistencia do acordeao.
+      }
     }
   }, [gfGastos, gfMetas]);
 
   const toggleGastosFixos = useCallback(() => {
     setGastosFixosAberto(prev => {
       const next = !prev;
-      try { localStorage.setItem('webwallet_gastosfixos_aberto', String(next)); } catch {}
+      try { localStorage.setItem('webwallet_gastosfixos_aberto', String(next)); } catch {
+        // Ignora falha de persistencia do acordeao.
+      }
       return next;
     });
   }, []);
 
   const totalOrcamento = Object.values(limites).reduce((a, b) => a + Number(b), 0);
-  const totalDespesas = resumoAtual.total_despesas || 0;
+  const totalDespesas = kpiDespesas;
   const acima = totalOrcamento > 0 && totalDespesas > totalOrcamento;
   const totalInvestido = useMemo(
     () => investimentos.reduce((acc, investimento) => acc + Number(investimento.valor || 0), 0),
     [investimentos],
   );
-  const aporteMesAtual = useMemo(
+  const aporteMesSelecionado = useMemo(
     () => investimentos
-      .filter((investimento) => investimento.mes === mesAtualInvestimentos)
+      .filter((investimento) => investimento.mes === mesSelecionado)
       .reduce((acc, investimento) => acc + Number(investimento.valor || 0), 0),
-    [investimentos, mesAtualInvestimentos],
+    [investimentos, mesSelecionado],
   );
 
   // ==========================================
@@ -1253,11 +1461,59 @@ function DashboardContent() {
         </ToastContainer>
       )}
 
+      {/* MODAL: ADICIONAR MÊS */}
+      {addMesModal && (
+        <ModalOverlay onClick={e => e.target === e.currentTarget && setAddMesModal(false)}>
+          <ModalContent $sm>
+            <ModalHeader>
+              <h3>Adicionar mês</h3>
+              <button onClick={() => setAddMesModal(false)}><X size={18} /></button>
+            </ModalHeader>
+            <FormGroup>
+              <label>Mês</label>
+              <select
+                value={addMesForm.mes}
+                onChange={e => setAddMesForm(f => ({ ...f, mes: Number(e.target.value) }))}
+              >
+                {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
+                  const nome = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date(2000, m - 1, 1));
+                  return <option key={m} value={m}>{nome.charAt(0).toUpperCase() + nome.slice(1)}</option>;
+                })}
+              </select>
+            </FormGroup>
+            <FormGroup>
+              <label>Ano</label>
+              <input
+                type="number"
+                value={addMesForm.ano}
+                min={2000}
+                max={new Date().getFullYear()}
+                onChange={e => setAddMesForm(f => ({ ...f, ano: Number(e.target.value) }))}
+              />
+            </FormGroup>
+            <ModalFooter>
+              <button className="cancel" onClick={() => setAddMesModal(false)}>Cancelar</button>
+              <button className="save" onClick={handleAddMes}>Confirmar</button>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
       {/* MODAL: CONFIRMAR EXCLUSÃO */}
-      {delConfirm.open && (
+      {delConfirm.open && delConfirm.mode === 'single' && (
         <DeleteModal
           onConfirm={confirmDelete}
-          onCancel={() => setDelConfirm({ open: false, id: null })}
+          onCancel={() => setDelConfirm({ open: false, mode: 'single', id: null, count: 0 })}
+        />
+      )}
+
+      {delConfirm.open && delConfirm.mode === 'all' && (
+        <ConfirmActionModal
+          title="Excluir todas as transações"
+          message={`Tem certeza que deseja excluir todas as ${delConfirm.count} transações deste mês?`}
+          confirmLabel="Excluir tudo"
+          onConfirm={confirmDeleteAll}
+          onCancel={() => setDelConfirm({ open: false, mode: 'single', id: null, count: 0 })}
         />
       )}
 
@@ -1302,99 +1558,6 @@ function DashboardContent() {
               <button className="save" onClick={handleSaveTransaction} disabled={saving}>
                 {saving ? 'Salvando...' : 'Salvar'}
               </button>
-            </ModalFooter>
-          </ModalContent>
-        </ModalOverlay>
-      )}
-
-      {/* MODAL: METAS */}
-      {goalModal && (
-        <ModalOverlay onClick={e => e.target === e.currentTarget && setGoalModal(false)}>
-          <ModalContent>
-            <ModalHeader>
-              <h3>Gerenciar Metas</h3>
-              <button onClick={() => setGoalModal(false)}><X size={18} /></button>
-            </ModalHeader>
-
-            <div style={{ marginBottom: '1.25rem' }}>
-              {Object.keys(goalDrafts).length === 0
-                ? <p style={{ fontSize: '0.875rem', color: 'var(--dash-muted)', textAlign: 'center', padding: '0.75rem 0' }}>
-                  Nenhuma meta definida ainda.
-                </p>
-                : Object.entries(goalDrafts).map(([cat, val]) => (
-                  <GoalItem key={cat}>
-                    <div className="goal-info">
-                      <span>{CAT_ICONS[cat] || '📦'} <strong>{cat}</strong></span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={val}
-                        onChange={e => handleGoalDraftChange(cat, e.target.value)}
-                        aria-label={`Meta da categoria ${cat}`}
-                      />
-                    </div>
-                    <button onClick={() => handleRemoveGoal(cat)} title="Remover"><Trash2 size={14} /></button>
-                  </GoalItem>
-                ))
-              }
-            </div>
-
-            {/* Seção Gastos Fixos */}
-            <div style={{ borderTop: '1px solid var(--dash-border)', paddingTop: '1rem', marginBottom: '1.25rem' }}>
-              <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--dash-muted-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-                🔗 Gastos Fixos
-              </p>
-              {GASTOS_FIXOS.map(({ key, label, icon }) => (
-                <GoalItem key={key}>
-                  <div className="goal-info">
-                    <span>{icon} <strong>{label}</strong></span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={gfDrafts[key] || '0'}
-                      onChange={e => setGfDrafts(prev => ({ ...prev, [key]: e.target.value }))}
-                      aria-label={`Meta de ${label}`}
-                    />
-                  </div>
-                </GoalItem>
-              ))}
-            </div>
-
-            <div style={{ borderTop: '1px solid var(--dash-border)', paddingTop: '1rem' }}>
-              <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--dash-muted-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-                Adicionar nova meta
-              </p>
-              <FormGroup>
-                <label>Categoria</label>
-                <select value={newGoal.categoria} onChange={e => setNewGoal({ ...newGoal, categoria: e.target.value })}>
-                  {CATS.filter(c => c !== 'Salário').map(c =>
-                    <option key={c} value={c}>{CAT_ICONS[c]} {c}</option>
-                  )}
-                </select>
-              </FormGroup>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input type="number" min="1" step="0.01" placeholder="R$ Limite mensal"
-                  value={newGoal.valor} onChange={e => setNewGoal({ ...newGoal, valor: e.target.value })}
-                  style={{
-                    flex: 1, padding: '0.7rem 0.875rem', border: '1px solid var(--dash-border)',
-                    borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: 'var(--dash-input-bg)',
-                    color: 'var(--dash-heading)', WebkitTextFillColor: 'var(--dash-heading)'
-                  }} />
-                <button onClick={handleAddGoal}
-                  style={{
-                    background: 'linear-gradient(135deg, #06b6d4 0%, var(--dash-primary) 52%, #4f46e5 100%)', color: '#fff', border: 'none', borderRadius: '0.5rem',
-                    padding: '0 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center'
-                  }}>
-                  <Plus size={18} />
-                </button>
-              </div>
-            </div>
-
-            <ModalFooter>
-              <button className="cancel" onClick={() => setGoalModal(false)}>Fechar</button>
-              <button className="save" onClick={handleSaveAllGoals}>Salvar tudo</button>
             </ModalFooter>
           </ModalContent>
         </ModalOverlay>
@@ -1464,6 +1627,7 @@ function DashboardContent() {
         onClose={closeImportModal}
         onConfirm={handleConfirmImport}
         onChangeCategory={handleImportCategoryChange}
+        onChangeType={handleImportTypeChange}
         onToggleInclude={handleToggleImportedSelection}
       />
 
@@ -1510,13 +1674,31 @@ function DashboardContent() {
       <MainContent>
         <Header>
           <HeaderTitle>Visão Geral</HeaderTitle>
+          <MonthSelectorWrap>
+            <MonthSelect
+              value={mesSelecionado}
+              onChange={(e) => {
+                if (e.target.value === '__add__') { setAddMesModal(true); }
+                else { handleMesSelecionadoChange(e.target.value); }
+              }}
+            >
+              {mesesEfetivos.map(mes => (
+                <option key={mes} value={mes}>{formatarCompetencia(mes)}</option>
+              ))}
+              <option value="__add__">＋ Adicionar mês</option>
+            </MonthSelect>
+            <MesBadge $hoje={ehMesAtual} $dark={isDark}>
+              {ehMesAtual ? 'Hoje' : 'Histórico'}
+            </MesBadge>
+          </MonthSelectorWrap>
           <HeaderActions>
             <ImportButton
               loading={importingExtract}
+              disabled={!ehMesAtual}
               onSelectFile={handleImportFile}
               onError={(message) => notify(message, 'error')}
             />
-            <AddButton onClick={() => setTxModal(true)}>
+            <AddButton onClick={() => setTxModal(true)} disabled={!ehMesAtual}>
               <Plus size={15} /> Nova Transação
             </AddButton>
           </HeaderActions>
@@ -1532,21 +1714,21 @@ function DashboardContent() {
                   <h3>Receitas</h3>
                   <IconBox $t="in"><ArrowUpCircle size={18} /></IconBox>
                 </KpiHeader>
-                <KpiVal>R$ {fmt(resumoAtual.total_receitas)}</KpiVal>
+                <KpiVal>R$ {fmt(kpiReceitas)}</KpiVal>
               </KpiCard>
               <KpiCard>
                 <KpiHeader>
                   <h3>Despesas</h3>
                   <IconBox $t="out"><ArrowDownCircle size={18} /></IconBox>
                 </KpiHeader>
-                <KpiVal>R$ {fmt(resumoAtual.total_despesas)}</KpiVal>
+                <KpiVal>R$ {fmt(kpiDespesas)}</KpiVal>
               </KpiCard>
               <HighlightCard>
                 <HiHeader>
-                  <h3>Saldo Atual</h3>
+                  <h3>Saldo do Mês</h3>
                   <IconBox $t="bal"><Wallet size={18} /></IconBox>
                 </HiHeader>
-                <HiVal>R$ {fmt(resumoAtual.saldo_atual)}</HiVal>
+                <HiVal>R$ {fmt(kpiSaldo)}</HiVal>
               </HighlightCard>
             </KpiGrid>
 
@@ -1565,12 +1747,12 @@ function DashboardContent() {
                   <strong>{fmtCurrency(totalInvestido)}</strong>
                 </InvestmentStat>
                 <InvestmentStat>
-                  <span>Aporte este mês</span>
-                  <strong>{fmtCurrency(aporteMesAtual)}</strong>
+                  <span>Aporte do mês</span>
+                  <strong>{fmtCurrency(aporteMesSelecionado)}</strong>
                 </InvestmentStat>
               </InvestmentStats>
 
-              <InvestmentAction onClick={openInvestmentModal}>
+              <InvestmentAction onClick={openInvestmentModal} disabled={!ehMesAtual}>
                 <Plus size={16} />
                 Registrar aporte
               </InvestmentAction>
@@ -1597,10 +1779,7 @@ function DashboardContent() {
               <CategoryPanel>
                 <PanelHeader>
                   <h3>Gasto por Categoria</h3>
-                  <TextLink onClick={() => setGoalModal(true)}>
-                    <Sparkles size={14} />
-                    Gerenciar Metas
-                  </TextLink>
+                  <GerenciarMetas mesSelecionado={mesSelecionado} notify={notify} />
                 </PanelHeader>
                 <CatList>
                   {/* GASTOS FIXOS — grupo expansível */}
@@ -1686,7 +1865,14 @@ function DashboardContent() {
 
             {/* TABELA */}
             <TxPanel>
-              <TxHeader><h3>Últimas Transações</h3></TxHeader>
+              <TxHeader><h3>Transações — {labelMes}</h3></TxHeader>
+              {transacoesMes.length > 0 && (
+                <div style={{ padding: '0 1.5rem 1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                  <TextLink type="button" onClick={requestDeleteAll}>
+                    <Trash2 size={14} /> Excluir tudo
+                  </TextLink>
+                </div>
+              )}
               <Table>
                 <thead>
                   <tr>
@@ -1695,16 +1881,20 @@ function DashboardContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tabelaTransacoes.length === 0 ? (
+                  {loadingMes ? (
+                    <tr>
+                      <EmptyRow colSpan={5}>Carregando transações de {labelMes}...</EmptyRow>
+                    </tr>
+                  ) : transacoesMes.length === 0 ? (
                     <tr>
                       <EmptyRow colSpan={5}>
-                        Nenhuma transação registrada neste mês.
+                        Nenhuma transação em {labelMes}.
                         <EmptyBtn onClick={() => setTxModal(true)}>
                           + Adicionar primeira transação
                         </EmptyBtn>
                       </EmptyRow>
                     </tr>
-                  ) : tabelaTransacoes.map(tx => {
+                  ) : transacoesPaginadas.map(tx => {
                     const raw = getTransactionRawDate(tx);
                     const dt = parseDate(raw);
                     const dStr = dt ? dt.toLocaleDateString('pt-BR') : '—';
@@ -1720,7 +1910,7 @@ function DashboardContent() {
                       >
                         <td style={{ fontWeight: 500 }}>
                           {tx.descricao}
-                          {tx.isImported && (
+                          {tx.importadoViaPdf && (
                             <div style={{ fontSize: '0.72rem', color: 'var(--dash-primary)', marginTop: '0.2rem', fontWeight: 700 }}>
                               Importada via PDF
                             </div>
@@ -1741,6 +1931,41 @@ function DashboardContent() {
                   })}
                 </tbody>
               </Table>
+
+              {transacoesMes.length > ITEMS_POR_PAGINA && (
+                <PaginacaoBar>
+                  <PaginacaoInfo>
+                    {(paginaAtual - 1) * ITEMS_POR_PAGINA + 1}–{Math.min(paginaAtual * ITEMS_POR_PAGINA, transacoesMes.length)} de {transacoesMes.length} transações
+                  </PaginacaoInfo>
+                  <PaginacaoBtns>
+                    <PagBtn
+                      onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
+                      disabled={paginaAtual === 1}
+                    >
+                      ‹ Anterior
+                    </PagBtn>
+                    {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                      .filter(n => n === 1 || n === totalPaginas || Math.abs(n - paginaAtual) <= 1)
+                      .reduce((acc, n, idx, arr) => {
+                        if (idx > 0 && arr[idx - 1] !== n - 1) acc.push('…');
+                        acc.push(n);
+                        return acc;
+                      }, [])
+                      .map((item, idx) =>
+                        item === '…'
+                          ? <PagBtn key={`ellipsis-${idx}`} disabled>…</PagBtn>
+                          : <PagBtn key={item} $active={item === paginaAtual} onClick={() => setPaginaAtual(item)}>{item}</PagBtn>
+                      )
+                    }
+                    <PagBtn
+                      onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))}
+                      disabled={paginaAtual === totalPaginas}
+                    >
+                      Próxima ›
+                    </PagBtn>
+                  </PaginacaoBtns>
+                </PaginacaoBar>
+              )}
             </TxPanel>
 
           </ContentWrapper>
