@@ -162,9 +162,13 @@ export default function ImportModal({
   onClose,
   onConfirm,
   onChangeCategory,
+  onChangeType,
   onToggleInclude,
 }) {
-  const transactions = parsedData?.transacoes || [];
+  const transactions = useMemo(
+    () => parsedData?.transacoes || [],
+    [parsedData?.transacoes],
+  );
   const includedCount = useMemo(
     () => transactions.filter((transaction) => transaction.incluir).length,
     [transactions],
@@ -219,6 +223,7 @@ export default function ImportModal({
               transaction={transaction}
               categories={categories}
               onChangeCategory={onChangeCategory}
+              onChangeType={onChangeType}
               onToggleInclude={onToggleInclude}
             />
           ))}

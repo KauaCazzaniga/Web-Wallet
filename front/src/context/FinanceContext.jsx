@@ -1,54 +1,42 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-const STORAGE_PREFIX = '@WebWallet:imports:';
+const LEGACY_IMPORTS_PREFIX = '@WebWallet:imports:';
 const INVESTMENTS_STORAGE_KEY = 'webwallet_investimentos';
 const HIGHLIGHT_DURATION = 3000;
 
-const sortByDateDesc = (a, b) => {
-  const aValue = new Date(a?.data || a?.importedAt || 0).getTime();
-  const bValue = new Date(b?.data || b?.importedAt || 0).getTime();
-  return bValue - aValue;
-};
+const METAS_KEY    = (uk) => `webwallet_metas:${uk}`;
+const GF_METAS_KEY = (uk) => `webwallet_gastos_fixos_metas:${uk}`;
 
-const toStorageKey = (userKey) => `${STORAGE_PREFIX}${String(userKey || 'anon').replace(/[^\w@.-]/g, '_')}`;
-
-const resolveCompetencia = (transacao) =>
-  transacao?.competencia || (transacao?.data ? String(transacao.data).slice(0, 7) : null);
-
-const createId = (index) => `imp-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`;
+const toLegacyImportsKey = (userKey) => `${LEGACY_IMPORTS_PREFIX}${String(userKey || 'anon').replace(/[^\w@.-]/g, '_')}`;
 
 export const FinanceContext = createContext(null);
 
 export const FinanceProvider = ({ children, userKey }) => {
-  const storageKey = useMemo(() => toStorageKey(userKey), [userKey]);
-  const [importedTransactions, setImportedTransactions] = useState([]);
+  const legacyImportsKey = useMemo(() => toLegacyImportsKey(userKey), [userKey]);
   const [investimentos, setInvestimentos] = useState([]);
   const [highlightedIds, setHighlightedIds] = useState([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [legacyImportedTransactions, setLegacyImportedTransactions] = useState([]);
   const [investimentosHydrated, setInvestimentosHydrated] = useState(false);
+  const [metas, setMetas] = useState({});
+  const [gastosFixosMetas, setGastosFixosMetas] = useState({});
+  const [metasHydrated, setMetasHydrated] = useState(false);
   const highlightTimerRef = useRef(null);
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(storageKey);
-      setImportedTransactions(raw ? JSON.parse(raw) : []);
-    } catch (error) {
-      setImportedTransactions([]);
-    } finally {
-      setHydrated(true);
+      const raw = localStorage.getItem(legacyImportsKey);
+      setLegacyImportedTransactions(raw ? JSON.parse(raw) : []);
+    } catch {
+      setLegacyImportedTransactions([]);
     }
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(storageKey, JSON.stringify(importedTransactions));
-  }, [hydrated, importedTransactions, storageKey]);
+  }, [legacyImportsKey]);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(INVESTMENTS_STORAGE_KEY);
       setInvestimentos(raw ? JSON.parse(raw) : []);
-    } catch (error) {
+    } catch {
       setInvestimentos([]);
     } finally {
       setInvestimentosHydrated(true);
@@ -59,6 +47,30 @@ export const FinanceProvider = ({ children, userKey }) => {
     if (!investimentosHydrated) return;
     localStorage.setItem(INVESTMENTS_STORAGE_KEY, JSON.stringify(investimentos));
   }, [investimentos, investimentosHydrated]);
+
+  useEffect(() => {
+    try {
+      const m  = localStorage.getItem(METAS_KEY(userKey));
+      const gf = localStorage.getItem(GF_METAS_KEY(userKey));
+      setMetas(m  ? JSON.parse(m)  : {});
+      setGastosFixosMetas(gf ? JSON.parse(gf) : {});
+    } catch {
+      setMetas({});
+      setGastosFixosMetas({});
+    } finally {
+      setMetasHydrated(true);
+    }
+  }, [userKey]);
+
+  useEffect(() => {
+    if (!metasHydrated) return;
+    localStorage.setItem(METAS_KEY(userKey), JSON.stringify(metas));
+  }, [metas, metasHydrated, userKey]);
+
+  useEffect(() => {
+    if (!metasHydrated) return;
+    localStorage.setItem(GF_METAS_KEY(userKey), JSON.stringify(gastosFixosMetas));
+  }, [gastosFixosMetas, metasHydrated, userKey]);
 
   useEffect(() => () => {
     if (highlightTimerRef.current) {
@@ -77,27 +89,16 @@ export const FinanceProvider = ({ children, userKey }) => {
     }, HIGHLIGHT_DURATION);
   };
 
-  const importTransactionsBatch = async (transactions = []) => {
-    const stamped = transactions.map((transaction, index) => ({
-      ...transaction,
-      _id: transaction._id || createId(index),
-      isImported: true,
-      competencia: resolveCompetencia(transaction),
-      importedAt: new Date().toISOString(),
-    }));
+  const importTransactionsBatch = useCallback(async (transactions = []) => {
+    const ids = transactions
+      .map((transaction) => transaction?._id)
+      .filter(Boolean);
 
-    setImportedTransactions((current) => [...stamped, ...current].sort(sortByDateDesc));
-    ativarDestaques(stamped.map((transaction) => transaction._id));
+    ativarDestaques(ids);
+    return transactions;
+  }, []);
 
-    return stamped;
-  };
-
-  const removeImportedTransaction = (transactionId) => {
-    setImportedTransactions((current) => current.filter((transaction) => transaction._id !== transactionId));
-    setHighlightedIds((current) => current.filter((id) => id !== transactionId));
-  };
-
-  const adicionarAporte = (mes, valor, descricao = '') => {
+  const adicionarAporte = useCallback((mes, valor, descricao = '') => {
     const mesNormalizado = String(mes || '').slice(0, 7);
     const valorNumerico = Number(valor || 0);
 
@@ -123,18 +124,35 @@ export const FinanceProvider = ({ children, userKey }) => {
     setInvestimentos((current) => [...current, novoAporte].sort((a, b) => b.mes.localeCompare(a.mes)));
 
     return novoAporte;
-  };
+  }, [investimentos]);
+
+  const clearLegacyImportedTransactions = useCallback(() => {
+    setLegacyImportedTransactions([]);
+    try {
+      localStorage.removeItem(legacyImportsKey);
+    } catch {
+      // Ignora falha ao limpar o legado local.
+    }
+  }, [legacyImportsKey]);
+
+  const salvarMetas = useCallback((novasMetas, novosGfMetas) => {
+    if (novasMetas    !== undefined) setMetas(novasMetas);
+    if (novosGfMetas  !== undefined) setGastosFixosMetas(novosGfMetas);
+  }, []);
 
   // TODO: editarAporte, removerAporte → será usado em Relatorios.jsx
 
   const value = useMemo(() => ({
-    importedTransactions,
     investimentos,
     highlightedIds,
+    legacyImportedTransactions,
+    metas,
+    gastosFixosMetas,
+    salvarMetas,
     importTransactionsBatch,
-    removeImportedTransaction,
     adicionarAporte,
-  }), [highlightedIds, importedTransactions, investimentos]);
+    clearLegacyImportedTransactions,
+  }), [adicionarAporte, clearLegacyImportedTransactions, gastosFixosMetas, highlightedIds, importTransactionsBatch, investimentos, legacyImportedTransactions, metas, salvarMetas]);
 
   return (
     <FinanceContext.Provider value={value}>

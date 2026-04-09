@@ -6,12 +6,12 @@ import { FileText, Home, LogOut, Moon, Settings, SunMedium, Wallet } from 'lucid
 import api from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
 import { ThemeContext } from '../contexts/ThemeContext';
-import { useFinance } from '../context/FinanceContext';
 import FiltroMes from '../components/relatorios/FiltroMes';
 import CardsResumo from '../components/relatorios/CardsResumo';
 import GraficoBarrasMensal from '../components/relatorios/GraficoBarrasMensal';
 import GraficoSaldoAcumulado from '../components/relatorios/GraficoSaldoAcumulado';
 import TabelaComparativo from '../components/relatorios/TabelaComparativo';
+import CardTaxaPoupanca from '../components/relatorios/CardTaxaPoupanca';
 import {
   formatCurrencyBRL,
   getDefaultReportRange,
@@ -267,7 +267,6 @@ export default function Relatorios() {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
   const { isDark, toggleTheme } = useContext(ThemeContext);
-  const { importedTransactions } = useFinance();
   const [periodo, setPeriodo] = useState(getDefaultReportRange);
   const [serverTransactions, setServerTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -300,7 +299,7 @@ export default function Relatorios() {
         .filter((transaction) => transaction.data && transaction.descricao);
 
       setServerTransactions(normalizadas);
-    } catch (error) {
+    } catch {
       setServerTransactions([]);
     } finally {
       setLoading(false);
@@ -325,17 +324,9 @@ export default function Relatorios() {
     }));
   };
 
-  const importedInRange = useMemo(() => {
-    const meses = new Set(listMonthsBetween(periodo.inicio, periodo.fim));
-
-    return importedTransactions
-      .map(normalizeTransaction)
-      .filter((transaction) => transaction.data && meses.has(transaction.data.slice(0, 7)));
-  }, [importedTransactions, periodo.fim, periodo.inicio]);
-
   const transacoesPeriodo = useMemo(
-    () => [...serverTransactions, ...importedInRange],
-    [importedInRange, serverTransactions],
+    () => serverTransactions,
+    [serverTransactions],
   );
 
   const mesesProcessados = useMemo(
@@ -439,6 +430,8 @@ export default function Relatorios() {
                   <GraficoBarrasMensal data={mesesProcessados} mediaDespesas={resumo.mediaMensalGastos} />
                   <GraficoSaldoAcumulado data={mesesProcessados} />
                 </ChartsGrid>
+
+                <CardTaxaPoupanca data={mesesProcessados} />
 
                 <TabelaComparativo data={mesesProcessados} resumo={resumo} />
               </>

@@ -78,9 +78,9 @@ export const shiftMonthKey = (monthKey, offset) => {
 };
 
 export const getDefaultReportRange = () => {
-  const end = getCurrentMonthKey();
-  const start = shiftMonthKey(end, -5);
-  return { start, end };
+  const fim = getCurrentMonthKey();
+  const inicio = shiftMonthKey(fim, -5);
+  return { inicio, fim };
 };
 
 export const listMonthsBetween = (start, end) => {

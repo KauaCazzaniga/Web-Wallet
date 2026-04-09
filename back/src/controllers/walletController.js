@@ -1,18 +1,18 @@
 const Wallet = require('../models/Wallet');
 
-// 💡 FUNÇÃO AUXILIAR: Recalcula o resumo
 const atualizarResumo = (wallet) => {
-    const transacoesAtivas = wallet.transacoes.filter(t => !t.deletadoEm);
+    const transacoesAtivas = wallet.transacoes.filter((transacao) => !transacao.deletadoEm);
 
     wallet.resumo.total_receitas = transacoesAtivas
-        .filter(t => t.tipo === 'receita')
-        .reduce((acc, t) => acc + t.valor, 0);
+        .filter((transacao) => transacao.tipo === 'receita')
+        .reduce((acc, transacao) => acc + transacao.valor, 0);
 
     wallet.resumo.total_despesas = transacoesAtivas
-        .filter(t => t.tipo === 'despesa')
-        .reduce((acc, t) => acc + t.valor, 0);
+        .filter((transacao) => transacao.tipo === 'despesa')
+        .reduce((acc, transacao) => acc + transacao.valor, 0);
 
-    wallet.resumo.saldo_atual = wallet.resumo.saldo_inicial + wallet.resumo.total_receitas - wallet.resumo.total_despesas;
+    wallet.resumo.saldo_atual =
+        wallet.resumo.saldo_inicial + wallet.resumo.total_receitas - wallet.resumo.total_despesas;
 };
 
 const normalizarLimites = (limites) => {
@@ -22,150 +22,401 @@ const normalizarLimites = (limites) => {
     return { ...limites };
 };
 
+const competenciaEhValida = (competencia) => /^\d{4}-\d{2}$/.test(String(competencia || ''));
+
+const obterSnapshotResumo = (wallet) => ({
+    saldo_inicial: Number(wallet?.resumo?.saldo_inicial || 0),
+    total_receitas: Number(wallet?.resumo?.total_receitas || 0),
+    total_despesas: Number(wallet?.resumo?.total_despesas || 0),
+    saldo_atual: Number(wallet?.resumo?.saldo_atual || 0),
+});
+
+const resumoMudou = (antes, depois) =>
+    antes.saldo_inicial !== depois.saldo_inicial ||
+    antes.total_receitas !== depois.total_receitas ||
+    antes.total_despesas !== depois.total_despesas ||
+    antes.saldo_atual !== depois.saldo_atual;
+
+const serializarWallet = (wallet) => {
+    const walletObj = wallet.toObject({ flattenMaps: true });
+    const transacoesVisiveis = wallet.transacoes
+        .filter((transacao) => !transacao.deletadoEm)
+        .map((transacao) => transacao.toObject());
+
+    return {
+        ...walletObj,
+        transacoes: transacoesVisiveis,
+        limites: normalizarLimites(wallet.limites_gastos),
+        limites_gastos: normalizarLimites(wallet.limites_gastos),
+    };
+};
+
+const obterCompetenciaAnterior = (competencia) => {
+    const [ano, mes] = String(competencia).split('-').map(Number);
+    const dataAnterior = new Date(ano, mes - 2, 1);
+    return `${dataAnterior.getFullYear()}-${String(dataAnterior.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const obterWalletAnteriorMaisRecente = (usuario_id, competencia) =>
+    Wallet.findOne({ usuario_id, competencia: { $lt: competencia } }).sort({ competencia: -1 });
+
+const montarWalletInicial = async (usuario_id, competencia) => {
+    const walletAnterior = await obterWalletAnteriorMaisRecente(usuario_id, competencia);
+    const saldoTransferido = walletAnterior ? Number(walletAnterior.resumo?.saldo_atual || 0) : 0;
+
+    return {
+        usuario_id,
+        competencia,
+        resumo: {
+            saldo_inicial: saldoTransferido,
+            saldo_atual: saldoTransferido,
+        },
+        limites_gastos: normalizarLimites(walletAnterior?.limites_gastos),
+    };
+};
+
+const montarExtratoVirtual = async (usuario_id, competencia) => {
+    const walletInicial = await montarWalletInicial(usuario_id, competencia);
+    const limites = normalizarLimites(walletInicial?.limites_gastos);
+    const saldoInicial = Number(walletInicial?.resumo?.saldo_inicial || 0);
+
+    return {
+        competencia,
+        resumo: {
+            saldo_inicial: saldoInicial,
+            total_receitas: 0,
+            total_despesas: 0,
+            saldo_atual: saldoInicial,
+        },
+        transacoes: [],
+        limites,
+        limites_gastos: limites,
+    };
+};
+
+const sincronizarCarteirasEmCadeia = async (usuario_id) => {
+    const wallets = await Wallet.find({ usuario_id }).sort({ competencia: 1 });
+    let saldoAnterior = 0;
+
+    for (const wallet of wallets) {
+        const resumoAnterior = obterSnapshotResumo(wallet);
+
+        wallet.resumo.saldo_inicial = saldoAnterior;
+        atualizarResumo(wallet);
+
+        const resumoAtual = obterSnapshotResumo(wallet);
+        if (resumoMudou(resumoAnterior, resumoAtual)) {
+            await wallet.save();
+        }
+
+        saldoAnterior = resumoAtual.saldo_atual;
+    }
+};
+
+const obterOuCriarWallet = async (usuario_id, competencia) => {
+    if (!competenciaEhValida(competencia)) {
+        throw new Error('Competencia invalida.');
+    }
+
+    const existente = await Wallet.findOne({ usuario_id, competencia });
+    if (existente) return existente;
+
+    return Wallet.create(await montarWalletInicial(usuario_id, competencia));
+};
+
+const obterWalletPorTransacao = async (usuario_id, transacaoId) =>
+    Wallet.findOne({ usuario_id, 'transacoes._id': transacaoId });
+
+const adicionarTransacaoNaWallet = (wallet, payload = {}) => {
+    wallet.transacoes.push({
+        data_hora: payload.data_hora || undefined,
+        tipo: payload.tipo,
+        categoria: payload.categoria,
+        valor: Number(payload.valor),
+        descricao: payload.descricao,
+        tags: Array.isArray(payload.tags) ? payload.tags : [],
+        importadoViaPdf: Boolean(payload.importadoViaPdf),
+    });
+
+    return wallet.transacoes[wallet.transacoes.length - 1];
+};
+
 module.exports = {
-    // 1. DASHBOARD (Resumo rápido para a tela principal)
     async obterDashboard(req, res) {
         try {
             const usuario_id = req.usuarioId;
+            await sincronizarCarteirasEmCadeia(usuario_id);
             const wallet = await Wallet.findOne({ usuario_id }).sort({ competencia: -1 });
 
             if (!wallet) {
                 return res.status(200).json({
-                    competencia: "Nenhum mês iniciado",
+                    competencia: 'Nenhum mes iniciado',
                     resumo: { saldo_atual: 0, total_receitas: 0, total_despesas: 0 },
                     recentTransactions: [],
-                    gastosPorCategoria: {}, // Vazio se não tem wallet
-                    limites: {}
+                    gastosPorCategoria: {},
+                    limites: {},
                 });
             }
 
-            const transacoesVisiveis = wallet.transacoes.filter(t => !t.deletadoEm);
-
-            // --- CÁLCULO DE GASTOS POR CATEGORIA (Agregação Real) ---
+            const transacoesVisiveis = wallet.transacoes.filter((transacao) => !transacao.deletadoEm);
             const gastosPorCategoria = {};
-            transacoesVisiveis.forEach(t => {
-                if (t.tipo === 'despesa') {
-                    const cat = t.categoria || 'Outros';
-                    gastosPorCategoria[cat] = (gastosPorCategoria[cat] || 0) + t.valor;
+
+            transacoesVisiveis.forEach((transacao) => {
+                if (transacao.tipo === 'despesa') {
+                    const categoria = transacao.categoria || 'Outros';
+                    gastosPorCategoria[categoria] = (gastosPorCategoria[categoria] || 0) + transacao.valor;
                 }
             });
 
-            res.status(200).json({
+            return res.status(200).json({
                 competencia: wallet.competencia,
                 resumo: wallet.resumo,
                 recentTransactions: transacoesVisiveis.slice(-5).reverse(),
-                gastosPorCategoria, // O Front vai usar isso para as barras de progresso
-                limites: normalizarLimites(wallet.limites_gastos) // Puxa as metas do banco
+                gastosPorCategoria,
+                limites: normalizarLimites(wallet.limites_gastos),
             });
         } catch (error) {
-            res.status(500).json({ erro: 'Erro ao processar dashboard.' });
+            return res.status(500).json({ erro: 'Erro ao processar dashboard.' });
         }
     },
 
-    // 2. INICIAR MÊS
     async iniciarMes(req, res) {
         try {
             const { competencia } = req.body;
             const usuario_id = req.usuarioId;
 
+            if (!competenciaEhValida(competencia)) {
+                return res.status(400).json({ erro: 'Competencia invalida.' });
+            }
+
             const existe = await Wallet.findOne({ usuario_id, competencia });
-            if (existe) return res.status(400).json({ erro: 'Este mês já foi iniciado.' });
+            if (existe) return res.status(400).json({ erro: 'Este mes ja foi iniciado.' });
 
-            const [ano, mes] = competencia.split('-').map(Number);
-            const dataAnterior = new Date(ano, mes - 2);
-            const competenciaAnterior = `${dataAnterior.getFullYear()}-${String(dataAnterior.getMonth() + 1).padStart(2, '0')}`;
-            const walletAnterior = await Wallet.findOne({ usuario_id, competencia: competenciaAnterior });
-
-            const saldoTransferido = walletAnterior ? walletAnterior.resumo.saldo_atual : 0;
-
-            const novaWallet = await Wallet.create({
-                usuario_id,
-                competencia,
-                resumo: {
-                    saldo_inicial: saldoTransferido,
-                    saldo_atual: saldoTransferido
-                }
-            });
-
-            res.status(201).json(novaWallet);
-        } catch (erro) {
-            res.status(500).json({ erro: 'Erro ao iniciar o mês.' });
+            const novaWallet = await Wallet.create(await montarWalletInicial(usuario_id, competencia));
+            await sincronizarCarteirasEmCadeia(usuario_id);
+            return res.status(201).json(serializarWallet(novaWallet));
+        } catch (error) {
+            return res.status(500).json({ erro: 'Erro ao iniciar o mes.' });
         }
     },
 
-    // 3. ADICIONAR TRANSAÇÃO
     async adicionarTransacao(req, res) {
         try {
-            const { competencia, tipo, categoria, valor, descricao, tags } = req.body;
+            const { competencia, tipo, categoria, valor, descricao, tags, data_hora, importadoViaPdf } = req.body;
             const usuario_id = req.usuarioId;
 
-            const wallet = await Wallet.findOne({ usuario_id, competencia });
-            if (!wallet) return res.status(404).json({ erro: 'Mês não iniciado.' });
+            if (!competenciaEhValida(competencia)) {
+                return res.status(400).json({ erro: 'Competencia invalida.' });
+            }
 
-            wallet.transacoes.push({ tipo, categoria, valor, descricao, tags });
+            const wallet = await obterOuCriarWallet(usuario_id, competencia);
+            const transacao = adicionarTransacaoNaWallet(wallet, {
+                tipo,
+                categoria,
+                valor,
+                descricao,
+                tags,
+                data_hora,
+                importadoViaPdf,
+            });
+
             atualizarResumo(wallet);
             await wallet.save();
+            await sincronizarCarteirasEmCadeia(usuario_id);
 
-            res.status(200).json({ mensagem: 'Sucesso!', resumo: wallet.resumo });
-        } catch (erro) {
-            res.status(500).json({ erro: 'Erro ao registrar.' });
+            return res.status(200).json({
+                mensagem: 'Sucesso!',
+                resumo: wallet.resumo,
+                transacao: transacao.toObject(),
+            });
+        } catch (error) {
+            return res.status(500).json({ erro: 'Erro ao registrar.' });
         }
     },
 
-    // 4. OBTER EXTRATO DETALHADO
+    async importarTransacoes(req, res) {
+        try {
+            const usuario_id = req.usuarioId;
+            const transacoes = Array.isArray(req.body?.transacoes) ? req.body.transacoes : [];
+
+            if (!transacoes.length) {
+                return res.status(400).json({ erro: 'Nenhuma transacao informada para importacao.' });
+            }
+
+            const walletsCache = new Map();
+            const transacoesCriadas = [];
+
+            for (const transacao of transacoes) {
+                const competencia = String(transacao?.competencia || '').slice(0, 7);
+                if (!/^\d{4}-\d{2}$/.test(competencia)) {
+                    return res.status(400).json({ erro: 'Competencia invalida na importacao.' });
+                }
+
+                let wallet = walletsCache.get(competencia);
+                if (!wallet) {
+                    wallet = await obterOuCriarWallet(usuario_id, competencia);
+                    walletsCache.set(competencia, wallet);
+                }
+
+                const criada = adicionarTransacaoNaWallet(wallet, {
+                    ...transacao,
+                    importadoViaPdf: true,
+                });
+
+                transacoesCriadas.push({
+                    ...criada.toObject(),
+                    competencia,
+                });
+            }
+
+            for (const wallet of walletsCache.values()) {
+                atualizarResumo(wallet);
+                await wallet.save();
+            }
+
+            await sincronizarCarteirasEmCadeia(usuario_id);
+
+            return res.status(201).json({
+                mensagem: 'Transacoes importadas com sucesso.',
+                transacoes: transacoesCriadas,
+            });
+        } catch (error) {
+            return res.status(500).json({ erro: 'Erro ao importar transacoes.' });
+        }
+    },
+
     async obterExtrato(req, res) {
         try {
             const { competencia } = req.params;
             const usuario_id = req.usuarioId;
 
-            const wallet = await Wallet.findOne({ usuario_id, competencia });
-            if (!wallet) return res.status(404).json({ erro: 'Mês não encontrado.' });
+            if (!competenciaEhValida(competencia)) {
+                return res.status(400).json({ erro: 'Competencia invalida.' });
+            }
 
-            const transacoesVisiveis = wallet.transacoes.filter(t => !t.deletadoEm);
-            res.status(200).json({ ...wallet._doc, transacoes: transacoesVisiveis });
-        } catch (erro) {
-            res.status(500).json({ erro: 'Erro ao buscar extrato.' });
+            await sincronizarCarteirasEmCadeia(usuario_id);
+            const wallet = await Wallet.findOne({ usuario_id, competencia });
+            if (!wallet) {
+                return res.status(200).json(await montarExtratoVirtual(usuario_id, competencia));
+            }
+
+            return res.status(200).json(serializarWallet(wallet));
+        } catch (error) {
+            return res.status(500).json({ erro: 'Erro ao buscar extrato.' });
         }
     },
 
-    // 5. DELETAR TRANSAÇÃO (Soft Delete)
     async deletarTransacao(req, res) {
         try {
             const { competencia, transacaoId } = req.params;
             const usuario_id = req.usuarioId;
 
-            const wallet = await Wallet.findOne({ usuario_id, competencia });
+            if (!transacaoId) {
+                return res.status(400).json({ erro: 'Transacao invalida.' });
+            }
+
+            let wallet = null;
+
+            if (competencia && !competenciaEhValida(competencia)) {
+                return res.status(400).json({ erro: 'Competencia invalida.' });
+            }
+
+            if (competencia) {
+                wallet = await Wallet.findOne({ usuario_id, competencia });
+            }
+
+            if (!wallet) {
+                wallet = await obterWalletPorTransacao(usuario_id, transacaoId);
+            }
+
             const transacao = wallet?.transacoes.id(transacaoId);
 
-            if (!transacao) return res.status(404).json({ erro: 'Não encontrado.' });
+            if (!transacao) return res.status(404).json({ erro: 'Nao encontrado.' });
+            if (transacao.deletadoEm) {
+                return res.status(200).json({ mensagem: 'Transacao ja removida.', resumo: wallet.resumo });
+            }
 
             transacao.deletadoEm = new Date();
             atualizarResumo(wallet);
             await wallet.save();
+            await sincronizarCarteirasEmCadeia(usuario_id);
 
-            res.status(200).json({ mensagem: 'Removido!', resumo: wallet.resumo });
-        } catch (erro) {
-            res.status(500).json({ erro: 'Erro ao deletar.' });
+            return res.status(200).json({ mensagem: 'Removido!', resumo: wallet.resumo });
+        } catch (error) {
+            return res.status(500).json({ erro: 'Erro ao deletar.' });
         }
     },
 
-    // 6. DEFINIR LIMITES
+    async deletarTodasTransacoes(req, res) {
+        try {
+            const { competencia } = req.params;
+            const usuario_id = req.usuarioId;
+
+            if (!competenciaEhValida(competencia)) {
+                return res.status(400).json({ erro: 'Competencia invalida.' });
+            }
+
+            const wallet = await Wallet.findOne({ usuario_id, competencia });
+            if (!wallet) {
+                return res.status(404).json({ erro: 'Nenhuma carteira encontrada para esta competencia.' });
+            }
+
+            const transacoesAtivas = wallet.transacoes.filter((transacao) => !transacao.deletadoEm);
+            if (!transacoesAtivas.length) {
+                return res.status(200).json({ mensagem: 'Nao havia transacoes para remover.', removidas: 0, resumo: wallet.resumo });
+            }
+
+            const agora = new Date();
+            wallet.transacoes.forEach((transacao) => {
+                if (!transacao.deletadoEm) {
+                    transacao.deletadoEm = agora;
+                }
+            });
+
+            atualizarResumo(wallet);
+            await wallet.save();
+            await sincronizarCarteirasEmCadeia(usuario_id);
+
+            return res.status(200).json({
+                mensagem: 'Todas as transacoes foram removidas.',
+                removidas: transacoesAtivas.length,
+                resumo: wallet.resumo,
+            });
+        } catch (error) {
+            return res.status(500).json({ erro: 'Erro ao deletar transacoes.' });
+        }
+    },
+
+    async listarMeses(req, res) {
+        try {
+            const usuario_id = req.usuarioId;
+            const wallets = await Wallet.find({ usuario_id }).sort({ competencia: -1 });
+            const meses = wallets
+                .filter((w) => w.transacoes.some((t) => !t.deletadoEm))
+                .map((w) => w.competencia);
+            return res.status(200).json({ meses });
+        } catch (error) {
+            return res.status(500).json({ erro: 'Erro ao listar meses.' });
+        }
+    },
+
     async definirLimites(req, res) {
         try {
             const { competencia } = req.params;
             const { limites } = req.body;
             const usuario_id = req.usuarioId;
 
-            const wallet = await Wallet.findOneAndUpdate(
-                { usuario_id, competencia },
-                { limites_gastos: limites },
-                { new: true }
-            );
+            if (!competenciaEhValida(competencia)) {
+                return res.status(400).json({ erro: 'Competencia invalida.' });
+            }
 
-            if (!wallet) return res.status(404).json({ erro: 'Mês não encontrado.' });
-            res.status(200).json(normalizarLimites(wallet.limites_gastos));
-        } catch (erro) {
-            res.status(500).json({ erro: 'Erro ao definir limites.' });
+            const wallet = await obterOuCriarWallet(usuario_id, competencia);
+            wallet.limites_gastos = limites;
+            await wallet.save();
+
+            return res.status(200).json(normalizarLimites(wallet.limites_gastos));
+        } catch (error) {
+            return res.status(500).json({ erro: 'Erro ao definir limites.' });
         }
-    }
+    },
 };
