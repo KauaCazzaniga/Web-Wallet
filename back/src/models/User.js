@@ -16,6 +16,14 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
         select: false,
+    },
+    resetPasswordToken: {
+        type: String,
+        select: false,
+    },
+    resetPasswordExpires: {
+        type: Date,
+        select: false,
     }
 }, {
     timestamps: true
@@ -35,4 +43,5 @@ userSchema.pre('save', async function () {
     // Não precisa (e nem deve) chamar next().
 });
 
-module.exports = mongoose.model('User', userSchema);
+// Evita OverwriteModelError em reloads (testes, hot-reload)
+module.exports = mongoose.models.User || mongoose.model('User', userSchema);

@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const sgMail = require('@sendgrid/mail');
 
 // Função para gerar o Token JWT
 // Mantendo a escala: o segredo vem do seu .env
@@ -67,6 +69,79 @@ exports.login = async (req, res) => {
     } catch (err) {
         console.error("Erro no login:", err);
         return res.status(400).json({ error: 'Erro ao realizar login.' });
+    }
+};
+
+// --- ESQUECI A SENHA ---
+exports.forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+
+        // Sempre 200 para não vazar se o e-mail existe (user enumeration)
+        if (!user) {
+            return res.json({ message: 'Se o e-mail existir, você receberá um link em breve.' });
+        }
+
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const hash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+        user.resetPasswordToken = hash;
+        user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
+        await user.save({ validateBeforeSave: false });
+
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const resetLink = `${frontendUrl}/reset-password?token=${rawToken}`;
+
+        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+        await sgMail.send({
+            to: user.email,
+            from: process.env.SENDGRID_FROM_EMAIL,
+            subject: 'Web-Wallet — Redefinição de senha',
+            html: `
+                <p>Olá, ${user.name}!</p>
+                <p>Clique no link abaixo para redefinir sua senha. O link expira em <strong>15 minutos</strong>.</p>
+                <p><a href="${resetLink}">${resetLink}</a></p>
+                <p>Se você não solicitou a redefinição, ignore este e-mail.</p>
+            `,
+        });
+
+        return res.json({ message: 'Se o e-mail existir, você receberá um link em breve.' });
+    } catch (err) {
+        console.error('Erro no forgotPassword:', err);
+        return res.status(500).json({ error: 'Erro ao processar solicitação.' });
+    }
+};
+
+// --- REDEFINIR SENHA ---
+exports.resetPassword = async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+
+        if (!token || !newPassword) {
+            return res.status(400).json({ error: 'Token e nova senha são obrigatórios.' });
+        }
+
+        const hash = crypto.createHash('sha256').update(token).digest('hex');
+
+        const user = await User.findOne({
+            resetPasswordToken: hash,
+            resetPasswordExpires: { $gt: Date.now() },
+        }).select('+resetPasswordToken +resetPasswordExpires');
+
+        if (!user) {
+            return res.status(400).json({ error: 'Token inválido ou expirado.' });
+        }
+
+        user.password = newPassword;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        return res.json({ message: 'Senha redefinida com sucesso.' });
+    } catch (err) {
+        console.error('Erro no resetPassword:', err);
+        return res.status(500).json({ error: 'Erro ao redefinir senha.' });
     }
 };
 

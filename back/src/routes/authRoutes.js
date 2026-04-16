@@ -13,4 +13,10 @@ router.post('/login', authController.login);
 // O authMiddleware valida o token antes de deixar o controller responder
 router.get('/me', authMiddleware, authController.me);
 
+// Rota para solicitar link de redefinição: POST /api/auth/forgot-password
+router.post('/forgot-password', authController.forgotPassword);
+
+// Rota para redefinir a senha com token: POST /api/auth/reset-password
+router.post('/reset-password', authController.resetPassword);
+
 module.exports = router;
