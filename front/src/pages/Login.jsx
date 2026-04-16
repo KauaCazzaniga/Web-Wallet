@@ -8,7 +8,7 @@ import {
   Container, AuthBox, IconHeader, Title, Subtitle,
   Form, InputGroup, IconWrapper, Input, Button,
   ErrorMessage, Footer, ThemeButton, BackLink,
-} from '../components/ui/AuthForm';
+} from '../components/ui/AuthForm/index.js';
 
 export default function Login() {
   const navigate = useNavigate();
