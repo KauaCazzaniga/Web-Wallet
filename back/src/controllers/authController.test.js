@@ -42,7 +42,7 @@ describe('forgotPassword', () => {
     const saveMock = vi.fn().mockResolvedValue(true);
     const fakeUser = { email: 'user@test.com', name: 'Usuário', save: saveMock };
     User.findOne.mockResolvedValue(fakeUser);
-    process.env.SENDGRID_API_KEY = 'SG.fake';
+    process.env.SENDGRID_API_KEY = 'FAKE_KEY_FOR_TESTS';
     process.env.SENDGRID_FROM_EMAIL = 'noreply@test.com';
     process.env.FRONTEND_URL = 'http://localhost:5173';
 
@@ -86,7 +86,7 @@ describe('resetPassword', () => {
     User.findOne.mockReturnValue({ select: vi.fn().mockResolvedValue(null) });
     const res = mockRes();
 
-    await resetPassword(mockReq({ token: 'tokeninvalido', newPassword: 'nova123' }), res);
+    await resetPassword(mockReq({ token: 'tokeninvalido', newPassword: 'testpass123' }), res);
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith(
@@ -97,7 +97,7 @@ describe('resetPassword', () => {
   it('atualiza senha e limpa token quando válido', async () => {
     const saveMock = vi.fn().mockResolvedValue(true);
     const fakeUser = {
-      password: 'velha',
+      password: 'old-hash-value',
       resetPasswordToken: 'hash',
       resetPasswordExpires: new Date(Date.now() + 999999),
       save: saveMock,
@@ -105,9 +105,9 @@ describe('resetPassword', () => {
     User.findOne.mockReturnValue({ select: vi.fn().mockResolvedValue(fakeUser) });
 
     const res = mockRes();
-    await resetPassword(mockReq({ token: 'rawtoken', newPassword: 'nova123' }), res);
+    await resetPassword(mockReq({ token: 'rawtoken', newPassword: 'testpass123' }), res);
 
-    expect(fakeUser.password).toBe('nova123');
+    expect(fakeUser.password).toBe('testpass123');
     expect(fakeUser.resetPasswordToken).toBeUndefined();
     expect(fakeUser.resetPasswordExpires).toBeUndefined();
     expect(saveMock).toHaveBeenCalled();
@@ -120,7 +120,7 @@ describe('resetPassword', () => {
     User.findOne.mockReturnValue({ select: vi.fn().mockResolvedValue(null) });
     const res = mockRes();
 
-    await resetPassword(mockReq({ token: 'tokenusado', newPassword: 'nova123' }), res);
+    await resetPassword(mockReq({ token: 'tokenusado', newPassword: 'testpass123' }), res);
 
     expect(res.status).toHaveBeenCalledWith(400);
   });
