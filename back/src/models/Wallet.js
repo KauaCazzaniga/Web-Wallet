@@ -37,4 +37,6 @@ const walletSchema = new mongoose.Schema({
     timestamps: true
 });
 
+walletSchema.index({ usuario_id: 1, competencia: 1 }, { unique: true });
+
 module.exports = mongoose.model('Wallet', walletSchema);

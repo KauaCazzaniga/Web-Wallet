@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-// Cria uma instância do Axios com a URL base do seu back-end Node.js
+// Cria uma instância do Axios com a URL base do back-end
+// Em produção, usa a variável de ambiente VITE_API_URL definida no Vercel
 const api = axios.create({
-    // IMPORTANTE: Altere esta porta (3000) para a porta real que sua API Node está rodando localmente
-    baseURL: 'http://localhost:3000/api',
-    timeout: 10000, // Dá timeout se o back-end demorar mais de 10 segundos
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+    timeout: 10000,
 });
 
 // Interceptor de Requisição: Antes de enviar qualquer chamada pro Back-end...

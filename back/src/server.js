@@ -1,15 +1,49 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const connectDB = require('./config/database');
 
 const app = express();
 
 // --- 1. CONEXÃO COM O BANCO ---
-connectDB();
+// connectDB agora retorna uma Promise e reutiliza a conexão em ambiente serverless
+connectDB().catch((err) => {
+    console.error('Falha ao conectar no MongoDB na inicialização:', err.message);
+});
 
 // --- 2. MIDDLEWARES GLOBAIS ---
-app.use(cors());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'same-site' },
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc:  ["'self'"],
+            styleSrc:   ["'self'"],
+            imgSrc:     ["'self'", 'data:'],
+            connectSrc: ["'self'"],
+            frameSrc:   ["'none'"],
+            objectSrc:  ["'none'"],
+        },
+    },
+}));
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+    .split(',')
+    .map((o) => o.trim());
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Permite requisições sem origin (ex: curl, Postman, mobile)
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        callback(new Error(`Origem bloqueada pelo CORS: ${origin}`));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+}));
 app.use(express.json());
 
 // --- 3. ROTA DE TESTE (Health Check) ---

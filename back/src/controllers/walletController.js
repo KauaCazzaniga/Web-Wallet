@@ -124,9 +124,6 @@ const obterOuCriarWallet = async (usuario_id, competencia) => {
     return Wallet.create(await montarWalletInicial(usuario_id, competencia));
 };
 
-const obterWalletPorTransacao = async (usuario_id, transacaoId) =>
-    Wallet.findOne({ usuario_id, 'transacoes._id': transacaoId });
-
 const adicionarTransacaoNaWallet = (wallet, payload = {}) => {
     wallet.transacoes.push({
         data_hora: payload.data_hora || undefined,
@@ -189,13 +186,14 @@ module.exports = {
                 return res.status(400).json({ erro: 'Competencia invalida.' });
             }
 
-            const existe = await Wallet.findOne({ usuario_id, competencia });
-            if (existe) return res.status(400).json({ erro: 'Este mes ja foi iniciado.' });
-
             const novaWallet = await Wallet.create(await montarWalletInicial(usuario_id, competencia));
             await sincronizarCarteirasEmCadeia(usuario_id);
             return res.status(201).json(serializarWallet(novaWallet));
         } catch (error) {
+            // Código 11000: violação do índice único (usuario_id + competencia)
+            if (error.code === 11000) {
+                return res.status(400).json({ erro: 'Este mes ja foi iniciado.' });
+            }
             return res.status(500).json({ erro: 'Erro ao iniciar o mes.' });
         }
     },
@@ -308,30 +306,13 @@ module.exports = {
 
     async deletarTransacao(req, res) {
         try {
-            const { competencia, transacaoId } = req.params;
+            const { transacaoId } = req.params;
             const usuario_id = req.usuarioId;
 
-            if (!transacaoId) {
-                return res.status(400).json({ erro: 'Transacao invalida.' });
-            }
+            // req.wallet é injetado pelo middleware verifyTransactionOwnership
+            const wallet = req.wallet;
+            const transacao = wallet.transacoes.id(transacaoId);
 
-            let wallet = null;
-
-            if (competencia && !competenciaEhValida(competencia)) {
-                return res.status(400).json({ erro: 'Competencia invalida.' });
-            }
-
-            if (competencia) {
-                wallet = await Wallet.findOne({ usuario_id, competencia });
-            }
-
-            if (!wallet) {
-                wallet = await obterWalletPorTransacao(usuario_id, transacaoId);
-            }
-
-            const transacao = wallet?.transacoes.id(transacaoId);
-
-            if (!transacao) return res.status(404).json({ erro: 'Nao encontrado.' });
             if (transacao.deletadoEm) {
                 return res.status(200).json({ mensagem: 'Transacao ja removida.', resumo: wallet.resumo });
             }
@@ -384,6 +365,27 @@ module.exports = {
             });
         } catch (error) {
             return res.status(500).json({ erro: 'Erro ao deletar transacoes.' });
+        }
+    },
+
+    async totalInvestido(req, res) {
+        try {
+            const usuario_id = req.usuarioId;
+            const { ate } = req.query; // "YYYY-MM" — soma apenas até este mês (inclusive)
+            const query = { usuario_id };
+            if (ate && competenciaEhValida(ate)) {
+                query.competencia = { $lte: ate };
+            }
+            const wallets = await Wallet.find(query);
+            let total = 0;
+            for (const wallet of wallets) {
+                wallet.transacoes
+                    .filter((t) => !t.deletadoEm && t.tipo === 'despesa' && t.categoria === 'Investimentos')
+                    .forEach((t) => { total += Number(t.valor || 0); });
+            }
+            return res.status(200).json({ total });
+        } catch (error) {
+            return res.status(500).json({ erro: 'Erro ao calcular total investido.' });
         }
     },
 
