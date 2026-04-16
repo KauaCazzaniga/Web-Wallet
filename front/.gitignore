@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# env files
+.env
+.env.*
+!.env.example
+
+# Skills / agentes locais
+.agents/
+.claude/
+skills-lock.json

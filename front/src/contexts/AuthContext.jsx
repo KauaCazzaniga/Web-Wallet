@@ -36,6 +36,16 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const forgotPassword = async (email) => {
+        const response = await api.post('/auth/forgot-password', { email });
+        return response.data;
+    };
+
+    const resetPassword = async (token, newPassword) => {
+        const response = await api.post('/auth/reset-password', { token, newPassword });
+        return response.data;
+    };
+
     const logout = () => {
         localStorage.removeItem('@WebWallet:token');
         localStorage.removeItem('@WebWallet:user');
@@ -63,7 +73,9 @@ export const AuthProvider = ({ children }) => {
             loading,
             login,
             register,
-            logout
+            logout,
+            forgotPassword,
+            resetPassword,
         }}>
             {children}
         </AuthContext.Provider>
