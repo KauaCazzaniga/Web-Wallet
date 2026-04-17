@@ -10,7 +10,7 @@ import {
   Container, AuthBox, IconHeader, Title, Subtitle,
   Form, InputGroup, IconWrapper, Input, Button,
   ErrorMessage, Footer, ThemeButton, BackLink,
-} from '../components/ui/AuthForm/index.js';
+} from '@/components/ui/AuthForm/index.js';
 
 export default function ForgotPassword() {
   const { forgotPassword } = useContext(AuthContext);
