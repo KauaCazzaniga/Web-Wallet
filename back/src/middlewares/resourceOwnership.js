@@ -3,6 +3,7 @@
 // Depende de: authMiddleware (req.usuarioId deve estar preenchido antes)
 
 const Wallet = require('../models/Wallet');
+const connectDB = require('../config/database');
 
 /**
  * Verifica que a transação referenciada em req.params.transacaoId existe e pertence ao
@@ -13,6 +14,7 @@ const Wallet = require('../models/Wallet');
  */
 const verifyTransactionOwnership = async (req, res, next) => {
     try {
+        await connectDB();
         const { transacaoId } = req.params;
         const usuario_id = req.usuarioId;
 

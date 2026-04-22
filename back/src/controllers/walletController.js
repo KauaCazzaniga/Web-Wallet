@@ -1,4 +1,5 @@
 const Wallet = require('../models/Wallet');
+const connectDB = require('../config/database');
 
 const atualizarResumo = (wallet) => {
     const transacoesAtivas = wallet.transacoes.filter((transacao) => !transacao.deletadoEm);
@@ -141,6 +142,7 @@ const adicionarTransacaoNaWallet = (wallet, payload = {}) => {
 module.exports = {
     async obterDashboard(req, res) {
         try {
+            await connectDB();
             const usuario_id = req.usuarioId;
             await sincronizarCarteirasEmCadeia(usuario_id);
             const wallet = await Wallet.findOne({ usuario_id }).sort({ competencia: -1 });
@@ -179,6 +181,7 @@ module.exports = {
 
     async iniciarMes(req, res) {
         try {
+            await connectDB();
             const { competencia } = req.body;
             const usuario_id = req.usuarioId;
 
@@ -200,6 +203,7 @@ module.exports = {
 
     async adicionarTransacao(req, res) {
         try {
+            await connectDB();
             const { competencia, tipo, categoria, valor, descricao, tags, data_hora, importadoViaPdf } = req.body;
             const usuario_id = req.usuarioId;
 
@@ -234,6 +238,7 @@ module.exports = {
 
     async importarTransacoes(req, res) {
         try {
+            await connectDB();
             const usuario_id = req.usuarioId;
             const transacoes = Array.isArray(req.body?.transacoes) ? req.body.transacoes : [];
 
@@ -285,6 +290,7 @@ module.exports = {
 
     async obterExtrato(req, res) {
         try {
+            await connectDB();
             const { competencia } = req.params;
             const usuario_id = req.usuarioId;
 
@@ -306,6 +312,7 @@ module.exports = {
 
     async deletarTransacao(req, res) {
         try {
+            await connectDB();
             const { transacaoId } = req.params;
             const usuario_id = req.usuarioId;
 
@@ -330,6 +337,7 @@ module.exports = {
 
     async deletarTodasTransacoes(req, res) {
         try {
+            await connectDB();
             const { competencia } = req.params;
             const usuario_id = req.usuarioId;
 
@@ -370,6 +378,7 @@ module.exports = {
 
     async totalInvestido(req, res) {
         try {
+            await connectDB();
             const usuario_id = req.usuarioId;
             const { ate } = req.query; // "YYYY-MM" — soma apenas até este mês (inclusive)
             const query = { usuario_id };
@@ -391,6 +400,7 @@ module.exports = {
 
     async listarMeses(req, res) {
         try {
+            await connectDB();
             const usuario_id = req.usuarioId;
             const wallets = await Wallet.find({ usuario_id }).sort({ competencia: -1 });
             const meses = wallets
@@ -404,6 +414,7 @@ module.exports = {
 
     async definirLimites(req, res) {
         try {
+            await connectDB();
             const { competencia } = req.params;
             const { limites } = req.body;
             const usuario_id = req.usuarioId;
