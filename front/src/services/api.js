@@ -1,39 +1,63 @@
 import axios from 'axios';
 
-// Cria uma instância do Axios com a URL base do back-end
-// Em produção, usa a variável de ambiente VITE_API_URL definida no Vercel
+export const normalizeApiBaseUrl = (rawBaseUrl) => {
+    const fallbackBaseUrl = 'http://localhost:3000/api';
+
+    if (!rawBaseUrl) {
+        if (typeof window !== 'undefined' && window.location?.origin) {
+            return `${window.location.origin}/api`;
+        }
+
+        return fallbackBaseUrl;
+    }
+
+    try {
+        const parsedUrl = new URL(rawBaseUrl);
+        const normalizedPath = parsedUrl.pathname.replace(/\/+$/, '');
+
+        if (normalizedPath === '/api' || normalizedPath.startsWith('/api/')) {
+            return `${parsedUrl.origin}${normalizedPath}`;
+        }
+
+        if (normalizedPath.endsWith('/api')) {
+            console.warn(
+                `[api] VITE_API_URL estava apontando para "${rawBaseUrl}". ` +
+                'Ajustando automaticamente para o endpoint raiz "/api".'
+            );
+            return `${parsedUrl.origin}/api`;
+        }
+
+        return `${parsedUrl.origin}${normalizedPath}`;
+    } catch {
+        return rawBaseUrl.replace(/\/+$/, '');
+    }
+};
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+    baseURL: normalizeApiBaseUrl(import.meta.env.VITE_API_URL),
     timeout: 10000,
 });
 
-// Interceptor de Requisição: Antes de enviar qualquer chamada pro Back-end...
 api.interceptors.request.use(
     (config) => {
-        // ...ele vai lá no LocalStorage procurar se o usuário já tem um Token salvo
         const token = localStorage.getItem('@WebWallet:token');
 
-        // Se tiver, ele injeta automaticamente no cabeçalho (Header) de segurança
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
 
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
-// Interceptor de Resposta: Opcional, mas ótimo para lidar com Token expirado
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-            // Se o Node.js disser que o Token é inválido ou expirou (Erro 401 Unauthorized),
-            // podemos limpar o storage e deslogar o usuário aqui futuramente.
-            console.error("Token inválido ou expirado. Refaça o login.");
+            console.error('Token invalido ou expirado. Refaca o login.');
         }
+
         return Promise.reject(error);
     }
 );

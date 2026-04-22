@@ -3,84 +3,84 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const sgMail = require('@sendgrid/mail');
+const connectDB = require('../config/database');
 
-// Função para gerar o Token JWT
-// Mantendo a escala: o segredo vem do seu .env
+const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
+
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET || 'secret_chave_webwallet', {
         expiresIn: '1d',
     });
 };
 
-// --- REGISTRO (Cadastro) ---
 exports.register = async (req, res) => {
     try {
+        await connectDB();
         const { name, email, password } = req.body;
+        const normalizedEmail = normalizeEmail(email);
 
-        // 1. Verificação de infra: O e-mail já existe?
-        if (await User.findOne({ email })) {
-            return res.status(400).json({ error: 'Usuário já cadastrado.' });
+        if (!name || !normalizedEmail || !password) {
+            return res.status(400).json({ error: 'Nome, e-mail e senha sao obrigatorios.' });
         }
 
-        // 2. Criação: O Model User.js cuidará do hash da senha automaticamente no pre-save
-        const user = await User.create({ name, email, password });
+        if (await User.findOne({ email: normalizedEmail })) {
+            return res.status(400).json({ error: 'Usuario ja cadastrado.' });
+        }
 
-        // 3. Segurança: Não devolvemos a senha no JSON
+        const user = await User.create({ name, email: normalizedEmail, password });
         user.password = undefined;
 
-        // 4. Sucesso: Retorna o usuário criado e o Token
         return res.status(201).json({
             user,
-            token: generateToken(user._id)
+            token: generateToken(user._id),
         });
-
     } catch (err) {
-        console.error("Erro no registro:", err);
-        return res.status(400).json({ error: 'Falha no registro do usuário.' });
+        console.error('Erro no registro:', err);
+        return res.status(400).json({ error: 'Falha no registro do usuario.' });
     }
 };
 
-// --- LOGIN ---
 exports.login = async (req, res) => {
     try {
+        await connectDB();
         const { email, password } = req.body;
+        const normalizedEmail = normalizeEmail(email);
 
-        // 1. Busca o usuário incluindo a senha (select: false no model)
-        const user = await User.findOne({ email }).select('+password');
+        if (!normalizedEmail || !password) {
+            return res.status(400).json({ error: 'E-mail e senha sao obrigatorios.' });
+        }
+
+        const user = await User.findOne({ email: normalizedEmail }).select('+password');
 
         if (!user) {
-            return res.status(400).json({ error: 'Usuário não encontrado.' });
+            return res.status(400).json({ error: 'Usuario nao encontrado.' });
         }
 
-        // 2. Comparação de senha com bcrypt
         if (!await bcrypt.compare(password, user.password)) {
-            return res.status(400).json({ error: 'Senha inválida.' });
+            return res.status(400).json({ error: 'Senha invalida.' });
         }
 
-        // 3. Limpa a senha da resposta
         user.password = undefined;
 
-        // 4. Retorna dados + Token
         return res.json({
             user,
-            token: generateToken(user._id)
+            token: generateToken(user._id),
         });
-
     } catch (err) {
-        console.error("Erro no login:", err);
+        console.error('Erro no login:', err);
         return res.status(400).json({ error: 'Erro ao realizar login.' });
     }
 };
 
-// --- ESQUECI A SENHA ---
 exports.forgotPassword = async (req, res) => {
     try {
+        await connectDB();
         const { email } = req.body;
-        const user = await User.findOne({ email });
+        const normalizedEmail = normalizeEmail(email);
+        const user = await User.findOne({ email: normalizedEmail });
 
-        // Sempre 200 para não vazar se o e-mail existe (user enumeration)
         if (!user) {
-            return res.json({ message: 'Se o e-mail existir, você receberá um link em breve.' });
+            return res.json({ message: 'Se o e-mail existir, voce recebera um link em breve.' });
         }
 
         const rawToken = crypto.randomBytes(32).toString('hex');
@@ -97,29 +97,29 @@ exports.forgotPassword = async (req, res) => {
         await sgMail.send({
             to: user.email,
             from: process.env.SENDGRID_FROM_EMAIL,
-            subject: 'Web-Wallet — Redefinição de senha',
+            subject: 'Web-Wallet - Redefinicao de senha',
             html: `
-                <p>Olá, ${user.name}!</p>
+                <p>Ola, ${user.name}!</p>
                 <p>Clique no link abaixo para redefinir sua senha. O link expira em <strong>15 minutos</strong>.</p>
                 <p><a href="${resetLink}">${resetLink}</a></p>
-                <p>Se você não solicitou a redefinição, ignore este e-mail.</p>
+                <p>Se voce nao solicitou a redefinicao, ignore este e-mail.</p>
             `,
         });
 
-        return res.json({ message: 'Se o e-mail existir, você receberá um link em breve.' });
+        return res.json({ message: 'Se o e-mail existir, voce recebera um link em breve.' });
     } catch (err) {
         console.error('Erro no forgotPassword:', err);
-        return res.status(500).json({ error: 'Erro ao processar solicitação.' });
+        return res.status(500).json({ error: 'Erro ao processar solicitacao.' });
     }
 };
 
-// --- REDEFINIR SENHA ---
 exports.resetPassword = async (req, res) => {
     try {
+        await connectDB();
         const { token, newPassword } = req.body;
 
         if (!token || !newPassword) {
-            return res.status(400).json({ error: 'Token e nova senha são obrigatórios.' });
+            return res.status(400).json({ error: 'Token e nova senha sao obrigatorios.' });
         }
 
         const hash = crypto.createHash('sha256').update(token).digest('hex');
@@ -130,7 +130,7 @@ exports.resetPassword = async (req, res) => {
         }).select('+resetPasswordToken +resetPasswordExpires');
 
         if (!user) {
-            return res.status(400).json({ error: 'Token inválido ou expirado.' });
+            return res.status(400).json({ error: 'Token invalido ou expirado.' });
         }
 
         user.password = newPassword;
@@ -145,21 +145,18 @@ exports.resetPassword = async (req, res) => {
     }
 };
 
-// --- VERIFICAÇÃO DE SEGURANÇA (ME) ---
 exports.me = async (req, res) => {
     try {
-        // AJUSTE CRÍTICO: Usando 'usuarioId' para bater com o seu middleware
-        // O seu middleware faz: req.usuarioId = decoded.id;
+        await connectDB();
         const user = await User.findById(req.usuarioId);
 
         if (!user) {
-            return res.status(404).json({ error: 'Usuário não encontrado.' });
+            return res.status(404).json({ error: 'Usuario nao encontrado.' });
         }
 
-        // Retorna o objeto user dentro de uma chave para facilitar no Front (Escala)
         return res.json({ user });
     } catch (err) {
-        console.error("Erro no Me:", err);
-        return res.status(500).json({ error: 'Erro ao buscar dados do usuário.' });
+        console.error('Erro no Me:', err);
+        return res.status(500).json({ error: 'Erro ao buscar dados do usuario.' });
     }
 };

@@ -11,7 +11,10 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const response = await api.post('/auth/login', { email, password });
+            const response = await api.post('/auth/login', {
+                email: email.trim(),
+                password,
+            });
             const { token, user: userData } = response.data;
 
             localStorage.setItem('@WebWallet:token', token);
@@ -19,10 +22,13 @@ export const AuthProvider = ({ children }) => {
 
             api.defaults.headers.Authorization = `Bearer ${token}`;
             setUser(userData);
-            return true;
+            return { success: true };
         } catch (error) {
             console.error("Erro no login:", error);
-            return false;
+            return {
+                success: false,
+                error: error.response?.data?.error || 'Erro ao realizar login.',
+            };
         }
     };
 

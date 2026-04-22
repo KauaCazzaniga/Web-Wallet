@@ -28,11 +28,11 @@ export default function Login() {
     setError('');
     setIsLoading(true);
     try {
-      const isSuccess = await login(email, password);
-      if (isSuccess) {
+      const result = await login(email, password);
+      if (result.success) {
         navigate('/dashboard');
       } else {
-        setError('E-mail ou senha incorretos. Verifique seus dados.');
+        setError(result.error || 'E-mail ou senha incorretos. Verifique seus dados.');
       }
     } catch {
       setError('Ocorreu um erro no servidor. Tente mais tarde.');
