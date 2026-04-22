@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Home, LogOut, Moon, Settings, SunMedium, Wallet } from 'lucide-react';
+import { FileText, Home, LogOut, Menu, Moon, Settings, SunMedium, Wallet } from 'lucide-react';
 
 import api from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
@@ -51,6 +51,21 @@ const Sidebar = styled.aside`
   padding: 1.5rem 0;
   flex-shrink: 0;
   backdrop-filter: blur(18px);
+  @media (max-width: 768px) {
+    position: fixed; top: 0; left: 0; height: 100vh; z-index: 400;
+    transform: ${p => p.$open ? 'translateX(0)' : 'translateX(-100%)'};
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: ${p => p.$open ? '4px 0 32px rgba(0,0,0,0.35)' : 'none'};
+  }
+`;
+const MobileOverlay = styled.div`
+  display: none;
+  @media (max-width: 768px) {
+    display: ${p => p.$visible ? 'block' : 'none'};
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 399;
+    backdrop-filter: blur(2px);
+  }
 `;
 
 const LogoArea = styled.div`
@@ -156,7 +171,7 @@ const MainContent = styled.main`
 `;
 
 const Header = styled.header`
-  height: 64px;
+  min-height: 64px;
   background: var(--rel-shell);
   border-bottom: 1px solid var(--rel-border);
   display: flex;
@@ -165,6 +180,16 @@ const Header = styled.header`
   padding: 0 1.75rem;
   flex-shrink: 0;
   backdrop-filter: blur(18px);
+  gap: 0.75rem;
+  @media (max-width: 768px) { padding: 0.75rem 1rem; flex-wrap: wrap; }
+`;
+const HamburgerBtn = styled.button`
+  display: none; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border: 1px solid var(--rel-border);
+  border-radius: 0.5rem; background: var(--rel-surface); color: var(--rel-heading);
+  cursor: pointer; flex-shrink: 0; transition: background 0.15s;
+  &:hover { background: var(--rel-surface-muted); }
+  @media (max-width: 768px) { display: flex; }
 `;
 
 const HeaderTitle = styled.h2`
@@ -182,6 +207,7 @@ const ContentArea = styled.div`
   flex: 1;
   padding: 1.75rem;
   overflow-y: auto;
+  @media (max-width: 768px) { padding: 1rem; }
 `;
 
 const ContentWrapper = styled.div`
@@ -267,6 +293,7 @@ export default function Relatorios() {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
   const { isDark, toggleTheme } = useContext(ThemeContext);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [periodo, setPeriodo] = useState(getDefaultReportRange);
   const [serverTransactions, setServerTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -357,16 +384,17 @@ export default function Relatorios() {
 
   return (
     <AppContainer $dark={isDark}>
-      <Sidebar>
-        <LogoArea><Wallet size={22} /> Web-Wallet</LogoArea>
+      <MobileOverlay $visible={sidebarOpen} onClick={() => setSidebarOpen(false)} />
+      <Sidebar $open={sidebarOpen}>
+        <LogoArea><Wallet size={22} /> Waltrix</LogoArea>
         <NavMenu>
-          <NavItem onClick={() => navigate('/dashboard')}>
+          <NavItem onClick={() => { navigate('/dashboard'); setSidebarOpen(false); }}>
             <Home size={17} /> Dashboard
           </NavItem>
-          <NavItem $active onClick={() => navigate('/relatorios')}>
+          <NavItem $active onClick={() => { navigate('/relatorios'); setSidebarOpen(false); }}>
             <FileText size={17} /> Relatórios
           </NavItem>
-          <NavItem onClick={() => window.alert('Configurações em breve!')}>
+          <NavItem onClick={() => { window.alert('Configurações em breve!'); setSidebarOpen(false); }}>
             <Settings size={17} /> Configurações
           </NavItem>
         </NavMenu>
@@ -389,6 +417,9 @@ export default function Relatorios() {
 
       <MainContent>
         <Header>
+          <HamburgerBtn onClick={() => setSidebarOpen(prev => !prev)} aria-label="Abrir menu">
+            <Menu size={18} />
+          </HamburgerBtn>
           <HeaderTitle>Relatórios</HeaderTitle>
           <HeaderMeta>{formatCurrencyBRL(resumo.totalDespesas)} em gastos no período atual</HeaderMeta>
         </Header>

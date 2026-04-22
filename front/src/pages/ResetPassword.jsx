@@ -71,7 +71,7 @@ export default function ResetPassword() {
         <IconHeader $dark={isDark}>
           <Wallet size={40} color="#a855f7" />
         </IconHeader>
-        <Title>Web-Wallet</Title>
+        <Title>Waltrix</Title>
         <Subtitle $dark={isDark}>Crie uma nova senha</Subtitle>
         <Form onSubmit={handleSubmit}>
           <InputGroup>

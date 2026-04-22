@@ -53,7 +53,7 @@ export default function Register() {
           <Wallet size={40} color="#a855f7" />
         </IconHeader>
         <Title>Criar Conta</Title>
-        <Subtitle $dark={isDark}>Junte-se ao Web-Wallet</Subtitle>
+        <Subtitle $dark={isDark}>Junte-se ao Waltrix</Subtitle>
         <Form onSubmit={handleSubmit}>
           <InputGroup>
             <IconWrapper><User size={20} /></IconWrapper>

@@ -694,7 +694,7 @@ export default function Index() {
           <Brand to="/" $dark={isDark}>
             <div className="logo"><Wallet size={22} color="#fff" /></div>
             <div>
-              <strong>Web-Wallet</strong>
+              <strong>Waltrix</strong>
               <span>Finanças com leitura de produto</span>
             </div>
           </Brand>

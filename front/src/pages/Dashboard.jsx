@@ -82,6 +82,21 @@ const Sidebar = styled.aside`
   width: 240px; background: var(--dash-shell); border-right: 1px solid var(--dash-border);
   display: flex; flex-direction: column; padding: 1.5rem 0; flex-shrink: 0;
   backdrop-filter: blur(18px);
+  @media (max-width: 768px) {
+    position: fixed; top: 0; left: 0; height: 100vh; z-index: 400;
+    transform: ${p => p.$open ? 'translateX(0)' : 'translateX(-100%)'};
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: ${p => p.$open ? '4px 0 32px rgba(0,0,0,0.35)' : 'none'};
+  }
+`;
+const MobileOverlay = styled.div`
+  display: none;
+  @media (max-width: 768px) {
+    display: ${p => p.$visible ? 'block' : 'none'};
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 399;
+    backdrop-filter: blur(2px);
+  }
 `;
 const LogoArea = styled.div`
   display: flex; align-items: center; gap: 0.5rem; padding: 0 1.5rem;
@@ -136,7 +151,10 @@ const SwitchThumb = styled.div`
   transition: left 0.2s ease; box-shadow: 0 4px 10px rgba(15,23,42,0.18);
 `;
 const MainContent  = styled.main`flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;`;
-const ContentArea  = styled.div`flex: 1; padding: 1.75rem; overflow-y: auto;`;
+const ContentArea  = styled.div`
+  flex: 1; padding: 1.75rem; overflow-y: auto;
+  @media (max-width: 768px) { padding: 1rem; }
+`;
 const ContentWrapper = styled.div`max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem;`;
 
 // ── KPI Cards ────────────────────────────────────────────────────────────────
@@ -220,6 +238,7 @@ function DashboardContent() {
   } = useFinance();
 
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -711,6 +730,8 @@ function DashboardContent() {
   return (
     <AppContainer $dark={isDark}>
 
+      <MobileOverlay $visible={sidebarOpen} onClick={() => setSidebarOpen(false)} />
+
       {/* Toast */}
       {toast.show && (
         <ToastContainer>
@@ -860,16 +881,16 @@ function DashboardContent() {
       />
 
       {/* Sidebar */}
-      <Sidebar>
-        <LogoArea><Wallet size={22} /> Web-Wallet</LogoArea>
+      <Sidebar $open={sidebarOpen}>
+        <LogoArea><Wallet size={22} /> Waltrix</LogoArea>
         <NavMenu>
-          <NavItem $active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); navigate('/dashboard'); }}>
+          <NavItem $active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); navigate('/dashboard'); setSidebarOpen(false); }}>
             <Home size={17} /> Dashboard
           </NavItem>
-          <NavItem onClick={() => navigate('/relatorios')}>
+          <NavItem onClick={() => { navigate('/relatorios'); setSidebarOpen(false); }}>
             <FileText size={17} /> Relatórios
           </NavItem>
-          <NavItem onClick={() => notify('Configurações em breve!', 'error')}>
+          <NavItem onClick={() => { notify('Configurações em breve!', 'error'); setSidebarOpen(false); }}>
             <Settings size={17} /> Configurações
           </NavItem>
         </NavMenu>
@@ -906,6 +927,7 @@ function DashboardContent() {
           onImportFile={handleImportFile}
           onError={(msg) => notify(msg, 'error')}
           onAddTransaction={() => setTxModal(true)}
+          onMenuToggle={() => setSidebarOpen(prev => !prev)}
         />
 
         <ContentArea>

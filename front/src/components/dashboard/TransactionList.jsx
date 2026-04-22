@@ -10,6 +10,7 @@ import { fmt, parseDate, getTransactionRawDate, resolveCatDisplay, ITEMS_POR_PAG
 
 // ── Styled ────────────────────────────────────────────────────────────────────
 const TxPanel = styled(Panel)`overflow: hidden; padding: 0;`;
+const TableScroll = styled.div`overflow-x: auto; -webkit-overflow-scrolling: touch;`;
 const TxHeader = styled(PanelHeader)`
   padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--dash-border); margin-bottom: 0;
 `;
@@ -106,6 +107,7 @@ export default function TransactionList({
         </div>
       )}
 
+      <TableScroll>
       <Table>
         <thead>
           <tr>
@@ -165,6 +167,7 @@ export default function TransactionList({
           })}
         </tbody>
       </Table>
+      </TableScroll>
 
       {transacoesMes.length > ITEMS_POR_PAGINA && (
         <PaginacaoBar>

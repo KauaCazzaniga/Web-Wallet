@@ -1,24 +1,29 @@
-// Componente: DashboardHeader
-// Responsabilidade: Barra de cabeçalho do Dashboard — seletor de mês, badge, import e nova transação
-// Depende de: ImportButton, dashboardUtils (formatarCompetencia), lucide-react, styled-components
-
 import React from 'react';
 import styled from 'styled-components';
-import { Plus } from 'lucide-react';
+import { Plus, Menu } from 'lucide-react';
 import ImportButton from '../ImportButton';
 import { formatarCompetencia } from './dashboardUtils';
 
 // ── Styled ────────────────────────────────────────────────────────────────────
 const Header = styled.header`
-  height: 60px; background: var(--dash-shell); border-bottom: 1px solid var(--dash-border);
+  min-height: 60px; background: var(--dash-shell); border-bottom: 1px solid var(--dash-border);
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 1.75rem; flex-shrink: 0;
+  padding: 0 1.75rem; flex-shrink: 0; gap: 0.75rem; flex-wrap: wrap;
   backdrop-filter: blur(18px);
+  @media (max-width: 768px) { padding: 0.75rem 1rem; }
 `;
-const HeaderTitle = styled.h2`font-size: 1.125rem; font-weight: 600; color: var(--dash-heading);`;
+const HeaderLeft = styled.div`display: flex; align-items: center; gap: 0.625rem;`;
+const HeaderTitle = styled.h2`font-size: 1.125rem; font-weight: 600; color: var(--dash-heading); white-space: nowrap;`;
+const HamburgerBtn = styled.button`
+  display: none; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border: 1px solid var(--dash-border);
+  border-radius: 0.5rem; background: var(--dash-surface); color: var(--dash-heading);
+  cursor: pointer; flex-shrink: 0; transition: background 0.15s;
+  &:hover { background: var(--dash-surface-muted); }
+  @media (max-width: 768px) { display: flex; }
+`;
 const HeaderActions = styled.div`
-  display: flex; align-items: center; gap: 0.75rem;
-  flex-wrap: wrap; justify-content: flex-end;
+  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;
 `;
 const AddButton = styled.button`
   background: linear-gradient(135deg, #06b6d4 0%, var(--dash-primary) 52%, #4f46e5 100%);
@@ -30,7 +35,8 @@ const AddButton = styled.button`
   svg { transition: transform 0.2s ease, filter 0.2s ease; }
   &:hover svg { transform: translateY(-2px) scale(1.08); filter: brightness(1.15); }
 `;
-const MonthSelectorWrap = styled.div`display: flex; align-items: center; gap: 0.5rem;`;
+const BtnText = styled.span`@media (max-width: 480px) { display: none; }`;
+const MonthSelectorWrap = styled.div`display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0;`;
 const MonthSelect = styled.select`
   appearance: none; -webkit-appearance: none;
   padding: 0.5rem 2.25rem 0.5rem 0.875rem;
@@ -40,9 +46,11 @@ const MonthSelect = styled.select`
   background-repeat: no-repeat; background-position: right 0.6rem center;
   color: var(--dash-heading); font-size: 0.875rem; font-weight: 700;
   outline: none; cursor: pointer; box-shadow: var(--dash-soft-shadow);
-  transition: border-color 0.15s, box-shadow 0.15s; min-width: 13rem;
+  transition: border-color 0.15s, box-shadow 0.15s; min-width: 11rem;
+  max-width: 100%; flex: 1;
   &:focus { border-color: var(--dash-primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.14); }
   option { font-weight: 400; background: var(--dash-surface); color: var(--dash-heading); }
+  @media (max-width: 480px) { min-width: 0; font-size: 0.8rem; padding: 0.45rem 2rem 0.45rem 0.75rem; }
 `;
 const MesBadge = styled.span`
   display: inline-flex; align-items: center;
@@ -52,21 +60,10 @@ const MesBadge = styled.span`
   background: ${p => p.$hoje ? 'var(--dash-primary-soft)' : p.$dark ? 'rgba(120,80,0,0.25)' : '#fef3c7'};
   border: 1px solid ${p => p.$hoje ? 'var(--dash-primary)' : p.$dark ? 'rgba(251,191,36,0.35)' : '#fcd34d'};
   color: ${p => p.$hoje ? 'var(--dash-primary)' : p.$dark ? '#fcd34d' : '#92400e'};
+  @media (max-width: 480px) { display: none; }
 `;
 
 // ── Componente ────────────────────────────────────────────────────────────────
-
-/**
- * @param {string}   mesSelecionado       - Mês ativo "YYYY-MM"
- * @param {string[]} mesesEfetivos        - Lista de meses disponíveis
- * @param {boolean}  ehMesAtual           - true se mesSelecionado === mês de hoje
- * @param {boolean}  isDark               - Tema atual
- * @param {Function} onMesChange          - Callback ao mudar mês (passa o novo valor "YYYY-MM" ou "__add__")
- * @param {boolean}  importingExtract     - Extração em progresso
- * @param {Function} onImportFile         - Callback ao selecionar arquivo PDF
- * @param {Function} onError              - Callback de erro do ImportButton
- * @param {Function} onAddTransaction     - Abre modal de nova transação
- */
 export default function DashboardHeader({
   mesSelecionado,
   mesesEfetivos,
@@ -77,16 +74,19 @@ export default function DashboardHeader({
   onImportFile,
   onError,
   onAddTransaction,
+  onMenuToggle,
 }) {
   return (
     <Header>
-      <HeaderTitle>Visão Geral</HeaderTitle>
+      <HeaderLeft>
+        <HamburgerBtn onClick={onMenuToggle} aria-label="Abrir menu">
+          <Menu size={18} />
+        </HamburgerBtn>
+        <HeaderTitle>Visão Geral</HeaderTitle>
+      </HeaderLeft>
 
       <MonthSelectorWrap>
-        <MonthSelect
-          value={mesSelecionado}
-          onChange={e => onMesChange(e.target.value)}
-        >
+        <MonthSelect value={mesSelecionado} onChange={e => onMesChange(e.target.value)}>
           {mesesEfetivos.map(mes => (
             <option key={mes} value={mes}>{formatarCompetencia(mes)}</option>
           ))}
@@ -105,7 +105,7 @@ export default function DashboardHeader({
           onError={onError}
         />
         <AddButton onClick={onAddTransaction} disabled={!ehMesAtual}>
-          <Plus size={15} /> Nova Transação
+          <Plus size={15} /> <BtnText>Nova Transação</BtnText>
         </AddButton>
       </HeaderActions>
     </Header>
