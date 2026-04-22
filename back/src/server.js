@@ -28,7 +28,7 @@ app.use(helmet({
     },
 }));
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,https://www.waltrix.com.br,https://waltrix.com.br')
     .split(',')
     .map((o) => o.trim());
 
