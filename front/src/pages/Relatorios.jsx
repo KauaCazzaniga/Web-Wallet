@@ -394,7 +394,7 @@ export default function Relatorios() {
           <NavItem $active onClick={() => { navigate('/relatorios'); setSidebarOpen(false); }}>
             <FileText size={17} /> Relatórios
           </NavItem>
-          <NavItem onClick={() => { window.alert('Configurações em breve!'); setSidebarOpen(false); }}>
+          <NavItem onClick={() => { navigate('/configuracoes'); setSidebarOpen(false); }}>
             <Settings size={17} /> Configurações
           </NavItem>
         </NavMenu>

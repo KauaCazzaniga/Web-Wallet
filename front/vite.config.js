@@ -10,6 +10,21 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://www.waltrix.com.br',
+        changeOrigin: true,
+        secure: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.setHeader('Origin', 'https://www.waltrix.com.br');
+            proxyReq.setHeader('Referer', 'https://www.waltrix.com.br/');
+          });
+        },
+      },
+    },
+  },
   optimizeDeps: {
     include: ['pdfjs-dist/legacy/build/pdf'],
   },

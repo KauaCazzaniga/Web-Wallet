@@ -1,8 +1,8 @@
-const ENV = import.meta.env || {};
+import api from '../services/api';
 
-const GEMINI_MODEL = ENV.VITE_GEMINI_MODEL || 'gemini-2.5-flash';
-const GROQ_MODEL = ENV.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile';
-const MISTRAL_MODEL = ENV.VITE_MISTRAL_MODEL || 'mistral-large-latest';
+const GEMINI_MODEL  = 'gemini-2.5-flash';
+const GROQ_MODEL    = 'llama-3.3-70b-versatile';
+const MISTRAL_MODEL = 'mistral-large-latest';
 
 const GEMINI_MAX_TENTATIVAS = 2;
 const GEMINI_BACKOFF_INICIAL = 1200;
@@ -14,8 +14,7 @@ const AI_MAX_INPUT_CHARS = 18000;
 const LOCAL_PARSE_RATIO_MIN = 0.55;
 const LOCAL_PARSE_MIN_TRANSACTIONS = 4;
 
-const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions';
+// Endpoints de IA chamados via proxy no backend (chaves nunca chegam ao browser)
 const DATE_AT_START_REGEX = /^(\d{2}[/-]\d{2}(?:[/-]\d{4})?)/;
 const MONEY_REGEX = /-?\d[\d.]*,\d{2}-?/g;
 const HAS_MONEY_REGEX = /-?\d[\d.]*,\d{2}-?/;
@@ -24,21 +23,18 @@ const PROVIDERS = {
   gemini: {
     id: 'gemini',
     nome: 'Gemini',
-    envKey: 'VITE_GEMINI_API_KEY',
     model: GEMINI_MODEL,
     delayLoteMs: GEMINI_DELAY_LOTE_MS,
   },
   groq: {
     id: 'groq',
     nome: 'Groq',
-    envKey: 'VITE_GROQ_API_KEY',
     model: GROQ_MODEL,
     delayLoteMs: 0,
   },
   mistral: {
     id: 'mistral',
     nome: 'Mistral',
-    envKey: 'VITE_MISTRAL_API_KEY',
     model: MISTRAL_MODEL,
     delayLoteMs: 0,
   },
@@ -780,71 +776,45 @@ const normalizarRespostaDaIA = (providerId, payload) => {
   };
 };
 
-const chamarGemini = async (texto, apiKey) => {
+const chamarGemini = async (texto) => {
   let atrasoAtual = GEMINI_BACKOFF_INICIAL;
 
   for (let tentativa = 1; tentativa <= GEMINI_MAX_TENTATIVAS; tentativa += 1) {
-    const response = await fetch(criarEndpointGemini(GEMINI_MODEL), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        system_instruction: {
-          parts: [{ text: GEMINI_SYSTEM_PROMPT }],
+    try {
+      const { data } = await api.post('/ai/gemini', {
+        model: GEMINI_MODEL,
+        payload: {
+          system_instruction: { parts: [{ text: GEMINI_SYSTEM_PROMPT }] },
+          contents: [{ role: 'user', parts: [{ text: criarPromptExtrato(texto) }] }],
+          generationConfig: { temperature: 0, responseMimeType: 'application/json' },
         },
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: criarPromptExtrato(texto) }],
-          },
-        ],
-        generationConfig: {
-          temperature: 0,
-          responseMimeType: 'application/json',
-        },
-      }),
-    });
-
-    const data = await response.json().catch(() => ({}));
-    if (response.ok) {
+      });
       return data;
+    } catch (err) {
+      const status  = err.response?.status;
+      const errData = err.response?.data;
+
+      if (status === 429) {
+        throw criarErroHttp(429, extrairErroDaApi(errData) || 'Limite de requisicoes atingido no Gemini.', 'gemini');
+      }
+
+      const erro = criarErroHttp(status || 502, extrairErroDaApi(errData) || 'Falha ao processar o extrato com o Gemini.', 'gemini');
+
+      if (!GEMINI_RETRY_STATUS.has(status) || tentativa === GEMINI_MAX_TENTATIVAS) {
+        throw erro;
+      }
+
+      await esperar(atrasoAtual);
+      atrasoAtual *= 2;
     }
-
-    if (response.status === 429) {
-      throw criarErroHttp(
-        429,
-        extrairErroDaApi(data) || 'Limite de requisicoes atingido no Gemini.',
-        'gemini',
-      );
-    }
-
-    const erro = criarErroHttp(
-      response.status,
-      extrairErroDaApi(data) || 'Falha ao processar o extrato com o Gemini.',
-      'gemini',
-    );
-
-    if (!GEMINI_RETRY_STATUS.has(response.status) || tentativa === GEMINI_MAX_TENTATIVAS) {
-      throw erro;
-    }
-
-    await esperar(atrasoAtual);
-    atrasoAtual *= 2;
   }
 
   throw new Error('Nao foi possivel processar o extrato com o Gemini.');
 };
 
-const chamarChatProvider = async ({ endpoint, model, apiKey, texto, providerId }) => {
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
+const chamarChatProvider = async ({ model, texto, providerId }) => {
+  try {
+    const { data } = await api.post(`/ai/${providerId}`, {
       model,
       temperature: 0,
       response_format: { type: 'json_object' },
@@ -852,40 +822,34 @@ const chamarChatProvider = async ({ endpoint, model, apiKey, texto, providerId }
         { role: 'system', content: GEMINI_SYSTEM_PROMPT },
         { role: 'user', content: criarPromptExtrato(texto) },
       ],
-    }),
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (response.ok) {
+    });
     return data;
+  } catch (err) {
+    const status  = err.response?.status;
+    const errData = err.response?.data;
+    throw criarErroHttp(
+      status || 502,
+      extrairErroDaApi(errData) || `Falha ao processar o extrato com ${PROVIDERS[providerId].nome}.`,
+      providerId,
+    );
   }
-
-  throw criarErroHttp(
-    response.status,
-    extrairErroDaApi(data) || `Falha ao processar o extrato com ${PROVIDERS[providerId].nome}.`,
-    providerId,
-  );
 };
 
-const chamarProvider = async (providerId, texto, apiKey) => {
+const chamarProvider = async (providerId, texto) => {
   if (providerId === 'gemini') {
-    return chamarGemini(texto, apiKey);
+    return chamarGemini(texto);
   }
 
   if (providerId === 'groq') {
     return chamarChatProvider({
-      endpoint: GROQ_ENDPOINT,
       model: GROQ_MODEL,
-      apiKey,
       texto,
       providerId: 'groq',
     });
   }
 
   return chamarChatProvider({
-    endpoint: MISTRAL_ENDPOINT,
     model: MISTRAL_MODEL,
-    apiKey,
     texto,
     providerId: 'mistral',
   });
@@ -899,7 +863,7 @@ const parsearEmLotes = async (provider, linhas, apiKey) => {
 
   const transacoes = [];
   for (let index = 0; index < lotes.length; index += 1) {
-    const resposta = await chamarProvider(provider.id, lotes[index], apiKey);
+    const resposta = await chamarProvider(provider.id, lotes[index]);
     const normalizada = normalizarRespostaDaIA(provider.id, resposta);
     transacoes.push(...normalizada.transacoes);
 
@@ -923,25 +887,20 @@ const parsearEmLotes = async (provider, linhas, apiKey) => {
   };
 };
 
-const processarComProvider = async (provider, textoCompactado, apiKey) => {
+const processarComProvider = async (provider, textoCompactado) => {
   const linhas = textoCompactado.split('\n').filter((linha) => linha.trim());
 
   if (linhas.length <= AI_SINGLE_CALL_LINE_LIMIT) {
-    const resposta = await chamarProvider(provider.id, textoCompactado, apiKey);
+    const resposta = await chamarProvider(provider.id, textoCompactado);
     return normalizarRespostaDaIA(provider.id, resposta);
   }
 
-  return parsearEmLotes(provider, linhas, apiKey);
+  return parsearEmLotes(provider, linhas);
 };
 
-const tentarProvider = async (provider, textoCompactado, apiKey, erros) => {
-  if (!apiKey) {
-    erros.push(criarErroConfiguracao(provider));
-    return null;
-  }
-
+const tentarProvider = async (provider, textoCompactado, erros) => {
   try {
-    return await processarComProvider(provider, textoCompactado, apiKey);
+    return await processarComProvider(provider, textoCompactado);
   } catch (error) {
     error.provider = error.provider || provider.id;
     erros.push(error);
@@ -957,7 +916,7 @@ const criarErroFinal = (erros) => {
 
   if (erroPrincipal?.code === 'MISSING_API_KEY') {
     return new Error(
-      'Configure VITE_GEMINI_API_KEY, VITE_GROQ_API_KEY ou VITE_MISTRAL_API_KEY para usar a importacao de extratos.',
+      'Chaves de IA não configuradas no servidor. Configure GEMINI_API_KEY, GROQ_API_KEY ou MISTRAL_API_KEY no backend.',
     );
   }
 
@@ -974,10 +933,7 @@ const enriquecerObservacaoLocal = (observacaoAtual = '') => {
   return `${observacaoAtual} Parser local aplicado como fallback por confiabilidade e desempenho.`;
 };
 
-export const parseBankStatement = async (
-  textoExtraido,
-  apiKey = ENV.VITE_GEMINI_API_KEY,
-) => {
+export const parseBankStatement = async (textoExtraido) => {
   const textoCompleto = String(textoExtraido || '').trim();
   if (!textoCompleto) {
     throw new Error('Nenhuma transacao identificada neste extrato');
@@ -1001,39 +957,19 @@ export const parseBankStatement = async (
     throw new Error('Nenhuma transacao identificada neste extrato');
   }
 
-  const providerKeys = {
-    gemini: apiKey,
-    groq: ENV.VITE_GROQ_API_KEY,
-    mistral: ENV.VITE_MISTRAL_API_KEY,
-  };
   const erros = [];
 
-  let resultado = await tentarProvider(
-    PROVIDERS.gemini,
-    textoCompactado,
-    providerKeys.gemini,
-    erros,
-  );
+  let resultado = await tentarProvider(PROVIDERS.gemini, textoCompactado, erros);
 
   if (!resultado) {
     const erroGemini = erros.findLast((erro) => erro?.provider === 'gemini');
 
     if (erroGemini?.status === 429) {
-      resultado = await tentarProvider(
-        PROVIDERS.groq,
-        textoCompactado,
-        providerKeys.groq,
-        erros,
-      );
+      resultado = await tentarProvider(PROVIDERS.groq, textoCompactado, erros);
     }
 
     if (!resultado) {
-      resultado = await tentarProvider(
-        PROVIDERS.mistral,
-        textoCompactado,
-        providerKeys.mistral,
-        erros,
-      );
+      resultado = await tentarProvider(PROVIDERS.mistral, textoCompactado, erros);
     }
   }
 

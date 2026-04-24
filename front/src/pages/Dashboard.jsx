@@ -890,7 +890,7 @@ function DashboardContent() {
           <NavItem onClick={() => { navigate('/relatorios'); setSidebarOpen(false); }}>
             <FileText size={17} /> Relatórios
           </NavItem>
-          <NavItem onClick={() => { notify('Configurações em breve!', 'error'); setSidebarOpen(false); }}>
+          <NavItem onClick={() => { navigate('/configuracoes'); setSidebarOpen(false); }}>
             <Settings size={17} /> Configurações
           </NavItem>
         </NavMenu>
