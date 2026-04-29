@@ -18,6 +18,8 @@ import { GASTOS_FIXOS } from '../constants/gastosFixos';
 // ── Storage keys ──────────────────────────────────────────────────────────────
 const CUSTOM_CATS_KEY  = (uk) => `webwallet_custom_cats:${uk}`;
 const SAVINGS_RATE_KEY = (uk) => `webwallet_taxa_poupanca:${uk}`;
+const HIDDEN_CATS_KEY  = (uk) => `webwallet_hidden_cats:${uk}`;
+const HIDDEN_GF_KEY    = (uk) => `webwallet_hidden_gf:${uk}`;
 
 // ── Built-in categories (cannot be deleted) ───────────────────────────────────
 const DEFAULT_CATS = Object.entries(CAT_ICONS).map(([label, icon]) => ({
@@ -339,6 +341,22 @@ const DividerLabel = styled.p`
   text-transform: uppercase; letter-spacing: 0.08em;
   margin: 1.25rem 0 0.75rem;
 `;
+const HiddenPanel = styled.div`
+  margin-top: 1.25rem; padding: 1.25rem;
+  background: var(--cfg-danger-soft); border-radius: 0.875rem;
+  border: 1px dashed var(--cfg-danger-border);
+`;
+const HiddenPanelTitle = styled.p`
+  margin: 0 0 0.875rem; font-size: 0.875rem; font-weight: 600;
+  color: var(--cfg-muted-strong); display: flex; align-items: center; gap: 0.5rem;
+`;
+const RestoreBtn = styled.button`
+  width: 1.75rem; height: 1.75rem; display: grid; place-items: center;
+  border: none; border-radius: 0.4rem; cursor: pointer; transition: all 0.15s;
+  background: var(--cfg-success-soft); color: #10b981;
+  box-shadow: inset 0 0 0 1px var(--cfg-success-border);
+  &:hover { filter: brightness(1.1); transform: scale(1.1); }
+`;
 
 // ── GOALS SECTION ─────────────────────────────────────────────────────────────
 const GoalsGrid = styled.div`display: flex; flex-direction: column; gap: 0.75rem;`;
@@ -474,12 +492,16 @@ const Toast = styled.div`
 
 // ── SECTION: Categorias ───────────────────────────────────────────────────────
 function CategoriesSection({ userKey, isDark }) {
+  const {
+    hiddenCatLabels: hiddenDefaults, setHiddenCatLabels: saveHiddenDefaultsCtx,
+    hiddenGfKeys: hiddenGf,          setHiddenGfKeys:    saveHiddenGfCtx,
+  } = useFinance();
   const [customCats, setCustomCats] = useState([]);
   const [editingKey, setEditingKey] = useState(null);
-  const [editValue, setEditValue] = useState('');
-  const [newEmoji, setNewEmoji] = useState('🏷️');
-  const [newName, setNewName] = useState('');
-  const [notify, setNotify] = useState(null);
+  const [editValue, setEditValue]   = useState('');
+  const [newEmoji, setNewEmoji]     = useState('🏷️');
+  const [newName, setNewName]       = useState('');
+  const [notify, setNotify]         = useState(null);
 
   useEffect(() => {
     try {
@@ -488,10 +510,13 @@ function CategoriesSection({ userKey, isDark }) {
     } catch { setCustomCats([]); }
   }, [userKey]);
 
-  const save = useCallback((updated) => {
+  const saveCustom = useCallback((updated) => {
     setCustomCats(updated);
     localStorage.setItem(CUSTOM_CATS_KEY(userKey), JSON.stringify(updated));
   }, [userKey]);
+
+  const saveHiddenDefaults = useCallback((updated) => saveHiddenDefaultsCtx(updated), [saveHiddenDefaultsCtx]);
+  const saveHiddenGf       = useCallback((updated) => saveHiddenGfCtx(updated), [saveHiddenGfCtx]);
 
   const showToast = (msg, type = 'success') => {
     setNotify({ msg, type });
@@ -506,15 +531,35 @@ function CategoriesSection({ userKey, isDark }) {
       return showToast('Já existe uma categoria com esse nome.', 'error');
     }
     const key = `custom_${Date.now()}`;
-    save([...customCats, { key, label: name, icon: newEmoji, isDefault: false }]);
+    saveCustom([...customCats, { key, label: name, icon: newEmoji, isDefault: false }]);
     setNewName('');
     setNewEmoji('🏷️');
     showToast(`"${name}" adicionada com sucesso!`);
   };
 
-  const handleDelete = (key) => {
-    save(customCats.filter(c => c.key !== key));
+  const handleDeleteCustom = (key) => {
+    saveCustom(customCats.filter(c => c.key !== key));
     showToast('Categoria removida.');
+  };
+
+  const handleHideDefault = (key) => {
+    saveHiddenDefaults([...hiddenDefaults, key]);
+    showToast('Categoria ocultada. Você pode restaurá-la abaixo.');
+  };
+
+  const handleRestoreDefault = (key) => {
+    saveHiddenDefaults(hiddenDefaults.filter(k => k !== key));
+    showToast('Categoria restaurada!');
+  };
+
+  const handleHideGf = (key) => {
+    saveHiddenGf([...hiddenGf, key]);
+    showToast('Subcategoria ocultada. Você pode restaurá-la abaixo.');
+  };
+
+  const handleRestoreGf = (key) => {
+    saveHiddenGf(hiddenGf.filter(k => k !== key));
+    showToast('Subcategoria restaurada!');
   };
 
   const startEdit = (cat) => { setEditingKey(cat.key); setEditValue(cat.label); };
@@ -530,10 +575,16 @@ function CategoriesSection({ userKey, isDark }) {
       showToast('Já existe uma categoria com esse nome.', 'error');
       return setEditingKey(null);
     }
-    save(customCats.map(c => c.key === key ? { ...c, label: name } : c));
+    saveCustom(customCats.map(c => c.key === key ? { ...c, label: name } : c));
     setEditingKey(null);
     showToast('Categoria renomeada!');
   };
+
+  const visibleDefaults = DEFAULT_CATS.filter(c => !hiddenDefaults.includes(c.key));
+  const hiddenDefaultItems = DEFAULT_CATS.filter(c => hiddenDefaults.includes(c.key));
+  const visibleGf = GASTOS_FIXOS.filter(gf => !hiddenGf.includes(gf.key));
+  const hiddenGfItems = GASTOS_FIXOS.filter(gf => hiddenGf.includes(gf.key));
+  const hasHidden = hiddenDefaultItems.length > 0 || hiddenGfItems.length > 0;
 
   return (
     <>
@@ -550,30 +601,83 @@ function CategoriesSection({ userKey, isDark }) {
         <PanelHeader>
           <div>
             <PanelTitle><Tag size={18} /> Categorias padrão</PanelTitle>
-            <PanelDesc>Categorias do sistema — não podem ser removidas</PanelDesc>
+            <PanelDesc>Passe o mouse para ver a opção de ocultar uma categoria</PanelDesc>
           </div>
         </PanelHeader>
         <PanelBody>
           <CatGrid>
-            {DEFAULT_CATS.map(cat => (
+            {visibleDefaults.map(cat => (
               <CatCard key={cat.key}>
                 <CatEmoji>{cat.icon}</CatEmoji>
                 <CatName>{cat.label}</CatName>
-                <DefaultBadge>padrão</DefaultBadge>
+                <CatActions>
+                  <IconBtn $danger onClick={() => handleHideDefault(cat.key)} title="Ocultar categoria">
+                    <Trash2 size={13} />
+                  </IconBtn>
+                </CatActions>
               </CatCard>
             ))}
           </CatGrid>
 
           <DividerLabel>Gastos fixos (subcategorias padrão)</DividerLabel>
           <CatGrid>
-            {GASTOS_FIXOS.map(gf => (
+            {visibleGf.map(gf => (
               <CatCard key={gf.key}>
                 <CatEmoji>{gf.icon}</CatEmoji>
                 <CatName>{gf.label}</CatName>
-                <DefaultBadge>fixo</DefaultBadge>
+                <CatActions>
+                  <IconBtn $danger onClick={() => handleHideGf(gf.key)} title="Ocultar subcategoria">
+                    <Trash2 size={13} />
+                  </IconBtn>
+                </CatActions>
               </CatCard>
             ))}
           </CatGrid>
+
+          {hasHidden && (
+            <HiddenPanel>
+              <HiddenPanelTitle>
+                <AlertCircle size={15} /> Categorias ocultas — clique em
+                <Check size={14} style={{ color: '#10b981' }} /> para restaurar
+              </HiddenPanelTitle>
+              {hiddenDefaultItems.length > 0 && (
+                <>
+                  <DividerLabel style={{ margin: '0 0 0.5rem' }}>Padrão</DividerLabel>
+                  <CatGrid>
+                    {hiddenDefaultItems.map(cat => (
+                      <CatCard key={cat.key} style={{ opacity: 0.65 }}>
+                        <CatEmoji>{cat.icon}</CatEmoji>
+                        <CatName>{cat.label}</CatName>
+                        <CatActions style={{ opacity: 1 }}>
+                          <RestoreBtn onClick={() => handleRestoreDefault(cat.key)} title="Restaurar categoria">
+                            <Check size={13} />
+                          </RestoreBtn>
+                        </CatActions>
+                      </CatCard>
+                    ))}
+                  </CatGrid>
+                </>
+              )}
+              {hiddenGfItems.length > 0 && (
+                <>
+                  <DividerLabel style={{ margin: hiddenDefaultItems.length ? '1rem 0 0.5rem' : '0 0 0.5rem' }}>Gastos fixos</DividerLabel>
+                  <CatGrid>
+                    {hiddenGfItems.map(gf => (
+                      <CatCard key={gf.key} style={{ opacity: 0.65 }}>
+                        <CatEmoji>{gf.icon}</CatEmoji>
+                        <CatName>{gf.label}</CatName>
+                        <CatActions style={{ opacity: 1 }}>
+                          <RestoreBtn onClick={() => handleRestoreGf(gf.key)} title="Restaurar subcategoria">
+                            <Check size={13} />
+                          </RestoreBtn>
+                        </CatActions>
+                      </CatCard>
+                    ))}
+                  </CatGrid>
+                </>
+              )}
+            </HiddenPanel>
+          )}
         </PanelBody>
       </Panel>
 
@@ -612,7 +716,7 @@ function CategoriesSection({ userKey, isDark }) {
                       <CatName>{cat.label}</CatName>
                       <CatActions>
                         <IconBtn onClick={() => startEdit(cat)}><Pencil size={13} /></IconBtn>
-                        <IconBtn $danger onClick={() => handleDelete(cat.key)}><Trash2 size={13} /></IconBtn>
+                        <IconBtn $danger onClick={() => handleDeleteCustom(cat.key)}><Trash2 size={13} /></IconBtn>
                       </CatActions>
                     </>
                   )}

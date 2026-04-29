@@ -1,7 +1,8 @@
 import React from 'react';
 import styled, { css } from 'styled-components';
 import { AlertTriangle } from 'lucide-react';
-import { GASTOS_FIXOS, GASTOS_FIXOS_PREFIX } from '../constants/gastosFixos';
+import { GASTOS_FIXOS_PREFIX } from '../constants/gastosFixos';
+import { useFinance } from '../context/FinanceContext';
 
 const Row = styled.div`
   display: grid;
@@ -145,6 +146,7 @@ export default function TransacaoCategorizavel({
   onChangeType,
   onToggleInclude,
 }) {
+  const { visibleGastosFix } = useFinance();
   return (
     <Row $duplicate={transaction.duplicada} $included={transaction.incluir}>
       <DateText>{formatDate(transaction.data)}</DateText>
@@ -187,13 +189,15 @@ export default function TransacaoCategorizavel({
               {categoria}
             </option>
           ))}
-        <optgroup label="── Gastos Fixos ──">
-          {GASTOS_FIXOS.map((item) => (
-            <option key={item.key} value={GASTOS_FIXOS_PREFIX + item.key}>
-              {item.label}
-            </option>
-          ))}
-        </optgroup>
+        {visibleGastosFix.length > 0 && (
+          <optgroup label="── Gastos Fixos ──">
+            {visibleGastosFix.map((item) => (
+              <option key={item.key} value={GASTOS_FIXOS_PREFIX + item.key}>
+                {item.label}
+              </option>
+            ))}
+          </optgroup>
+        )}
       </Select>
 
       <ToggleButton

@@ -1,12 +1,16 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { CAT_ICONS, CATS as ALL_CATS } from '../components/dashboard/dashboardUtils';
+import { GASTOS_FIXOS } from '../constants/gastosFixos';
 
 const LEGACY_IMPORTS_PREFIX = '@WebWallet:imports:';
 const INVESTMENTS_STORAGE_KEY = 'webwallet_investimentos';
 const HIGHLIGHT_DURATION = 3000;
 
-const METAS_KEY    = (uk) => `webwallet_metas:${uk}`;
-const GF_METAS_KEY = (uk) => `webwallet_gastos_fixos_metas:${uk}`;
+const METAS_KEY       = (uk) => `webwallet_metas:${uk}`;
+const GF_METAS_KEY    = (uk) => `webwallet_gastos_fixos_metas:${uk}`;
+const HIDDEN_CATS_KEY = (uk) => `webwallet_hidden_cats:${uk}`;
+const HIDDEN_GF_KEY   = (uk) => `webwallet_hidden_gf:${uk}`;
 
 const toLegacyImportsKey = (userKey) => `${LEGACY_IMPORTS_PREFIX}${String(userKey || 'anon').replace(/[^\w@.-]/g, '_')}`;
 
@@ -21,6 +25,9 @@ export const FinanceProvider = ({ children, userKey }) => {
   const [metas, setMetas] = useState({});
   const [gastosFixosMetas, setGastosFixosMetas] = useState({});
   const [metasHydrated, setMetasHydrated] = useState(false);
+  const [hiddenCatLabels, setHiddenCatLabelsRaw] = useState([]);
+  const [hiddenGfKeys, setHiddenGfKeysRaw] = useState([]);
+  const [hiddenHydrated, setHiddenHydrated] = useState(false);
   const highlightTimerRef = useRef(null);
 
   useEffect(() => {
@@ -61,6 +68,30 @@ export const FinanceProvider = ({ children, userKey }) => {
       setMetasHydrated(true);
     }
   }, [userKey]);
+
+  useEffect(() => {
+    try {
+      const hc = localStorage.getItem(HIDDEN_CATS_KEY(userKey));
+      const hg = localStorage.getItem(HIDDEN_GF_KEY(userKey));
+      setHiddenCatLabelsRaw(hc ? JSON.parse(hc) : []);
+      setHiddenGfKeysRaw(hg ? JSON.parse(hg) : []);
+    } catch {
+      setHiddenCatLabelsRaw([]);
+      setHiddenGfKeysRaw([]);
+    } finally {
+      setHiddenHydrated(true);
+    }
+  }, [userKey]);
+
+  useEffect(() => {
+    if (!hiddenHydrated) return;
+    localStorage.setItem(HIDDEN_CATS_KEY(userKey), JSON.stringify(hiddenCatLabels));
+  }, [hiddenCatLabels, hiddenHydrated, userKey]);
+
+  useEffect(() => {
+    if (!hiddenHydrated) return;
+    localStorage.setItem(HIDDEN_GF_KEY(userKey), JSON.stringify(hiddenGfKeys));
+  }, [hiddenGfKeys, hiddenHydrated, userKey]);
 
   useEffect(() => {
     if (!metasHydrated) return;
@@ -140,6 +171,19 @@ export const FinanceProvider = ({ children, userKey }) => {
     if (novosGfMetas  !== undefined) setGastosFixosMetas(novosGfMetas);
   }, []);
 
+  const setHiddenCatLabels = useCallback((updated) => setHiddenCatLabelsRaw(updated), []);
+  const setHiddenGfKeys    = useCallback((updated) => setHiddenGfKeysRaw(updated), []);
+
+  const visibleCatIcons = useMemo(() =>
+    Object.fromEntries(Object.entries(CAT_ICONS).filter(([k]) => !hiddenCatLabels.includes(k))),
+  [hiddenCatLabels]);
+
+  const visibleCats = useMemo(() => ALL_CATS.filter(c => !hiddenCatLabels.includes(c)), [hiddenCatLabels]);
+
+  const visibleGastosFix = useMemo(() =>
+    GASTOS_FIXOS.filter(gf => !hiddenGfKeys.includes(gf.key)),
+  [hiddenGfKeys]);
+
   // TODO: editarAporte, removerAporte → será usado em Relatorios.jsx
 
   const value = useMemo(() => ({
@@ -152,7 +196,20 @@ export const FinanceProvider = ({ children, userKey }) => {
     importTransactionsBatch,
     adicionarAporte,
     clearLegacyImportedTransactions,
-  }), [adicionarAporte, clearLegacyImportedTransactions, gastosFixosMetas, highlightedIds, importTransactionsBatch, investimentos, legacyImportedTransactions, metas, salvarMetas]);
+    hiddenCatLabels,
+    hiddenGfKeys,
+    setHiddenCatLabels,
+    setHiddenGfKeys,
+    visibleCatIcons,
+    visibleCats,
+    visibleGastosFix,
+  }), [
+    adicionarAporte, clearLegacyImportedTransactions, gastosFixosMetas,
+    highlightedIds, importTransactionsBatch, investimentos,
+    legacyImportedTransactions, metas, salvarMetas,
+    hiddenCatLabels, hiddenGfKeys, setHiddenCatLabels, setHiddenGfKeys,
+    visibleCatIcons, visibleCats, visibleGastosFix,
+  ]);
 
   return (
     <FinanceContext.Provider value={value}>

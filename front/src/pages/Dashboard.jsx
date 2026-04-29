@@ -235,6 +235,9 @@ function DashboardContent() {
     gastosFixosMetas,
     importTransactionsBatch,
     clearLegacyImportedTransactions,
+    visibleCats,
+    visibleCatIcons,
+    visibleGastosFix,
   } = useFinance();
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -819,12 +822,14 @@ function DashboardContent() {
             <FormGroup>
               <label>Categoria</label>
               <select value={txForm.categoria} onChange={e => setTxForm({ ...txForm, categoria: e.target.value })}>
-                {CATS.map(c => <option key={c} value={c}>{CAT_ICONS[c]} {c}</option>)}
-                <optgroup label="── Gastos Fixos ──">
-                  {GASTOS_FIXOS.map(({ key, label, icon }) => (
-                    <option key={key} value={GASTOS_FIXOS_PREFIX + key}>{icon} {label}</option>
-                  ))}
-                </optgroup>
+                {visibleCats.map(c => <option key={c} value={c}>{visibleCatIcons[c]} {c}</option>)}
+                {visibleGastosFix.length > 0 && (
+                  <optgroup label="── Gastos Fixos ──">
+                    {visibleGastosFix.map(({ key, label, icon }) => (
+                      <option key={key} value={GASTOS_FIXOS_PREFIX + key}>{icon} {label}</option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </FormGroup>
             <ModalFooter>

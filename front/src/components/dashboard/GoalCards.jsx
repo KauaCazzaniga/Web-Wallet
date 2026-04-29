@@ -8,7 +8,7 @@ import { AlertTriangle } from 'lucide-react';
 import GerenciarMetas from '../GerenciarMetas';
 import { Panel, PanelHeader } from './dashboardStyles';
 import { fmt, CAT_ICONS } from './dashboardUtils';
-import { GASTOS_FIXOS } from '../../constants/gastosFixos';
+import { useFinance } from '../../context/FinanceContext';
 
 // ── Styled ────────────────────────────────────────────────────────────────────
 const MainGrid = styled.div`
@@ -183,6 +183,7 @@ export default function GoalCards({
   gfTotalMeta,
   gfTotalPct,
 }) {
+  const { visibleGastosFix } = useFinance();
   return (
     <MainGrid>
       {/* Orçamento */}
@@ -234,7 +235,7 @@ export default function GoalCards({
             </GFPaiRow>
 
             <GFFilhosWrap $open={gastosFixosAberto}>
-              {GASTOS_FIXOS.map(({ key, label, icon }) => {
+              {visibleGastosFix.map(({ key, label, icon }) => {
                 const gasto = gfGastos[key];
                 const meta = gfMetas[key];
                 const hasMeta = meta > 0;
