@@ -1,12 +1,13 @@
 // Componente: TransactionList
-// Responsabilidade: Tabela paginada de transações do mês com ações de exclusão
+// Responsabilidade: Tabela paginada de transações com busca por descrição e filtro por categoria
 // Depende de: dashboardStyles (Panel, PanelHeader), dashboardUtils (fmt, parseDate, getTransactionRawDate, resolveCatDisplay, ITEMS_POR_PAGINA), lucide-react
 
-import React from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Search, X } from 'lucide-react';
 import { Panel, PanelHeader } from './dashboardStyles';
 import { fmt, parseDate, getTransactionRawDate, resolveCatDisplay, ITEMS_POR_PAGINA } from './dashboardUtils';
+import { GASTOS_FIXOS } from '../../constants/gastosFixos';
 
 // ── Styled ────────────────────────────────────────────────────────────────────
 const TxPanel = styled(Panel)`overflow: hidden; padding: 0;`;
@@ -67,27 +68,68 @@ const PagBtn = styled.button`
   &:not(:disabled):hover { border-color: var(--dash-primary); color: ${p => p.$active ? '#fff' : 'var(--dash-primary)'}; }
 `;
 
+// ── Filtros ───────────────────────────────────────────────────────────────────
+const FilterBar = styled.div`
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.75rem 1.5rem 0.75rem;
+  border-bottom: 1px solid var(--dash-border);
+  flex-wrap: wrap;
+`;
+const SearchWrapper = styled.div`
+  position: relative; flex: 1; min-width: 180px;
+`;
+const SearchIcon = styled(Search)`
+  position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%);
+  color: var(--dash-muted); pointer-events: none;
+`;
+const ClearBtn = styled.button`
+  position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: var(--dash-muted);
+  display: flex; align-items: center; padding: 0.1rem;
+  &:hover { color: var(--dash-heading); }
+`;
+const SearchInput = styled.input`
+  width: 100%; padding: 0.5rem 2rem 0.5rem 2.1rem;
+  background: var(--dash-input-bg); border: 1px solid var(--dash-border);
+  border-radius: 0.5rem; color: var(--dash-heading); font-size: 0.85rem;
+  outline: none; transition: border-color 0.15s;
+  &::placeholder { color: var(--dash-muted); }
+  &:focus { border-color: var(--dash-primary); }
+`;
+const CatSelect = styled.select`
+  padding: 0.5rem 0.75rem; background: var(--dash-input-bg);
+  border: 1px solid var(--dash-border); border-radius: 0.5rem;
+  color: var(--dash-heading); font-size: 0.85rem; cursor: pointer; outline: none;
+  transition: border-color 0.15s;
+  &:focus { border-color: var(--dash-primary); }
+`;
+
+// Todas as categorias disponíveis no sistema (regulares + gastos fixos)
+const ALL_CAT_OPTIONS = [
+  { value: '', label: 'Todas as categorias' },
+  { value: 'Alimentação',  label: '🍔 Alimentação' },
+  { value: 'Transporte',   label: '🚗 Transporte' },
+  { value: 'Lazer',        label: '🎉 Lazer' },
+  { value: 'Saúde',        label: '💊 Saúde' },
+  { value: 'Salário',      label: '💰 Salário' },
+  { value: 'Investimentos',label: '📈 Investimentos' },
+  { value: 'Outros',       label: '📦 Outros' },
+  ...GASTOS_FIXOS.map(gf => ({ value: `gastos_fixos.${gf.key}`, label: `${gf.icon} ${gf.label}` })),
+];
+
 // ── Componente ────────────────────────────────────────────────────────────────
 
 /**
- * @param {Array}    transacoesMes        - Todas as transações do mês (ordenadas)
- * @param {Array}    transacoesPaginadas  - Fatia da página atual
- * @param {number}   paginaAtual          - Página ativa (1-indexed)
- * @param {Function} setPaginaAtual       - Setter da página
- * @param {number}   totalPaginas         - Total de páginas
- * @param {boolean}  loadingMes           - Carregando dados do mês
- * @param {string}   labelMes             - Label formatado do mês (ex: "Abril 2025")
- * @param {string[]} highlightedIds       - IDs das transações recém-importadas
- * @param {Function} onDelete             - Callback ao clicar em excluir (recebe a transação)
- * @param {Function} onDeleteAll          - Callback ao clicar em "Excluir tudo"
- * @param {Function} onAddFirst           - Abre o modal de nova transação (estado vazio)
+ * @param {Array}    transacoesMes  - Todas as transações do mês (ordenadas)
+ * @param {boolean}  loadingMes     - Carregando dados do mês
+ * @param {string}   labelMes       - Label formatado do mês (ex: "Abril 2025")
+ * @param {string[]} highlightedIds - IDs das transações recém-importadas
+ * @param {Function} onDelete       - Callback ao clicar em excluir (recebe a transação)
+ * @param {Function} onDeleteAll    - Callback ao clicar em "Excluir tudo"
+ * @param {Function} onAddFirst     - Abre o modal de nova transação (estado vazio)
  */
 export default function TransactionList({
   transacoesMes,
-  transacoesPaginadas,
-  paginaAtual,
-  setPaginaAtual,
-  totalPaginas,
   loadingMes,
   labelMes,
   highlightedIds,
@@ -95,11 +137,73 @@ export default function TransactionList({
   onDeleteAll,
   onAddFirst,
 }) {
+  const [searchRaw, setSearchRaw]     = useState('');
+  const [searchText, setSearchText]   = useState('');
+  const [selectedCat, setSelectedCat] = useState('');
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const debounceRef = useRef(null);
+
+  // Debounce da busca (300 ms)
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setSearchText(searchRaw.trim()), 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchRaw]);
+
+  // paginaSegura clipa automaticamente quando filtros reduzem o total de páginas
+  const filteredTransacoes = useMemo(() => {
+    let list = transacoesMes;
+    if (selectedCat) list = list.filter(tx => tx.categoria === selectedCat);
+    if (searchText) {
+      const lower = searchText.toLowerCase();
+      list = list.filter(tx => String(tx.descricao || '').toLowerCase().includes(lower));
+    }
+    return list;
+  }, [transacoesMes, searchText, selectedCat]);
+
+  const totalPaginas = Math.max(1, Math.ceil(filteredTransacoes.length / ITEMS_POR_PAGINA));
+  const paginaSegura = Math.min(paginaAtual, totalPaginas);
+
+  const transacoesPaginadas = useMemo(() => {
+    const inicio = (paginaSegura - 1) * ITEMS_POR_PAGINA;
+    return filteredTransacoes.slice(inicio, inicio + ITEMS_POR_PAGINA);
+  }, [filteredTransacoes, paginaSegura]);
+
+  const hasFilter = searchRaw || selectedCat;
+
   return (
     <TxPanel>
       <TxHeader><h3>Transações — {labelMes}</h3></TxHeader>
 
-      {transacoesMes.length > 0 && (
+      <FilterBar>
+        <SearchWrapper>
+          <SearchIcon size={15} />
+          <SearchInput
+            type="text"
+            placeholder="Buscar por descrição..."
+            value={searchRaw}
+            onChange={e => setSearchRaw(e.target.value)}
+            aria-label="Buscar transação por descrição"
+          />
+          {searchRaw && (
+            <ClearBtn type="button" onClick={() => setSearchRaw('')} aria-label="Limpar busca">
+              <X size={14} />
+            </ClearBtn>
+          )}
+        </SearchWrapper>
+
+        <CatSelect
+          value={selectedCat}
+          onChange={e => setSelectedCat(e.target.value)}
+          aria-label="Filtrar por categoria"
+        >
+          {ALL_CAT_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </CatSelect>
+      </FilterBar>
+
+      {transacoesMes.length > 0 && !hasFilter && (
         <div style={{ padding: '0 1.5rem 1rem', display: 'flex', justifyContent: 'flex-end' }}>
           <TextLink type="button" onClick={onDeleteAll}>
             <Trash2 size={14} /> Excluir tudo
@@ -120,13 +224,17 @@ export default function TransactionList({
             <tr>
               <EmptyRow colSpan={5}>Carregando transações de {labelMes}...</EmptyRow>
             </tr>
-          ) : transacoesMes.length === 0 ? (
+          ) : filteredTransacoes.length === 0 ? (
             <tr>
               <EmptyRow colSpan={5}>
-                Nenhuma transação em {labelMes}.
-                <EmptyBtn onClick={onAddFirst}>
-                  + Adicionar primeira transação
-                </EmptyBtn>
+                {hasFilter
+                  ? 'Nenhuma transação encontrada para este filtro.'
+                  : `Nenhuma transação em ${labelMes}.`}
+                {!hasFilter && (
+                  <EmptyBtn onClick={onAddFirst}>
+                    + Adicionar primeira transação
+                  </EmptyBtn>
+                )}
               </EmptyRow>
             </tr>
           ) : transacoesPaginadas.map(tx => {
@@ -169,20 +277,23 @@ export default function TransactionList({
       </Table>
       </TableScroll>
 
-      {transacoesMes.length > ITEMS_POR_PAGINA && (
+      {filteredTransacoes.length > ITEMS_POR_PAGINA && (
         <PaginacaoBar>
           <PaginacaoInfo>
-            {(paginaAtual - 1) * ITEMS_POR_PAGINA + 1}–{Math.min(paginaAtual * ITEMS_POR_PAGINA, transacoesMes.length)} de {transacoesMes.length} transações
+            {(paginaSegura - 1) * ITEMS_POR_PAGINA + 1}–{Math.min(paginaSegura * ITEMS_POR_PAGINA, filteredTransacoes.length)} de {filteredTransacoes.length} transações
+            {hasFilter && transacoesMes.length !== filteredTransacoes.length && (
+              <> (filtradas de {transacoesMes.length})</>
+            )}
           </PaginacaoInfo>
           <PaginacaoBtns>
             <PagBtn
               onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
-              disabled={paginaAtual === 1}
+              disabled={paginaSegura === 1}
             >
               ‹ Anterior
             </PagBtn>
             {Array.from({ length: totalPaginas }, (_, i) => i + 1)
-              .filter(n => n === 1 || n === totalPaginas || Math.abs(n - paginaAtual) <= 1)
+              .filter(n => n === 1 || n === totalPaginas || Math.abs(n - paginaSegura) <= 1)
               .reduce((acc, n, idx, arr) => {
                 if (idx > 0 && arr[idx - 1] !== n - 1) acc.push('…');
                 acc.push(n);
@@ -191,12 +302,12 @@ export default function TransactionList({
               .map((item, idx) =>
                 item === '…'
                   ? <PagBtn key={`ellipsis-${idx}`} disabled>…</PagBtn>
-                  : <PagBtn key={item} $active={item === paginaAtual} onClick={() => setPaginaAtual(item)}>{item}</PagBtn>
+                  : <PagBtn key={item} $active={item === paginaSegura} onClick={() => setPaginaAtual(item)}>{item}</PagBtn>
               )
             }
             <PagBtn
               onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))}
-              disabled={paginaAtual === totalPaginas}
+              disabled={paginaSegura === totalPaginas}
             >
               Próxima ›
             </PagBtn>

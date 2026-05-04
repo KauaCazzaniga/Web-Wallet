@@ -25,7 +25,7 @@ import TransactionList from '../components/dashboard/TransactionList';
 // estilos e utilitários compartilhados
 import { ModalOverlay, ModalContent, ModalHeader, FormGroup, ModalFooter } from '../components/dashboard/dashboardStyles';
 import {
-  ITEMS_POR_PAGINA, EMPTY_RESUMO_MES, EMPTY_IMPORT_STATE,
+  EMPTY_RESUMO_MES, EMPTY_IMPORT_STATE,
   CAT_ICONS, CATS, fmt, fmtCurrency, competenciaHoje, formatarCompetencia,
   getTransactionRawDate, getTransactionCompetencia, sortTransactionsByDateDesc,
 } from '../components/dashboard/dashboardUtils';
@@ -280,7 +280,6 @@ function DashboardContent() {
     return competenciaHoje();
   });
   const [loadingMes, setLoadingMes] = useState(false);
-  const [paginaAtual, setPaginaAtual] = useState(1);
   const [mesesDisponiveis, setMesesDisponiveis] = useState([]);
   const [addMesModal, setAddMesModal] = useState(false);
   const [addMesForm, setAddMesForm] = useState(() => {
@@ -381,7 +380,6 @@ function DashboardContent() {
   }, [mesSelecionado, notify]);
 
   useEffect(() => { fetchMesSelecionado(); }, [fetchMesSelecionado]);
-  useEffect(() => { setPaginaAtual(1); }, [mesSelecionado]);
 
   // ── Total investido acumulado ─────────────────────────────────────────────
   useEffect(() => {
@@ -660,13 +658,6 @@ function DashboardContent() {
     if (!set.has(mesSelecionado)) return [mesSelecionado, ...mesesDisponiveis].sort((a, b) => b.localeCompare(a));
     return mesesDisponiveis;
   }, [mesesDisponiveis, mesSelecionado]);
-
-  const totalPaginas = Math.max(1, Math.ceil(transacoesMes.length / ITEMS_POR_PAGINA));
-
-  const transacoesPaginadas = useMemo(() => {
-    const inicio = (paginaAtual - 1) * ITEMS_POR_PAGINA;
-    return transacoesMes.slice(inicio, inicio + ITEMS_POR_PAGINA);
-  }, [transacoesMes, paginaAtual]);
 
   const kpiReceitas = useMemo(
     () => transacoesMes.filter(t => t.tipo === 'receita').reduce((acc, t) => acc + Number(t.valor || 0), 0),
@@ -1011,13 +1002,10 @@ function DashboardContent() {
               gfTotalPct={gfTotalPct}
             />
 
-            {/* Tabela de transações */}
+            {/* Tabela de transações — key={labelMes} reseta filtros/paginação ao trocar de mês */}
             <TransactionList
+              key={labelMes}
               transacoesMes={transacoesMes}
-              transacoesPaginadas={transacoesPaginadas}
-              paginaAtual={paginaAtual}
-              setPaginaAtual={setPaginaAtual}
-              totalPaginas={totalPaginas}
               loadingMes={loadingMes}
               labelMes={labelMes}
               highlightedIds={highlightedIds}
