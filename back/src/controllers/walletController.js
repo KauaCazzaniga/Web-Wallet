@@ -59,7 +59,10 @@ const obterCompetenciaAnterior = (competencia) => {
 };
 
 const obterWalletAnteriorMaisRecente = (usuario_id, competencia) =>
-    Wallet.findOne({ usuario_id, competencia: { $lt: competencia } }).sort({ competencia: -1 });
+    Wallet.findOne({ usuario_id, competencia: { $lt: competencia } })
+        .sort({ competencia: -1 })
+        .select('resumo limites_gastos')
+        .lean();
 
 const montarWalletInicial = async (usuario_id, competencia) => {
     const walletAnterior = await obterWalletAnteriorMaisRecente(usuario_id, competencia);
@@ -381,18 +384,26 @@ module.exports = {
             await connectDB();
             const usuario_id = req.usuarioId;
             const { ate } = req.query; // "YYYY-MM" — soma apenas até este mês (inclusive)
-            const query = { usuario_id };
+
+            const matchStage = { usuario_id };
             if (ate && competenciaEhValida(ate)) {
-                query.competencia = { $lte: ate };
+                matchStage.competencia = { $lte: ate };
             }
-            const wallets = await Wallet.find(query);
-            let total = 0;
-            for (const wallet of wallets) {
-                wallet.transacoes
-                    .filter((t) => !t.deletadoEm && t.tipo === 'despesa' && t.categoria === 'Investimentos')
-                    .forEach((t) => { total += Number(t.valor || 0); });
-            }
-            return res.status(200).json({ total });
+
+            const [result] = await Wallet.aggregate([
+                { $match: matchStage },
+                { $unwind: '$transacoes' },
+                {
+                    $match: {
+                        'transacoes.deletadoEm': { $exists: false },
+                        'transacoes.tipo': 'despesa',
+                        'transacoes.categoria': 'Investimentos',
+                    },
+                },
+                { $group: { _id: null, total: { $sum: '$transacoes.valor' } } },
+            ]);
+
+            return res.status(200).json({ total: result?.total ?? 0 });
         } catch (error) {
             return res.status(500).json({ erro: 'Erro ao calcular total investido.' });
         }
@@ -402,7 +413,10 @@ module.exports = {
         try {
             await connectDB();
             const usuario_id = req.usuarioId;
-            const wallets = await Wallet.find({ usuario_id }).sort({ competencia: -1 });
+            const wallets = await Wallet.find({ usuario_id })
+                .sort({ competencia: -1 })
+                .select('competencia transacoes.deletadoEm')
+                .lean();
             const meses = wallets
                 .filter((w) => w.transacoes.some((t) => !t.deletadoEm))
                 .map((w) => w.competencia);
