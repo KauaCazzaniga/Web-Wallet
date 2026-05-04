@@ -334,11 +334,11 @@ function DashboardContent() {
       if (investmentModal)      { setInvestmentModal(false); resetInvestmentForm(); return; }
       if (addMesModal)          { setAddMesModal(false); return; }
       if (delConfirm.open)      { setDelConfirm({ open: false, mode: 'single', id: null, count: 0 }); return; }
-      if (importModal)          { closeImportModal(); return; }
+      if (importModal)          { setImportModal(false); setImportData(EMPTY_IMPORT_STATE); return; }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [txModal, investmentModal, addMesModal, delConfirm.open, importModal, closeImportModal, resetInvestmentForm]);
+  }, [txModal, investmentModal, addMesModal, delConfirm.open, importModal, resetInvestmentForm]);
 
   const labelMes = useMemo(() => {
     const [y, m] = mesSelecionado.split('-').map(Number);
