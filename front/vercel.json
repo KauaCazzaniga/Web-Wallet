@@ -1,8 +1,8 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "rewrites": [{ "source": "/:path*", "destination": "/index.html" }],
   "headers": [
     {
-      "source": "/assets/(.*)",
+      "source": "/assets/:file*",
       "headers": [
         {
           "key": "Cache-Control",
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "source": "/(sw.js|workbox-(.*))",
+      "source": "/(sw.js|workbox-:file*)",
       "headers": [
         {
           "key": "Cache-Control",
