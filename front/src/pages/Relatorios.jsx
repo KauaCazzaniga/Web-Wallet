@@ -18,6 +18,7 @@ import {
   listMonthsBetween,
   processarMeses,
 } from '../utils/relatorioCalc';
+import { normalizeTransaction } from '../utils/transaction';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -270,24 +271,6 @@ const LoadingState = styled.div`
   color: var(--rel-muted);
 `;
 
-const normalizeDate = (raw) => {
-  if (!raw) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(String(raw))) return String(raw).slice(0, 10);
-
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return null;
-
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-};
-
-const normalizeTransaction = (transaction) => ({
-  id: transaction?._id || transaction?.id || `${transaction?.descricao}-${transaction?.data}`,
-  data: normalizeDate(transaction?.data || transaction?.data_hora || transaction?.createdAt || transaction?.date),
-  descricao: String(transaction?.descricao || '').trim(),
-  valor: Number(transaction?.valor || 0),
-  tipo: transaction?.tipo === 'receita' ? 'receita' : 'despesa',
-  categoria: transaction?.categoria || 'Outros',
-});
 
 export default function Relatorios() {
   const navigate = useNavigate();

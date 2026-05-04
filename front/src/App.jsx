@@ -6,6 +6,7 @@ import { AuthContext } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { FinanceProvider } from './context/FinanceContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // DICA: Verifique se os nomes abaixo batem 100% com os nomes dos arquivos na sua pasta 'pages'
 import Index from './pages/Index';
@@ -35,6 +36,7 @@ export default function App() {
             <ThemeProvider>
                 <AuthProvider>
                     <FinanceGate>
+                        <ErrorBoundary>
                         <Routes>
                             <Route path="/" element={<Index />} />
                             <Route path="/login" element={<Login />} />
@@ -80,6 +82,7 @@ export default function App() {
 
                             <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>
+                        </ErrorBoundary>
                     </FinanceGate>
                 </AuthProvider>
             </ThemeProvider>

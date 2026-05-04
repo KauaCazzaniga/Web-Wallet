@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useContext, useMemo } from "react";
+import { useToast } from '../hooks/useToast';
 import styled, { css, keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
 import api from '../services/api';
@@ -267,8 +268,8 @@ function DashboardContent() {
   const [savingInvestment, setSavingInvestment] = useState(false);
   const [investmentForm, setInvestmentForm] = useState({ mes: competenciaHoje(), valor: '', descricao: '' });
 
-  // Toast
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  // Toast — via hook reutilizável
+  const { toast, notify } = useToast();
 
   // Mês selecionado
   const [mesSelecionado, setMesSelecionado] = useState(() => {
@@ -300,10 +301,6 @@ function DashboardContent() {
   const [totalInvestido, setTotalInvestido] = useState(0);
 
   // ── Helpers ──────────────────────────────────────────────────────────────
-  const notify = useCallback((message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast(t => ({ ...t, show: false })), 3500);
-  }, []);
 
   const mesAtual   = competenciaHoje();
   const ehMesAtual = mesSelecionado === mesAtual;

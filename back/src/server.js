@@ -3,13 +3,14 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const connectDB = require('./config/database');
+const logger = require('./config/logger');
 
 const app = express();
 
 // --- 1. CONEXÃO COM O BANCO ---
 // connectDB agora retorna uma Promise e reutiliza a conexão em ambiente serverless
 connectDB().catch((err) => {
-    console.error('Falha ao conectar no MongoDB na inicialização:', err.message);
+    logger.error('Falha ao conectar no MongoDB na inicialização: ' + err.message);
 });
 
 // --- 2. MIDDLEWARES GLOBAIS ---
@@ -65,7 +66,7 @@ app.use('/api/investments', require('./routes/investmentRoutes'));
 // Se alguma rota der erro interno, este middleware captura e responde em JSON
 // Evitando que o servidor mande aquele HTML de erro padrão do Express
 app.use((err, req, res, next) => {
-    console.error(`[SERVER ERROR] ${new Date().toISOString()}:`, err.stack);
+    logger.error(`[SERVER ERROR] ${req.method} ${req.path} — ${err.message}`, { stack: err.stack });
 
     res.status(500).json({
         error: 'Erro interno no servidor',
@@ -81,6 +82,6 @@ app.use((req, res) => {
 // --- 7. INICIALIZAÇÃO DO SERVIDOR ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor voando na porta ${PORT}`);
-    console.log(`✅ Infraestrutura: CORS, JSON e ErrorHandler ativos.`);
+    logger.info(`Servidor iniciado na porta ${PORT}`);
+    logger.info(`Infraestrutura: CORS, JSON e ErrorHandler ativos.`);
 });
