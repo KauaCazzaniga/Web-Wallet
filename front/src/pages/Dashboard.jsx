@@ -41,7 +41,10 @@ const fadeIn = keyframes`
 
 // ── Toasts ───────────────────────────────────────────────────────────────────
 const ToastContainer = styled.div`
-  position: fixed; bottom: 2rem; right: 2rem; z-index: 200;
+  position: fixed;
+  bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  right: 2rem;
+  z-index: 200;
   display: flex; flex-direction: column; gap: 0.5rem;
 `;
 const Toast = styled.div`
@@ -305,6 +308,20 @@ function DashboardContent() {
   const mesAtual   = competenciaHoje();
   const ehMesAtual = mesSelecionado === mesAtual;
 
+  // ── Escape fecha o modal ativo ────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      if (txModal)              { setTxModal(false); return; }
+      if (investmentModal)      { setInvestmentModal(false); resetInvestmentForm(); return; }
+      if (addMesModal)          { setAddMesModal(false); return; }
+      if (delConfirm.open)      { setDelConfirm({ open: false, mode: 'single', id: null, count: 0 }); return; }
+      if (importModal)          { closeImportModal(); return; }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [txModal, investmentModal, addMesModal, delConfirm.open, importModal, closeImportModal, resetInvestmentForm]);
+
   const labelMes = useMemo(() => {
     const [y, m] = mesSelecionado.split('-').map(Number);
     const d = new Date(y, m - 1, 1);
@@ -374,7 +391,9 @@ function DashboardContent() {
     const comp = mesSelecionado || competenciaHoje();
     api.get(`/wallet/total-investido?ate=${comp}`)
       .then(res => setTotalInvestido(Number(res.data?.total || 0)))
-      .catch(() => {});
+      .catch(err => {
+        console.error('[Dashboard] Erro ao buscar total investido:', err?.message);
+      });
   }, [transactions, mesSelecionado]);
 
   // ── Migração de importações legadas ──────────────────────────────────────
@@ -803,25 +822,25 @@ function DashboardContent() {
               <button onClick={() => setTxModal(false)}><X size={18} /></button>
             </ModalHeader>
             <FormGroup>
-              <label>Tipo</label>
-              <select value={txForm.tipo} onChange={e => setTxForm({ ...txForm, tipo: e.target.value })}>
+              <label htmlFor="tx-tipo">Tipo</label>
+              <select id="tx-tipo" aria-label="Tipo da transação" value={txForm.tipo} onChange={e => setTxForm({ ...txForm, tipo: e.target.value })}>
                 <option value="despesa">Despesa</option>
                 <option value="receita">Receita</option>
               </select>
             </FormGroup>
             <FormGroup>
-              <label>Descrição</label>
-              <input autoFocus type="text" placeholder="Ex: Conta de Luz"
+              <label htmlFor="tx-desc">Descrição</label>
+              <input id="tx-desc" autoFocus type="text" placeholder="Ex: Conta de Luz" aria-label="Descrição da transação"
                 value={txForm.descricao} onChange={e => setTxForm({ ...txForm, descricao: e.target.value })} />
             </FormGroup>
             <FormGroup>
-              <label>Valor (R$)</label>
-              <input type="number" min="0.01" step="0.01" placeholder="0,00"
+              <label htmlFor="tx-valor">Valor (R$)</label>
+              <input id="tx-valor" type="number" min="0.01" step="0.01" placeholder="0,00" aria-label="Valor em reais"
                 value={txForm.valor} onChange={e => setTxForm({ ...txForm, valor: e.target.value })} />
             </FormGroup>
             <FormGroup>
-              <label>Categoria</label>
-              <select value={txForm.categoria} onChange={e => setTxForm({ ...txForm, categoria: e.target.value })}>
+              <label htmlFor="tx-cat">Categoria</label>
+              <select id="tx-cat" aria-label="Categoria da transação" value={txForm.categoria} onChange={e => setTxForm({ ...txForm, categoria: e.target.value })}>
                 {visibleCats.map(c => <option key={c} value={c}>{visibleCatIcons[c]} {c}</option>)}
                 {visibleGastosFix.length > 0 && (
                   <optgroup label="── Gastos Fixos ──">
@@ -851,19 +870,19 @@ function DashboardContent() {
               <button onClick={() => { setInvestmentModal(false); resetInvestmentForm(); }}><X size={18} /></button>
             </ModalHeader>
             <FormGroup>
-              <label>Mês/Ano</label>
-              <input type="month" value={investmentForm.mes}
+              <label htmlFor="inv-mes">Mês/Ano</label>
+              <input id="inv-mes" type="month" aria-label="Mês e ano do aporte" value={investmentForm.mes}
                 onChange={e => setInvestmentForm({ ...investmentForm, mes: e.target.value })} />
             </FormGroup>
             <FormGroup>
-              <label>Valor</label>
-              <input type="number" min="0.01" step="0.01" placeholder="0,00"
+              <label htmlFor="inv-valor">Valor</label>
+              <input id="inv-valor" type="number" min="0.01" step="0.01" placeholder="0,00" aria-label="Valor do aporte em reais"
                 value={investmentForm.valor}
                 onChange={e => setInvestmentForm({ ...investmentForm, valor: e.target.value })} />
             </FormGroup>
             <FormGroup>
-              <label>Descrição</label>
-              <input type="text" placeholder="Ex: CDB, Ações"
+              <label htmlFor="inv-desc">Descrição</label>
+              <input id="inv-desc" type="text" placeholder="Ex: CDB, Ações" aria-label="Descrição do aporte"
                 value={investmentForm.descricao}
                 onChange={e => setInvestmentForm({ ...investmentForm, descricao: e.target.value })} />
             </FormGroup>

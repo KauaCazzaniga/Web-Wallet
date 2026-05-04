@@ -310,22 +310,25 @@ export default function Relatorios() {
     setLoading(true);
 
     try {
-      const responses = await Promise.all(meses.map(async (mes) => {
-        try {
-          const { data } = await api.get(`/wallet/extrato/${mes}`);
-          return Array.isArray(data?.transacoes) ? data.transacoes : [];
-        } catch (error) {
-          if (error?.response?.status === 404) return [];
-          throw error;
-        }
+      const results = await Promise.allSettled(meses.map(async (mes) => {
+        const { data } = await api.get(`/wallet/extrato/${mes}`);
+        return Array.isArray(data?.transacoes) ? data.transacoes : [];
       }));
 
-      const normalizadas = responses
-        .flat()
+      const falhas = results.filter(r => r.status === 'rejected' && r.reason?.response?.status !== 404).length;
+      const transacoes = results
+        .filter(r => r.status === 'fulfilled')
+        .flatMap(r => r.value);
+
+      const normalizadas = transacoes
         .map(normalizeTransaction)
         .filter((transaction) => transaction.data && transaction.descricao);
 
       setServerTransactions(normalizadas);
+
+      if (falhas > 0) {
+        console.warn(`[Relatórios] ${falhas} mês(es) não puderam ser carregados.`);
+      }
     } catch {
       setServerTransactions([]);
     } finally {
