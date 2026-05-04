@@ -8,9 +8,10 @@ const connectDB = require('../config/database');
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 
 const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET || 'secret_chave_webwallet', {
-        expiresIn: '1d',
-    });
+    if (!process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET não configurado. Defina a variável de ambiente antes de iniciar o servidor.');
+    }
+    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1d' });
 };
 
 exports.register = async (req, res) => {
