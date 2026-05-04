@@ -16,6 +16,7 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard'; // Se o arquivo for 'dashboard.jsx', mude para 'dashboard'
 import Relatorios from './pages/Relatorios';
 import Configuracoes from './pages/Configuracoes';
+import Investimentos from './pages/Investimentos';
 
 function FinanceGate({ children }) {
     const { user } = useContext(AuthContext);
@@ -46,6 +47,15 @@ export default function App() {
                                 element={
                                     <ProtectedRoute>
                                         <Dashboard />
+                                    </ProtectedRoute>
+                                }
+                            />
+
+                            <Route
+                                path="/investimentos"
+                                element={
+                                    <ProtectedRoute>
+                                        <Investimentos />
                                     </ProtectedRoute>
                                 }
                             />

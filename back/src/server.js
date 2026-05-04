@@ -56,9 +56,10 @@ app.get('/', (req, res) => {
 });
 
 // --- 4. DEFINIÇÃO DAS ROTAS (API) ---
-app.use('/api/auth',   require('./routes/authRoutes'));
-app.use('/api/wallet', require('./routes/walletRoutes'));
-app.use('/api/ai',     require('./routes/aiRoutes'));
+app.use('/api/auth',        require('./routes/authRoutes'));
+app.use('/api/wallet',      require('./routes/walletRoutes'));
+app.use('/api/ai',          require('./routes/aiRoutes'));
+app.use('/api/investments', require('./routes/investmentRoutes'));
 
 // --- 5. MIDDLEWARE DE TRATAMENTO DE ERRO (O "Pulo do Gato" de Infra) ---
 // Se alguma rota der erro interno, este middleware captura e responde em JSON

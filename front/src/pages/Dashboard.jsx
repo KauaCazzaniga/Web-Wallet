@@ -8,7 +8,7 @@ import { useFinance } from '../context/FinanceContext';
 import ImportModal from '../components/ImportModal';
 import {
   Home, ArrowUpCircle, ArrowDownCircle, Wallet,
-  Plus, AlertTriangle, X, Trash2, Settings, FileText, CheckCircle, LogOut, Moon, SunMedium,
+  Plus, AlertTriangle, X, Trash2, Settings, FileText, CheckCircle, LogOut, Moon, SunMedium, TrendingUp,
 } from "lucide-react";
 import { GASTOS_FIXOS, GASTOS_FIXOS_PREFIX } from '../constants/gastosFixos';
 import { CATEGORIAS_IMPORTACAO, gerarChaveTransacao, prepararTransacoesImportadas } from '../utils/categorizador';
@@ -891,6 +891,9 @@ function DashboardContent() {
         <NavMenu>
           <NavItem $active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); navigate('/dashboard'); setSidebarOpen(false); }}>
             <Home size={17} /> Dashboard
+          </NavItem>
+          <NavItem onClick={() => { navigate('/investimentos'); setSidebarOpen(false); }}>
+            <TrendingUp size={17} /> Investimentos
           </NavItem>
           <NavItem onClick={() => { navigate('/relatorios'); setSidebarOpen(false); }}>
             <FileText size={17} /> Relatórios

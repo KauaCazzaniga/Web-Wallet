@@ -5,7 +5,7 @@ import {
   Home, FileText, Settings, LogOut, Moon, SunMedium, Wallet,
   Plus, Pencil, Trash2, Check, X, Download, Tag, Target,
   Menu, Save, Sliders, FileDown, Package, ChevronRight,
-  AlertCircle, CheckCircle2,
+  AlertCircle, CheckCircle2, TrendingUp,
 } from 'lucide-react';
 
 import { AuthContext } from '../contexts/AuthContext';
@@ -1113,6 +1113,9 @@ export default function Configuracoes() {
         <NavMenu>
           <NavItem onClick={() => { navigate('/dashboard'); setSidebarOpen(false); }}>
             <Home size={17} /> Dashboard
+          </NavItem>
+          <NavItem onClick={() => { navigate('/investimentos'); setSidebarOpen(false); }}>
+            <TrendingUp size={17} /> Investimentos
           </NavItem>
           <NavItem onClick={() => { navigate('/relatorios'); setSidebarOpen(false); }}>
             <FileText size={17} /> Relatórios

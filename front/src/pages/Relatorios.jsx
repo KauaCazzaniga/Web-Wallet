@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Home, LogOut, Menu, Moon, Settings, SunMedium, Wallet } from 'lucide-react';
+import { FileText, Home, LogOut, Menu, Moon, Settings, SunMedium, Wallet, TrendingUp } from 'lucide-react';
 
 import api from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
@@ -390,6 +390,9 @@ export default function Relatorios() {
         <NavMenu>
           <NavItem onClick={() => { navigate('/dashboard'); setSidebarOpen(false); }}>
             <Home size={17} /> Dashboard
+          </NavItem>
+          <NavItem onClick={() => { navigate('/investimentos'); setSidebarOpen(false); }}>
+            <TrendingUp size={17} /> Investimentos
           </NavItem>
           <NavItem $active onClick={() => { navigate('/relatorios'); setSidebarOpen(false); }}>
             <FileText size={17} /> Relatórios
