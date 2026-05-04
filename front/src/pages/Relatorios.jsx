@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Home, LogOut, Menu, Moon, Settings, SunMedium, Wallet, TrendingUp } from 'lucide-react';
+import { FileText, Home, LogOut, Menu, Moon, Settings, SunMedium, Wallet, TrendingUp, Download } from 'lucide-react';
 
 import api from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
@@ -248,6 +248,14 @@ const SectionHead = styled.div`
   }
 `;
 
+const ExportBtn = styled.button`
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.55rem 1rem; border-radius: 0.5rem; font-size: 0.82rem; font-weight: 600;
+  border: 1px solid var(--rel-border-strong); color: var(--rel-primary);
+  background: transparent; cursor: pointer; transition: all 0.15s;
+  &:hover { background: var(--rel-surface-muted); border-color: var(--rel-primary); }
+`;
+
 const ChartsGrid = styled.div`
   display: grid;
   gap: 1.25rem;
@@ -363,6 +371,32 @@ export default function Relatorios() {
 
   const hasTransactions = transacoesPeriodo.length > 0;
 
+  /**
+   * Gera e faz o download de um arquivo CSV com todas as transações do período.
+   * @param {Array} transacoes - lista de transações normalizadas do período
+   * @param {string} inicio - "YYYY-MM" início do período
+   * @param {string} fim    - "YYYY-MM" fim do período
+   */
+  const exportarCSV = useCallback(() => {
+    const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+    const header = ['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor (R$)'].map(escapeCsv).join(',');
+    const rows = transacoesPeriodo.map(tx => [
+      escapeCsv(tx.data || ''),
+      escapeCsv(tx.descricao || ''),
+      escapeCsv(tx.categoria || ''),
+      escapeCsv(tx.tipo === 'receita' ? 'Receita' : 'Despesa'),
+      escapeCsv(Number(tx.valor || 0).toFixed(2).replace('.', ',')),
+    ].join(','));
+    const csv = [header, ...rows].join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `transacoes_${periodo.inicio}_${periodo.fim}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [transacoesPeriodo, periodo.inicio, periodo.fim]);
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
@@ -421,6 +455,11 @@ export default function Relatorios() {
                   <h1>Gastos por Mês</h1>
                   <p>Analise receitas, despesas, saldo e evolução acumulada dentro do intervalo escolhido.</p>
                 </div>
+                {hasTransactions && (
+                  <ExportBtn type="button" onClick={exportarCSV} aria-label="Exportar transações como CSV">
+                    <Download size={14} /> Exportar CSV
+                  </ExportBtn>
+                )}
               </SectionHead>
 
               <FiltroMes
