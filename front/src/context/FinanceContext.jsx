@@ -184,7 +184,25 @@ export const FinanceProvider = ({ children, userKey }) => {
     GASTOS_FIXOS.filter(gf => !hiddenGfKeys.includes(gf.key)),
   [hiddenGfKeys]);
 
-  // TODO: editarAporte, removerAporte → será usado em Relatorios.jsx
+  const editarAporte = useCallback((id, { valor, descricao } = {}) => {
+    const valorNumerico = Number(valor || 0);
+
+    if (!Number.isFinite(valorNumerico) || valorNumerico <= 0) {
+      throw new Error('Informe um valor válido para o aporte.');
+    }
+
+    setInvestimentos((current) =>
+      current.map((inv) =>
+        inv.id === id
+          ? { ...inv, valor: valorNumerico, descricao: String(descricao || '').trim() }
+          : inv,
+      ),
+    );
+  }, []);
+
+  const removerAporte = useCallback((id) => {
+    setInvestimentos((current) => current.filter((inv) => inv.id !== id));
+  }, []);
 
   const value = useMemo(() => ({
     investimentos,
@@ -195,6 +213,8 @@ export const FinanceProvider = ({ children, userKey }) => {
     salvarMetas,
     importTransactionsBatch,
     adicionarAporte,
+    editarAporte,
+    removerAporte,
     clearLegacyImportedTransactions,
     hiddenCatLabels,
     hiddenGfKeys,
