@@ -3,9 +3,10 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { CAT_ICONS, CATS as ALL_CATS } from '../components/dashboard/dashboardUtils';
 import { GASTOS_FIXOS } from '../constants/gastosFixos';
 
-const LEGACY_IMPORTS_PREFIX = '@WebWallet:imports:';
+const LEGACY_IMPORTS_PREFIX   = '@WebWallet:imports:';
 const INVESTMENTS_STORAGE_KEY = 'webwallet_investimentos';
-const HIGHLIGHT_DURATION = 3000;
+const HIGHLIGHT_DURATION      = 3000;
+const toImportKeysKey = (userKey) => `@WebWallet:import-keys:${String(userKey || 'anon').replace(/[^\w@.-]/g, '_')}`;
 
 const METAS_KEY       = (uk) => `webwallet_metas:${uk}`;
 const GF_METAS_KEY    = (uk) => `webwallet_gastos_fixos_metas:${uk}`;
@@ -28,6 +29,7 @@ export const FinanceProvider = ({ children, userKey }) => {
   const [hiddenCatLabels, setHiddenCatLabelsRaw] = useState([]);
   const [hiddenGfKeys, setHiddenGfKeysRaw] = useState([]);
   const [hiddenHydrated, setHiddenHydrated] = useState(false);
+  const [importedKeys, setImportedKeys] = useState(() => new Set());
   const highlightTimerRef = useRef(null);
 
   useEffect(() => {
@@ -103,6 +105,16 @@ export const FinanceProvider = ({ children, userKey }) => {
     localStorage.setItem(GF_METAS_KEY(userKey), JSON.stringify(gastosFixosMetas));
   }, [gastosFixosMetas, metasHydrated, userKey]);
 
+  // ── Import keys (deduplicação persistida) ────────────────────────────────
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(toImportKeysKey(userKey));
+      setImportedKeys(raw ? new Set(JSON.parse(raw)) : new Set());
+    } catch {
+      setImportedKeys(new Set());
+    }
+  }, [userKey]);
+
   useEffect(() => () => {
     if (highlightTimerRef.current) {
       clearTimeout(highlightTimerRef.current);
@@ -128,6 +140,24 @@ export const FinanceProvider = ({ children, userKey }) => {
     ativarDestaques(ids);
     return transactions;
   }, []);
+
+  /**
+   * Persiste um conjunto de chaves de transações já importadas no localStorage.
+   * Usado para deduplicação cross-session ao re-importar o mesmo extrato.
+   * @param {string[]} keys - chaves geradas por gerarChaveTransacao()
+   */
+  const addImportedKeys = useCallback((keys = []) => {
+    setImportedKeys((current) => {
+      const next = new Set(current);
+      keys.forEach((k) => next.add(k));
+      try {
+        localStorage.setItem(toImportKeysKey(userKey), JSON.stringify([...next]));
+      } catch {
+        // Ignora falha de escrita no localStorage
+      }
+      return next;
+    });
+  }, [userKey]);
 
   const adicionarAporte = useCallback((mes, valor, descricao = '') => {
     const mesNormalizado = String(mes || '').slice(0, 7);
@@ -208,10 +238,12 @@ export const FinanceProvider = ({ children, userKey }) => {
     investimentos,
     highlightedIds,
     legacyImportedTransactions,
+    importedKeys,
     metas,
     gastosFixosMetas,
     salvarMetas,
     importTransactionsBatch,
+    addImportedKeys,
     adicionarAporte,
     editarAporte,
     removerAporte,
@@ -224,8 +256,8 @@ export const FinanceProvider = ({ children, userKey }) => {
     visibleCats,
     visibleGastosFix,
   }), [
-    adicionarAporte, clearLegacyImportedTransactions, gastosFixosMetas,
-    highlightedIds, importTransactionsBatch, investimentos,
+    adicionarAporte, addImportedKeys, clearLegacyImportedTransactions, gastosFixosMetas,
+    highlightedIds, importTransactionsBatch, importedKeys, investimentos,
     legacyImportedTransactions, metas, salvarMetas,
     hiddenCatLabels, hiddenGfKeys, setHiddenCatLabels, setHiddenGfKeys,
     visibleCatIcons, visibleCats, visibleGastosFix,

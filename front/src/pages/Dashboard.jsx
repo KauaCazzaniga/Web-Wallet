@@ -235,9 +235,11 @@ function DashboardContent() {
   const {
     highlightedIds,
     legacyImportedTransactions,
+    importedKeys,
     metas,
     gastosFixosMetas,
     importTransactionsBatch,
+    addImportedKeys,
     clearLegacyImportedTransactions,
     visibleCats,
     visibleCatIcons,
@@ -481,12 +483,13 @@ function DashboardContent() {
         transacoesPreparadas.map(tx => tx.data?.slice(0, 7)).filter(Boolean),
       ));
       const transacoesServidor = await fetchTransactionsByCompetencia(competenciasExtrato);
-      const chavesExistentes = new Set(
-        transacoesServidor.map(tx => gerarChaveTransacao({
+      const chavesExistentes = new Set([
+        ...transacoesServidor.map(tx => gerarChaveTransacao({
           data: String(getTransactionRawDate(tx) || '').slice(0, 10),
           valor: tx.valor, descricao: tx.descricao,
         })),
-      );
+        ...importedKeys,
+      ]);
       const chavesNoArquivo = new Set();
       const transacoesComDeduplicacao = transacoesPreparadas.map(tx => {
         const chave = gerarChaveTransacao(tx);
@@ -525,6 +528,7 @@ function DashboardContent() {
       }));
       const { data } = await api.post('/wallet/transacoes/importar', { transacoes: payload });
       const adicionadas = await importTransactionsBatch(data?.transacoes || []);
+      addImportedKeys(selecionadas.map(tx => gerarChaveTransacao(tx)));
       closeImportModal();
       await fetchMesSelecionado({ silent: true });
       fetchMesesDisponiveis();
@@ -980,8 +984,6 @@ function DashboardContent() {
               ehMesAtual={ehMesAtual}
               onRegisterAporte={openInvestmentModal}
             />
-
-            {/* TODO: gráfico cumulativo e tabela de aportes → src/pages/Relatorios.jsx */}
 
             {/* Orçamento + categorias */}
             <GoalCards
