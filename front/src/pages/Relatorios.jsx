@@ -12,6 +12,7 @@ import GraficoBarrasMensal from '../components/relatorios/GraficoBarrasMensal';
 import GraficoSaldoAcumulado from '../components/relatorios/GraficoSaldoAcumulado';
 import TabelaComparativo from '../components/relatorios/TabelaComparativo';
 import CardTaxaPoupanca from '../components/relatorios/CardTaxaPoupanca';
+import GraficoInvestimentos from '../components/relatorios/GraficoInvestimentos';
 import {
   formatCurrencyBRL,
   getDefaultReportRange,
@@ -19,6 +20,7 @@ import {
   processarMeses,
 } from '../utils/relatorioCalc';
 import { normalizeTransaction } from '../utils/transaction';
+import { useFinance } from '../context/FinanceContext';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -284,6 +286,7 @@ export default function Relatorios() {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
   const { isDark, toggleTheme } = useContext(ThemeContext);
+  const { investimentos } = useFinance();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [periodo, setPeriodo] = useState(getDefaultReportRange);
   const [serverTransactions, setServerTransactions] = useState([]);
@@ -370,6 +373,11 @@ export default function Relatorios() {
   }, [mesesProcessados]);
 
   const hasTransactions = transacoesPeriodo.length > 0;
+
+  const mesesPeriodo = useMemo(
+    () => listMonthsBetween(periodo.inicio, periodo.fim),
+    [periodo.inicio, periodo.fim],
+  );
 
   /**
    * Gera e faz o download de um arquivo CSV com todas as transações do período.
@@ -495,6 +503,8 @@ export default function Relatorios() {
                 <TabelaComparativo data={mesesProcessados} resumo={resumo} />
               </>
             )}
+
+            <GraficoInvestimentos investimentos={investimentos} meses={mesesPeriodo} />
           </ContentWrapper>
         </ContentArea>
       </MainContent>
