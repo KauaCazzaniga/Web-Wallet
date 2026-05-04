@@ -9,6 +9,28 @@ import { Panel, PanelHeader } from './dashboardStyles';
 import { fmt, parseDate, getTransactionRawDate, resolveCatDisplay, ITEMS_POR_PAGINA } from './dashboardUtils';
 import { GASTOS_FIXOS } from '../../constants/gastosFixos';
 
+// ── Skeleton ─────────────────────────────────────────────────────────────────
+const shimmer = `
+  background: linear-gradient(
+    90deg,
+    var(--dash-surface-muted) 25%,
+    var(--dash-border) 50%,
+    var(--dash-surface-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+  @keyframes skeletonShimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+`;
+const SkeletonCell = styled.td`padding: 0.875rem 1rem !important;`;
+const SkeletonBar = styled.div`
+  height: ${p => p.$h || '0.85rem'}; border-radius: 0.35rem;
+  width: ${p => p.$w || '80%'};
+  ${shimmer}
+`;
+
 // ── Styled ────────────────────────────────────────────────────────────────────
 const TxPanel = styled(Panel)`overflow: hidden; padding: 0;`;
 const TableScroll = styled.div`overflow-x: auto; -webkit-overflow-scrolling: touch;`;
@@ -221,9 +243,15 @@ export default function TransactionList({
         </thead>
         <tbody>
           {loadingMes ? (
-            <tr>
-              <EmptyRow colSpan={5}>Carregando transações de {labelMes}...</EmptyRow>
-            </tr>
+            Array.from({ length: 5 }).map((_, i) => (
+              <tr key={`sk-${i}`}>
+                <SkeletonCell><SkeletonBar $w={`${55 + (i * 7) % 30}%`} /></SkeletonCell>
+                <SkeletonCell><SkeletonBar $w="50%" /></SkeletonCell>
+                <SkeletonCell><SkeletonBar $w="45%" /></SkeletonCell>
+                <SkeletonCell><SkeletonBar $w="35%" /></SkeletonCell>
+                <SkeletonCell><SkeletonBar $w="1.5rem" $h="1.5rem" /></SkeletonCell>
+              </tr>
+            ))
           ) : filteredTransacoes.length === 0 ? (
             <tr>
               <EmptyRow colSpan={5}>

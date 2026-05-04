@@ -161,6 +161,26 @@ const ContentArea  = styled.div`
 `;
 const ContentWrapper = styled.div`max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem;`;
 
+// ── Skeleton ─────────────────────────────────────────────────────────────────
+const SkeletonShimmer = styled.div`
+  border-radius: 0.875rem; background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  background-image: linear-gradient(
+    90deg,
+    var(--dash-surface) 25%,
+    var(--dash-surface-muted) 50%,
+    var(--dash-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: dashSkeletonShimmer 1.4s ease-in-out infinite;
+  @keyframes dashSkeletonShimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+`;
+const SkeletonCard = styled(SkeletonShimmer)`height: 7rem;`;
+const SkeletonPanel = styled(SkeletonShimmer)`height: 14rem;`;
+
 // ── KPI Cards ────────────────────────────────────────────────────────────────
 const KpiGrid = styled.div`
   display: grid; gap: 1.25rem; grid-template-columns: repeat(1, 1fr);
@@ -730,13 +750,22 @@ function DashboardContent() {
     }
   }, [gfGastos, gfMetas]);
 
-  // ── Loading ───────────────────────────────────────────────────────────────
+  // ── Loading skeleton ─────────────────────────────────────────────────────
   if (loading) return (
-    <AppContainer $dark={isDark} style={{ justifyContent: 'center', alignItems: 'center' }}>
-      <div style={{ textAlign: 'center' }}>
-        <Wallet size={40} color={isDark ? '#60a5fa' : '#2563eb'} style={{ marginBottom: '0.75rem' }} />
-        <p style={{ color: 'var(--dash-muted)', fontSize: '0.875rem' }}>Carregando seu dashboard...</p>
-      </div>
+    <AppContainer $dark={isDark}>
+      <MainContent style={{ width: '100%' }}>
+        <ContentArea>
+          <ContentWrapper>
+            <KpiGrid>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </KpiGrid>
+            <SkeletonPanel />
+            <SkeletonPanel style={{ height: '22rem' }} />
+          </ContentWrapper>
+        </ContentArea>
+      </MainContent>
     </AppContainer>
   );
 
