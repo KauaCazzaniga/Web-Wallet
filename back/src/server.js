@@ -29,11 +29,22 @@ app.use(helmet({
     },
 }));
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,https://www.waltrix.com.br,https://waltrix.com.br')
-    .split(',')
-    .map((o) => o.trim());
+const defaultAllowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://www.waltrix.com.br',
+    'https://waltrix.com.br',
+    'https://web-wallet-orcin.vercel.app',
+];
 
-app.use(cors({
+const envAllowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigins])];
+
+const corsOptions = {
     origin: (origin, callback) => {
         // Permite requisições sem origin (ex: curl, Postman, mobile)
         if (!origin || allowedOrigins.includes(origin)) {
@@ -44,7 +55,10 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-}));
+    optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // --- 3. ROTA DE TESTE (Health Check) ---
@@ -80,8 +94,12 @@ app.use((req, res) => {
 });
 
 // --- 7. INICIALIZAÇÃO DO SERVIDOR ---
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    logger.info(`Servidor iniciado na porta ${PORT}`);
-    logger.info(`Infraestrutura: CORS, JSON e ErrorHandler ativos.`);
-});
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        logger.info(`Servidor iniciado na porta ${PORT}`);
+        logger.info(`Infraestrutura: CORS, JSON e ErrorHandler ativos.`);
+    });
+}
+
+module.exports = app;
