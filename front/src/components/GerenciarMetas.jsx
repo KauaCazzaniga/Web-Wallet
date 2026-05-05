@@ -2,7 +2,7 @@
 // Responsabilidade: modal de gerenciamento de metas de gastos por categoria e gastos fixos
 // Depende de: useFinance, gastosFixos, api
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { X, Trash2, Plus, Sparkles } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
@@ -89,16 +89,20 @@ export default function GerenciarMetas({ mesSelecionado, notify }) {
   const [goalDrafts, setGoalDrafts] = useState({});
   const [gfDrafts, setGfDrafts]     = useState({});
   const [newGoal, setNewGoal]       = useState({ categoria: 'Alimentação', valor: '' });
+  const draftsInitialized           = useRef(false);
 
-  // Sincroniza os drafts com o estado do contexto ao abrir o modal
+  // Inicializa os drafts UMA VEZ ao abrir o modal — não re-sincroniza enquanto aberto
+  // para não sobrescrever edições em andamento do usuário.
   useEffect(() => {
-    if (!open) return;
+    if (!open) { draftsInitialized.current = false; return; }
+    if (draftsInitialized.current) return;
     setGoalDrafts(
       Object.fromEntries(Object.entries(metas).map(([k, v]) => [k, String(v)]))
     );
     const gfInit = {};
     GASTOS_FIXOS.forEach(({ key }) => { gfInit[key] = String(gastosFixosMetas[key] || '0'); });
     setGfDrafts(gfInit);
+    draftsInitialized.current = true;
   }, [open, metas, gastosFixosMetas]);
 
   const handleGoalDraftChange = (cat, value) => {

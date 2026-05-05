@@ -19,7 +19,7 @@ import {
  *             addTransaction, requestDelete, cancelDelete, confirmDelete,
  *             requestDeleteAll, confirmDeleteAll }}
  */
-export function useTransactions(mesSelecionado, { notify, onMesesChanged }) {
+export function useTransactions(mesSelecionado, { notify, onMesesChanged, onLimitesLoaded }) {
   const [transactions, setTransactions] = useState([]);
   const [resumoMes, setResumoMes] = useState(EMPTY_RESUMO_MES);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -35,6 +35,9 @@ export function useTransactions(mesSelecionado, { notify, onMesesChanged }) {
       const { data } = await api.get(`/wallet/extrato/${mesSelecionado}`);
       setTransactions((data?.transacoes || []).filter(tx => !tx.deletadoEm));
       setResumoMes(data?.resumo || EMPTY_RESUMO_MES);
+      if (onLimitesLoaded && data?.limites && Object.keys(data.limites).length > 0) {
+        onLimitesLoaded(data.limites);
+      }
     } catch (err) {
       if (err?.response?.status === 404) {
         setTransactions([]);
@@ -46,7 +49,7 @@ export function useTransactions(mesSelecionado, { notify, onMesesChanged }) {
       setInitialLoading(false);
       if (!silent) setLoadingMes(false);
     }
-  }, [mesSelecionado, notify]);
+  }, [mesSelecionado, notify, onLimitesLoaded]);
 
   useEffect(() => { fetchMesSelecionado(); }, [fetchMesSelecionado]);
 

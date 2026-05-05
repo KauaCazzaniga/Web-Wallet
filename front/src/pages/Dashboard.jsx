@@ -260,6 +260,7 @@ function DashboardContent() {
     importedKeys,
     metas,
     gastosFixosMetas,
+    salvarMetas,
     importTransactionsBatch,
     addImportedKeys,
     clearLegacyImportedTransactions,
@@ -352,6 +353,22 @@ function DashboardContent() {
 
   useEffect(() => { fetchMesesDisponiveis(); }, [fetchMesesDisponiveis]);
 
+  // Semeia metas do backend quando localStorage está vazio (sessão nova / outro browser)
+  const handleLimitesLoaded = useCallback((limitesBackend) => {
+    const metasVazias = Object.keys(metas).length === 0 && Object.keys(gastosFixosMetas).length === 0;
+    if (!metasVazias) return;
+    const novasMetas = {};
+    const novosGfMetas = {};
+    Object.entries(limitesBackend).forEach(([k, v]) => {
+      if (k.startsWith(GASTOS_FIXOS_PREFIX)) {
+        novosGfMetas[k.slice(GASTOS_FIXOS_PREFIX.length)] = Number(v);
+      } else {
+        novasMetas[k] = Number(v);
+      }
+    });
+    salvarMetas(novasMetas, novosGfMetas);
+  }, [metas, gastosFixosMetas, salvarMetas]);
+
   // ── Transações — estado, fetch e CRUD ─────────────────────────────────────
   const {
     transactions,
@@ -368,7 +385,7 @@ function DashboardContent() {
     confirmDelete,
     requestDeleteAll,
     confirmDeleteAll,
-  } = useTransactions(mesSelecionado, { notify, onMesesChanged: fetchMesesDisponiveis });
+  } = useTransactions(mesSelecionado, { notify, onMesesChanged: fetchMesesDisponiveis, onLimitesLoaded: handleLimitesLoaded });
 
   // ── Escape fecha o modal ativo ────────────────────────────────────────────
   // (declarado após useTransactions para que delConfirm já esteja inicializado)

@@ -438,7 +438,8 @@ module.exports = {
             }
 
             const wallet = await obterOuCriarWallet(usuario_id, competencia);
-            wallet.limites_gastos = limites;
+            wallet.limites_gastos = new Map(Object.entries(limites));
+            wallet.markModified('limites_gastos');
             await wallet.save();
 
             return res.status(200).json(normalizarLimites(wallet.limites_gastos));
