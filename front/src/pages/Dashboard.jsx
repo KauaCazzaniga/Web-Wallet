@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext, useMemo } from "react";
 import { useToast } from '../hooks/useToast';
+import { useTransactions } from '../hooks/useTransactions';
 import styled, { css, keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
 import api from '../services/api';
@@ -25,9 +26,9 @@ import TransactionList from '../components/dashboard/TransactionList';
 // estilos e utilitários compartilhados
 import { ModalOverlay, ModalContent, ModalHeader, FormGroup, ModalFooter } from '../components/dashboard/dashboardStyles';
 import {
-  EMPTY_RESUMO_MES, EMPTY_IMPORT_STATE,
+  EMPTY_IMPORT_STATE,
   CAT_ICONS, CATS, fmt, fmtCurrency, competenciaHoje, formatarCompetencia,
-  getTransactionRawDate, getTransactionCompetencia, sortTransactionsByDateDesc,
+  getTransactionRawDate, getTransactionCompetencia,
 } from '../components/dashboard/dashboardUtils';
 
 // ── Animações ────────────────────────────────────────────────────────────────
@@ -268,17 +269,10 @@ function DashboardContent() {
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  // Dados do servidor
-  const [transactions, setTransactions] = useState([]);
-  const [resumoMes, setResumoMes] = useState(EMPTY_RESUMO_MES);
 
   // Modais
   const [txModal, setTxModal] = useState(false);
   const [importModal, setImportModal] = useState(false);
-  const [delConfirm, setDelConfirm] = useState({ open: false, mode: 'single', id: null, count: 0 });
   const [importingExtract, setImportingExtract] = useState(false);
   const [importingSave, setImportingSave] = useState(false);
   const [migratingLegacyImports, setMigratingLegacyImports] = useState(false);
@@ -301,7 +295,6 @@ function DashboardContent() {
     } catch { /* ignora */ }
     return competenciaHoje();
   });
-  const [loadingMes, setLoadingMes] = useState(false);
   const [mesesDisponiveis, setMesesDisponiveis] = useState([]);
   const [addMesModal, setAddMesModal] = useState(false);
   const [addMesForm, setAddMesForm] = useState(() => {
@@ -333,7 +326,7 @@ function DashboardContent() {
       if (txModal)              { setTxModal(false); return; }
       if (investmentModal)      { setInvestmentModal(false); setInvestmentForm({ mes: competenciaHoje(), valor: '', descricao: '' }); return; }
       if (addMesModal)          { setAddMesModal(false); return; }
-      if (delConfirm.open)      { setDelConfirm({ open: false, mode: 'single', id: null, count: 0 }); return; }
+      if (delConfirm.open)      { cancelDelete(); return; }
       if (importModal)          { setImportModal(false); setImportData(EMPTY_IMPORT_STATE); return; }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -368,6 +361,24 @@ function DashboardContent() {
 
   useEffect(() => { fetchMesesDisponiveis(); }, [fetchMesesDisponiveis]);
 
+  // ── Transações — estado, fetch e CRUD ─────────────────────────────────────
+  const {
+    transactions,
+    transacoesMes,
+    resumoMes,
+    initialLoading: loading,
+    loadingMes,
+    saving,
+    delConfirm,
+    fetchMesSelecionado,
+    addTransaction,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
+    requestDeleteAll,
+    confirmDeleteAll,
+  } = useTransactions(mesSelecionado, { notify, onMesesChanged: fetchMesesDisponiveis });
+
   const handleAddMes = () => {
     const comp = `${addMesForm.ano}-${String(addMesForm.mes).padStart(2, '0')}`;
     const hoje = new Date();
@@ -380,28 +391,6 @@ function DashboardContent() {
     handleMesSelecionadoChange(comp);
     setAddMesModal(false);
   };
-
-  // ── Fetch transações do mês ───────────────────────────────────────────────
-  const fetchMesSelecionado = useCallback(async ({ silent = false } = {}) => {
-    if (!silent) setLoadingMes(true);
-    try {
-      const { data } = await api.get(`/wallet/extrato/${mesSelecionado}`);
-      setTransactions((data?.transacoes || []).filter(tx => !tx.deletadoEm));
-      setResumoMes(data?.resumo || EMPTY_RESUMO_MES);
-    } catch (err) {
-      if (err?.response?.status === 404) {
-        setTransactions([]);
-        setResumoMes(EMPTY_RESUMO_MES);
-      } else {
-        notify('Não foi possível carregar os dados', 'error');
-      }
-    } finally {
-      setLoading(false);
-      if (!silent) setLoadingMes(false);
-    }
-  }, [mesSelecionado, notify]);
-
-  useEffect(() => { fetchMesSelecionado(); }, [fetchMesSelecionado]);
 
   // ── Total investido acumulado ─────────────────────────────────────────────
   useEffect(() => {
@@ -566,71 +555,10 @@ function DashboardContent() {
     if (!desc) return notify('Informe uma descrição', 'error');
     if (!txForm.valor) return notify('Informe o valor', 'error');
     if (Number(txForm.valor) <= 0) return notify('O valor deve ser maior que zero', 'error');
-    setSaving(true);
-    try {
-      await api.post('/wallet/transacao', { ...txForm, descricao: desc, valor: Number(txForm.valor), competencia: mesSelecionado || competenciaHoje() });
+    const ok = await addTransaction({ ...txForm, descricao: desc });
+    if (ok) {
       setTxModal(false);
       setTxForm({ tipo: 'despesa', valor: '', descricao: '', categoria: 'Alimentação' });
-      await fetchMesSelecionado({ silent: true });
-      fetchMesesDisponiveis();
-      notify('Transação registrada!');
-    } catch {
-      notify('Erro ao salvar transação', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ── Excluir transação ─────────────────────────────────────────────────────
-  const requestDelete = (tx) => {
-    setDelConfirm({ open: true, mode: 'single', id: tx?._id, count: 1 });
-  };
-  const requestDeleteAll = () => {
-    if (!transacoesMes.length) { notify('Não há transações para excluir neste mês', 'error'); return; }
-    setDelConfirm({ open: true, mode: 'all', id: null, count: transacoesMes.length });
-  };
-  const confirmDelete = async () => {
-    const id = delConfirm.id;
-    const txToDelete = transactions.find(tx => tx._id === id);
-    setTransactions(prev => prev.filter(tx => tx._id !== id));
-    setDelConfirm({ open: false, mode: 'single', id: null, count: 0 });
-    notify('Transação removida!');
-    try {
-      await api.delete(`/wallet/transacao/${id}`, {
-        data: { competencia: getTransactionCompetencia(txToDelete) || mesSelecionado || competenciaHoje() },
-      });
-      await fetchMesSelecionado({ silent: true });
-    } catch {
-      notify('Erro ao excluir — recarregue a página', 'error');
-      await fetchMesSelecionado({ silent: true });
-    }
-  };
-  const confirmDeleteAll = async () => {
-    const quantidadeAtual = transacoesMes.length;
-    const transacoesParaExcluir = [...transacoesMes];
-    setTransactions([]);
-    setDelConfirm({ open: false, mode: 'single', id: null, count: 0 });
-    try {
-      let removidas = 0;
-      try {
-        const { data } = await api.delete(`/wallet/${mesSelecionado}/transacoes`);
-        removidas = Number(data?.removidas || quantidadeAtual);
-      } catch (bulkError) {
-        if (bulkError?.response?.status !== 404) throw bulkError;
-        const resultados = await Promise.allSettled(
-          transacoesParaExcluir.map(tx => {
-            const comp = getTransactionCompetencia(tx) || mesSelecionado || competenciaHoje();
-            return api.delete(`/wallet/${comp}/transacao/${tx._id}`);
-          }),
-        );
-        removidas = resultados.filter(r => r.status === 'fulfilled').length;
-        if (!removidas) throw bulkError;
-      }
-      await fetchMesSelecionado({ silent: true });
-      notify(`${removidas || quantidadeAtual} transações removidas!`);
-    } catch {
-      notify('Erro ao excluir transações — recarregue a página', 'error');
-      await fetchMesSelecionado({ silent: true });
     }
   };
 
@@ -672,11 +600,6 @@ function DashboardContent() {
   const handleLogout = () => { logout(); navigate('/login', { replace: true }); };
 
   // ── Dados derivados ───────────────────────────────────────────────────────
-  const transacoesMes = useMemo(
-    () => [...transactions].sort(sortTransactionsByDateDesc),
-    [transactions],
-  );
-
   const mesesEfetivos = useMemo(() => {
     const set = new Set(mesesDisponiveis);
     if (!set.has(mesSelecionado)) return [mesSelecionado, ...mesesDisponiveis].sort((a, b) => b.localeCompare(a));
@@ -819,7 +742,7 @@ function DashboardContent() {
       {delConfirm.open && delConfirm.mode === 'single' && (
         <DeleteModal
           onConfirm={confirmDelete}
-          onCancel={() => setDelConfirm({ open: false, mode: 'single', id: null, count: 0 })}
+          onCancel={cancelDelete}
         />
       )}
 
@@ -830,7 +753,7 @@ function DashboardContent() {
           message={`Tem certeza que deseja excluir todas as ${delConfirm.count} transações deste mês?`}
           confirmLabel="Excluir tudo"
           onConfirm={confirmDeleteAll}
-          onCancel={() => setDelConfirm({ open: false, mode: 'single', id: null, count: 0 })}
+          onCancel={cancelDelete}
         />
       )}
 
