@@ -331,14 +331,14 @@ function DashboardContent() {
     const handleKeyDown = (e) => {
       if (e.key !== 'Escape') return;
       if (txModal)              { setTxModal(false); return; }
-      if (investmentModal)      { setInvestmentModal(false); resetInvestmentForm(); return; }
+      if (investmentModal)      { setInvestmentModal(false); setInvestmentForm({ mes: competenciaHoje(), valor: '', descricao: '' }); return; }
       if (addMesModal)          { setAddMesModal(false); return; }
       if (delConfirm.open)      { setDelConfirm({ open: false, mode: 'single', id: null, count: 0 }); return; }
       if (importModal)          { setImportModal(false); setImportData(EMPTY_IMPORT_STATE); return; }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [txModal, investmentModal, addMesModal, delConfirm.open, importModal, resetInvestmentForm]);
+  }, [txModal, investmentModal, addMesModal, delConfirm.open, importModal]);
 
   const labelMes = useMemo(() => {
     const [y, m] = mesSelecionado.split('-').map(Number);

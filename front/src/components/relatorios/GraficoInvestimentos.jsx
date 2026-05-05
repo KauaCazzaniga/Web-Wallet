@@ -1,5 +1,5 @@
 // Componente: GraficoInvestimentos
-// Responsabilidade: Gráfico de área do patrimônio acumulado em investimentos + tabela de aportes
+// Responsabilidade: Gráfico de área do patrimônio acumulado em investimentos + tabela de transações
 // Depende de: recharts, relatorioCalc (formatCurrencyBRL, formatCompactCurrency)
 
 import React, { useMemo } from 'react';
@@ -36,7 +36,6 @@ const TooltipCard = styled.div`
   strong { display: block; margin-bottom: 0.4rem; color: var(--rel-heading); }
   p { margin: 0.18rem 0; color: var(--rel-text); font-size: 0.82rem; }
 `;
-
 const Table = styled.table`
   width: 100%; border-collapse: collapse; margin-top: 1.25rem;
   thead th {
@@ -68,7 +67,7 @@ const CustomTooltip = ({ active, payload }) => {
       <p style={{ color: '#7F77DD', fontWeight: 700 }}>
         Patrimônio acumulado: {formatCurrencyBRL(d?.acumulado)}
       </p>
-      <p>Aporte do mês: {formatCurrencyBRL(d?.aporte)}</p>
+      <p>Investido no mês: {formatCurrencyBRL(d?.aporte)}</p>
     </TooltipCard>
   );
 };
@@ -76,20 +75,20 @@ const CustomTooltip = ({ active, payload }) => {
 // ── Componente ────────────────────────────────────────────────────────────────
 
 /**
- * @param {Array}  investimentos - Array de aportes { id, mes, valor, descricao } do FinanceContext
- * @param {Array}  meses         - Array de "YYYY-MM" do período selecionado em Relatórios
+ * @param {Array}  transacoes - Transações do período com categoria === 'Investimentos' (fonte: servidor)
+ * @param {Array}  meses      - Array de "YYYY-MM" do período selecionado em Relatórios
  */
-export default function GraficoInvestimentos({ investimentos, meses }) {
+export default function GraficoInvestimentos({ transacoes, meses }) {
   /**
-   * Monta série temporal com aporte mensal e acumulado.
-   * Meses sem aporte entram com aporte=0, acumulado=último valor.
+   * Monta série temporal com investimento mensal e acumulado.
+   * Usa data?.slice(0,7) como chave de mês para cada transação.
    */
   const chartData = useMemo(() => {
     const aportePorMes = meses.map((mes) => ({
       mes,
-      aporte: investimentos
-        .filter((inv) => inv.mes === mes)
-        .reduce((sum, inv) => sum + Number(inv.valor || 0), 0),
+      aporte: transacoes
+        .filter((tx) => String(tx.data || tx.competencia || '').slice(0, 7) === mes)
+        .reduce((sum, tx) => sum + Number(tx.valor || 0), 0),
     }));
     return aportePorMes.reduce((acc, { mes, aporte }) => {
       const prev = acc.length > 0 ? acc[acc.length - 1].acumulado : 0;
@@ -100,26 +99,23 @@ export default function GraficoInvestimentos({ investimentos, meses }) {
         .format(new Date(y, m - 1, 1)).replace('.', '');
       return [...acc, { mes, label, labelCompleto, aporte, acumulado: prev + aporte }];
     }, []);
-  }, [investimentos, meses]);
+  }, [transacoes, meses]);
 
-  /** Aportes individuais visíveis no período, mais recentes primeiro */
-  const aportesPeriodo = useMemo(() => {
-    const mesSet = new Set(meses);
-    return investimentos
-      .filter((inv) => mesSet.has(inv.mes))
-      .sort((a, b) => b.mes.localeCompare(a.mes));
-  }, [investimentos, meses]);
+  /** Transações individuais de investimento no período, mais recentes primeiro */
+  const transacoesPeriodo = useMemo(() =>
+    [...transacoes].sort((a, b) => String(b.data || '').localeCompare(String(a.data || ''))),
+  [transacoes]);
 
-  const totalPeriodo = aportesPeriodo.reduce((s, inv) => s + Number(inv.valor || 0), 0);
+  const totalPeriodo = transacoesPeriodo.reduce((s, tx) => s + Number(tx.valor || 0), 0);
 
   if (chartData.every((d) => d.acumulado === 0)) {
     return (
       <Card>
         <Head>
           <h3>Evolução patrimonial</h3>
-          <p>Nenhum aporte registrado no período selecionado.</p>
+          <p>Nenhum investimento registrado no período selecionado.</p>
         </Head>
-        <EmptyMsg>Registre aportes no Dashboard para visualizar a evolução aqui.</EmptyMsg>
+        <EmptyMsg>Registre transações com categoria "Investimentos" no Dashboard.</EmptyMsg>
       </Card>
     );
   }
@@ -154,33 +150,31 @@ export default function GraficoInvestimentos({ investimentos, meses }) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      {aportesPeriodo.length > 0 && (
+      {transacoesPeriodo.length > 0 && (
         <>
           <Head style={{ marginTop: '1.5rem', marginBottom: '0' }}>
             <h3>Aportes no período</h3>
-            <p>{aportesPeriodo.length} aporte{aportesPeriodo.length > 1 ? 's' : ''} · total {formatCurrencyBRL(totalPeriodo)}</p>
+            <p>{transacoesPeriodo.length} aporte{transacoesPeriodo.length > 1 ? 's' : ''} · total {formatCurrencyBRL(totalPeriodo)}</p>
           </Head>
           <Table>
             <thead>
               <tr>
-                <th>Mês</th>
+                <th>Data</th>
                 <th>Descrição</th>
                 <th style={{ textAlign: 'right' }}>Valor</th>
               </tr>
             </thead>
             <tbody>
-              {aportesPeriodo.map((inv) => {
-                const [y, m] = inv.mes.split('-').map(Number);
-                const mesLabel = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' })
-                  .format(new Date(y, m - 1, 1));
+              {transacoesPeriodo.map((tx) => {
+                const dataFormatada = tx.data
+                  ? new Date(tx.data + 'T00:00:00').toLocaleDateString('pt-BR')
+                  : '—';
                 return (
-                  <tr key={inv.id}>
-                    <td style={{ color: 'var(--rel-muted)', fontSize: '0.8rem' }}>
-                      {mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)}
-                    </td>
-                    <td>{inv.descricao || '—'}</td>
+                  <tr key={tx._id || tx.id || tx.data + tx.descricao}>
+                    <td style={{ color: 'var(--rel-muted)', fontSize: '0.8rem' }}>{dataFormatada}</td>
+                    <td>{tx.descricao || '—'}</td>
                     <td style={{ textAlign: 'right', color: '#7F77DD', fontWeight: 600 }}>
-                      {formatCurrencyBRL(inv.valor)}
+                      {formatCurrencyBRL(tx.valor)}
                     </td>
                   </tr>
                 );

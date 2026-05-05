@@ -20,7 +20,6 @@ import {
   processarMeses,
 } from '../utils/relatorioCalc';
 import { normalizeTransaction } from '../utils/transaction';
-import { useFinance } from '../context/FinanceContext';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -286,7 +285,6 @@ export default function Relatorios() {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
   const { isDark, toggleTheme } = useContext(ThemeContext);
-  const { investimentos } = useFinance();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [periodo, setPeriodo] = useState(getDefaultReportRange);
   const [serverTransactions, setServerTransactions] = useState([]);
@@ -348,14 +346,9 @@ export default function Relatorios() {
     }));
   };
 
-  const transacoesPeriodo = useMemo(
-    () => serverTransactions,
-    [serverTransactions],
-  );
-
   const mesesProcessados = useMemo(
-    () => processarMeses(transacoesPeriodo, periodo.inicio, periodo.fim),
-    [periodo.fim, periodo.inicio, transacoesPeriodo],
+    () => processarMeses(serverTransactions, periodo.inicio, periodo.fim),
+    [periodo.fim, periodo.inicio, serverTransactions],
   );
 
   const resumo = useMemo(() => {
@@ -372,11 +365,16 @@ export default function Relatorios() {
     };
   }, [mesesProcessados]);
 
-  const hasTransactions = transacoesPeriodo.length > 0;
+  const hasTransactions = serverTransactions.length > 0;
 
   const mesesPeriodo = useMemo(
     () => listMonthsBetween(periodo.inicio, periodo.fim),
     [periodo.inicio, periodo.fim],
+  );
+
+  const investimentosTransacoes = useMemo(
+    () => serverTransactions.filter((tx) => tx.categoria === 'Investimentos'),
+    [serverTransactions],
   );
 
   /**
@@ -388,7 +386,7 @@ export default function Relatorios() {
   const exportarCSV = useCallback(() => {
     const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
     const header = ['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor (R$)'].map(escapeCsv).join(',');
-    const rows = transacoesPeriodo.map(tx => [
+    const rows = serverTransactions.map(tx => [
       escapeCsv(tx.data || ''),
       escapeCsv(tx.descricao || ''),
       escapeCsv(tx.categoria || ''),
@@ -403,7 +401,7 @@ export default function Relatorios() {
     link.download = `transacoes_${periodo.inicio}_${periodo.fim}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-  }, [transacoesPeriodo, periodo.inicio, periodo.fim]);
+  }, [serverTransactions, periodo.inicio, periodo.fim]);
 
   const handleLogout = () => {
     logout();
@@ -504,7 +502,7 @@ export default function Relatorios() {
               </>
             )}
 
-            <GraficoInvestimentos investimentos={investimentos} meses={mesesPeriodo} />
+            <GraficoInvestimentos transacoes={investimentosTransacoes} meses={mesesPeriodo} />
           </ContentWrapper>
         </ContentArea>
       </MainContent>

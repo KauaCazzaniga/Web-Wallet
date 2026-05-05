@@ -8,7 +8,8 @@ const Joi = require('joi');
  * @param {Joi.Schema} schema
  */
 const validate = (schema) => (req, res, next) => {
-    const { error } = schema.validate(req.body, { abortEarly: true, allowUnknown: false });
+    const { error, value } = schema.validate(req.body, { abortEarly: true, stripUnknown: true });
+    if (!error) req.body = value;
     if (error) {
         return res.status(400).json({ erro: error.details[0].message });
     }
