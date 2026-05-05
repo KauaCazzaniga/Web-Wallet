@@ -2,16 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const connectDB = require('./config/database');
 const logger = require('./config/logger');
 
 const app = express();
-
-// --- 1. CONEXÃO COM O BANCO ---
-// connectDB agora retorna uma Promise e reutiliza a conexão em ambiente serverless
-connectDB().catch((err) => {
-    logger.error('Falha ao conectar no MongoDB na inicialização: ' + err.message);
-});
 
 // --- 2. MIDDLEWARES GLOBAIS ---
 app.use(helmet({
