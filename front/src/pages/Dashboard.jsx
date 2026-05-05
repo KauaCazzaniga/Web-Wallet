@@ -322,20 +322,6 @@ function DashboardContent() {
   const mesAtual   = competenciaHoje();
   const ehMesAtual = mesSelecionado === mesAtual;
 
-  // ── Escape fecha o modal ativo ────────────────────────────────────────────
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key !== 'Escape') return;
-      if (txModal)              { setTxModal(false); return; }
-      if (investmentModal)      { setInvestmentModal(false); setInvestmentForm({ mes: competenciaHoje(), valor: '', descricao: '' }); return; }
-      if (addMesModal)          { setAddMesModal(false); return; }
-      if (delConfirm.open)      { cancelDelete(); return; }
-      if (importModal)          { setImportModal(false); setImportData(EMPTY_IMPORT_STATE); return; }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [txModal, investmentModal, addMesModal, delConfirm.open, importModal]);
-
   const labelMes = useMemo(() => {
     const [y, m] = mesSelecionado.split('-').map(Number);
     const d = new Date(y, m - 1, 1);
@@ -381,6 +367,21 @@ function DashboardContent() {
     requestDeleteAll,
     confirmDeleteAll,
   } = useTransactions(mesSelecionado, { notify, onMesesChanged: fetchMesesDisponiveis });
+
+  // ── Escape fecha o modal ativo ────────────────────────────────────────────
+  // (declarado após useTransactions para que delConfirm já esteja inicializado)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      if (txModal)              { setTxModal(false); return; }
+      if (investmentModal)      { setInvestmentModal(false); setInvestmentForm({ mes: competenciaHoje(), valor: '', descricao: '' }); return; }
+      if (addMesModal)          { setAddMesModal(false); return; }
+      if (delConfirm.open)      { cancelDelete(); return; }
+      if (importModal)          { setImportModal(false); setImportData(EMPTY_IMPORT_STATE); return; }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [txModal, investmentModal, addMesModal, delConfirm.open, importModal, cancelDelete]);
 
   const handleAddMes = () => {
     const comp = `${addMesForm.ano}-${String(addMesForm.mes).padStart(2, '0')}`;
