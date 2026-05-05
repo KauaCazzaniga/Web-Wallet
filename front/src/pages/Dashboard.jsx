@@ -4,7 +4,7 @@ import { useTransactions } from '../hooks/useTransactions';
 import styled, { css, keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
 import api from '../services/api';
-import { listarInvestimentos } from '../services/investments';
+import { listarInvestimentos, listarCofrinhos } from '../services/investments';
 import { AuthContext } from '../contexts/AuthContext';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useFinance } from '../context/FinanceContext';
@@ -316,6 +316,8 @@ function DashboardContent() {
   const [totalInvestido, setTotalInvestido] = useState(0);
   // Total do portfólio cadastrado na aba Investimentos (/investments API)
   const [portfolioTotal, setPortfolioTotal] = useState(0);
+  // Total acumulado nos cofrinhos
+  const [cofrinhoTotal, setCofrinhoTotal] = useState(0);
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -406,15 +408,29 @@ function DashboardContent() {
       });
   }, [transactions, mesSelecionado]);
 
-  // ── Total do portfólio (/investments — aba Investimentos) ─────────────────
+  // ── Portfólio + cofrinhos (/investments — aba Investimentos) ─────────────
+  // Atualiza ao montar e ao voltar para a aba (visibilitychange), pois o usuário
+  // pode ter adicionado investimentos/cofrinhos na página Investimentos e voltado.
   useEffect(() => {
-    listarInvestimentos()
-      .then(res => {
-        const total = (res.investimentos || [])
-          .reduce((sum, inv) => sum + Number(inv.valor || 0) + Number(inv.rendimento || 0), 0);
-        setPortfolioTotal(total);
-      })
-      .catch(() => {}); // não crítico — aba pode estar vazia
+    const fetchExtras = () => {
+      listarInvestimentos()
+        .then(res => {
+          const total = (res.investimentos || [])
+            .reduce((sum, inv) => sum + Number(inv.valor || 0) + Number(inv.rendimento || 0), 0);
+          setPortfolioTotal(total);
+        })
+        .catch(() => {});
+      listarCofrinhos()
+        .then(res => {
+          const total = (res.cofrinhos || [])
+            .reduce((sum, c) => sum + Number(c.atual || 0), 0);
+          setCofrinhoTotal(total);
+        })
+        .catch(() => {});
+    };
+    fetchExtras();
+    document.addEventListener('visibilitychange', fetchExtras);
+    return () => document.removeEventListener('visibilitychange', fetchExtras);
   }, []);
 
   // ── Migração de importações legadas ──────────────────────────────────────
@@ -948,6 +964,7 @@ function DashboardContent() {
             <InvestmentPanel
               totalInvestido={totalInvestido}
               portfolioTotal={portfolioTotal}
+              cofrinhoTotal={cofrinhoTotal}
               aporteMesSelecionado={aporteMesSelecionado}
               ehMesAtual={ehMesAtual}
               onRegisterAporte={openInvestmentModal}

@@ -99,15 +99,16 @@ export function useTransactions(mesSelecionado, { notify, onMesesChanged }) {
     const txToDelete = transactions.find(tx => tx._id === id);
     setTransactions(prev => prev.filter(tx => tx._id !== id));
     setDelConfirm({ open: false, mode: 'single', id: null, count: 0 });
-    notify('Transação removida!');
     try {
       await api.delete(`/wallet/transacao/${id}`, {
         data: { competencia: getTransactionCompetencia(txToDelete) || mesSelecionado || competenciaHoje() },
       });
       await fetchMesSelecionado({ silent: true });
+      notify('Transação removida!');
     } catch {
-      notify('Erro ao excluir — recarregue a página', 'error');
+      // Reverte o estado otimista via re-fetch e informa o erro
       await fetchMesSelecionado({ silent: true });
+      notify('Erro ao excluir — recarregue a página', 'error');
     }
   }, [delConfirm.id, transactions, mesSelecionado, notify, fetchMesSelecionado]);
 
