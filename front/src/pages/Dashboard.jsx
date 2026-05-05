@@ -4,6 +4,7 @@ import { useTransactions } from '../hooks/useTransactions';
 import styled, { css, keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
 import api from '../services/api';
+import { listarInvestimentos } from '../services/investments';
 import { AuthContext } from '../contexts/AuthContext';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useFinance } from '../context/FinanceContext';
@@ -311,8 +312,10 @@ function DashboardContent() {
     return false;
   });
 
-  // Total investido (acumulado até mês selecionado)
+  // Total investido (acumulado até mês selecionado — via wallet transactions)
   const [totalInvestido, setTotalInvestido] = useState(0);
+  // Total do portfólio cadastrado na aba Investimentos (/investments API)
+  const [portfolioTotal, setPortfolioTotal] = useState(0);
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -392,7 +395,7 @@ function DashboardContent() {
     setAddMesModal(false);
   };
 
-  // ── Total investido acumulado ─────────────────────────────────────────────
+  // ── Total investido acumulado (wallet transactions) ──────────────────────
   useEffect(() => {
     const comp = mesSelecionado || competenciaHoje();
     api.get(`/wallet/total-investido?ate=${comp}`)
@@ -401,6 +404,17 @@ function DashboardContent() {
         console.error('[Dashboard] Erro ao buscar total investido:', err?.message);
       });
   }, [transactions, mesSelecionado]);
+
+  // ── Total do portfólio (/investments — aba Investimentos) ─────────────────
+  useEffect(() => {
+    listarInvestimentos()
+      .then(res => {
+        const total = (res.investimentos || [])
+          .reduce((sum, inv) => sum + Number(inv.valor || 0) + Number(inv.rendimento || 0), 0);
+        setPortfolioTotal(total);
+      })
+      .catch(() => {}); // não crítico — aba pode estar vazia
+  }, []);
 
   // ── Migração de importações legadas ──────────────────────────────────────
   const fetchTransactionsByCompetencia = useCallback(async (competencias = []) => {
@@ -932,6 +946,7 @@ function DashboardContent() {
             {/* Investimentos */}
             <InvestmentPanel
               totalInvestido={totalInvestido}
+              portfolioTotal={portfolioTotal}
               aporteMesSelecionado={aporteMesSelecionado}
               ehMesAtual={ehMesAtual}
               onRegisterAporte={openInvestmentModal}

@@ -24,8 +24,7 @@ const InvestmentIcon = styled.div`
   box-shadow: inset 0 0 0 1px rgba(127,119,221,0.2);
 `;
 const InvestmentStats = styled.div`
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;
-  @media (max-width: 720px) { grid-template-columns: 1fr; }
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;
 `;
 const InvestmentStat = styled.div`
   padding: 1rem 1.1rem; border-radius: 0.9rem;
@@ -47,17 +46,21 @@ const InvestmentAction = styled.button`
 // ── Componente ────────────────────────────────────────────────────────────────
 
 /**
- * @param {number}   totalInvestido        - Soma acumulada de aportes até o mês selecionado
+ * @param {number}   totalInvestido        - Soma acumulada de aportes via extrato (wallet transactions)
+ * @param {number}   portfolioTotal        - Soma do portfólio cadastrado na aba Investimentos
  * @param {number}   aporteMesSelecionado  - Soma de aportes somente do mês selecionado
  * @param {boolean}  ehMesAtual            - Se falso, desabilita o botão de registrar
  * @param {Function} onRegisterAporte      - Abre o modal de registro de aporte
  */
 export default function InvestmentPanel({
   totalInvestido,
+  portfolioTotal,
   aporteMesSelecionado,
   ehMesAtual,
   onRegisterAporte,
 }) {
+  const temPortfolio = portfolioTotal > 0;
+
   return (
     <InvestmentPanelBox>
       <InvestmentHead>
@@ -69,8 +72,14 @@ export default function InvestmentPanel({
       </InvestmentHead>
 
       <InvestmentStats>
+        {temPortfolio && (
+          <InvestmentStat>
+            <span>Portfólio (carteira)</span>
+            <strong>{fmtCurrency(portfolioTotal)}</strong>
+          </InvestmentStat>
+        )}
         <InvestmentStat>
-          <span>Total acumulado</span>
+          <span>{temPortfolio ? 'Aportes via extrato' : 'Total acumulado'}</span>
           <strong>{fmtCurrency(totalInvestido)}</strong>
         </InvestmentStat>
         <InvestmentStat>
