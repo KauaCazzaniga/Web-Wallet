@@ -83,7 +83,7 @@ const CATS = Object.keys(CAT_ICONS);
  * @param {{ mesSelecionado: string, notify: (msg: string, type?: string) => void }} props
  */
 export default function GerenciarMetas({ mesSelecionado, notify }) {
-  const { metas, gastosFixosMetas, salvarMetas } = useFinance();
+  const { metas, gastosFixosMetas, salvarMetas, visibleCats, visibleCatIcons, visibleGastosFix } = useFinance();
 
   const [open, setOpen]             = useState(false);
   const [goalDrafts, setGoalDrafts] = useState({});
@@ -102,8 +102,11 @@ export default function GerenciarMetas({ mesSelecionado, notify }) {
     const gfInit = {};
     GASTOS_FIXOS.forEach(({ key }) => { gfInit[key] = String(gastosFixosMetas[key] || '0'); });
     setGfDrafts(gfInit);
+    // Garante que a categoria padrão de nova meta é uma categoria visível
+    const firstVisible = visibleCats.filter(c => c !== 'Salário')[0];
+    if (firstVisible) setNewGoal(prev => ({ ...prev, categoria: firstVisible }));
     draftsInitialized.current = true;
-  }, [open, metas, gastosFixosMetas]);
+  }, [open, metas, gastosFixosMetas, visibleCats]);
 
   const handleGoalDraftChange = (cat, value) => {
     setGoalDrafts(prev => ({ ...prev, [cat]: value }));
@@ -214,7 +217,7 @@ export default function GerenciarMetas({ mesSelecionado, notify }) {
               <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--dash-muted-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
                 🔗 Gastos Fixos
               </p>
-              {GASTOS_FIXOS.map(({ key, label, icon }) => (
+              {visibleGastosFix.map(({ key, label, icon }) => (
                 <GoalItem key={key}>
                   <div className="goal-info">
                     <span>{icon} <strong>{label}</strong></span>
@@ -239,8 +242,8 @@ export default function GerenciarMetas({ mesSelecionado, notify }) {
               <FormGroup>
                 <label>Categoria</label>
                 <select value={newGoal.categoria} onChange={e => setNewGoal({ ...newGoal, categoria: e.target.value })}>
-                  {CATS.filter(c => c !== 'Salário').map(c =>
-                    <option key={c} value={c}>{CAT_ICONS[c]} {c}</option>
+                  {visibleCats.filter(c => c !== 'Salário').map(c =>
+                    <option key={c} value={c}>{visibleCatIcons[c] || '📦'} {c}</option>
                   )}
                 </select>
               </FormGroup>

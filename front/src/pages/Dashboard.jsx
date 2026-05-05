@@ -267,6 +267,7 @@ function DashboardContent() {
     visibleCats,
     visibleCatIcons,
     visibleGastosFix,
+    hiddenCatLabels,
   } = useFinance();
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -680,24 +681,24 @@ function DashboardContent() {
 
   const todasCategorias = Array.from(new Set([
     ...Object.keys(gastosAtuais), ...Object.keys(limites),
-  ])).filter(c => c !== 'Salário' && c !== 'Receita' && !String(c).startsWith(GASTOS_FIXOS_PREFIX));
+  ])).filter(c => c !== 'Salário' && c !== 'Receita' && !String(c).startsWith(GASTOS_FIXOS_PREFIX) && !hiddenCatLabels.includes(c));
 
   const gfGastos = useMemo(() => {
     const result = {};
-    GASTOS_FIXOS.forEach(({ key }) => { result[key] = Number(gastosAtuais[GASTOS_FIXOS_PREFIX + key] || 0); });
+    visibleGastosFix.forEach(({ key }) => { result[key] = Number(gastosAtuais[GASTOS_FIXOS_PREFIX + key] || 0); });
     return result;
-  }, [gastosAtuais]);
+  }, [gastosAtuais, visibleGastosFix]);
 
   const gfMetas = useMemo(() => {
     const result = {};
-    GASTOS_FIXOS.forEach(({ key }) => { result[key] = Number(limites[GASTOS_FIXOS_PREFIX + key] || 0); });
+    visibleGastosFix.forEach(({ key }) => { result[key] = Number(limites[GASTOS_FIXOS_PREFIX + key] || 0); });
     return result;
-  }, [limites]);
+  }, [limites, visibleGastosFix]);
 
   const gfTotalGasto = useMemo(() => Object.values(gfGastos).reduce((a, b) => a + b, 0), [gfGastos]);
-  const gfTotalMeta  = useMemo(() => GASTOS_FIXOS.reduce((acc, { key }) => {
+  const gfTotalMeta  = useMemo(() => visibleGastosFix.reduce((acc, { key }) => {
     const m = gfMetas[key]; return m > 0 ? acc + m : acc;
-  }, 0), [gfMetas]);
+  }, 0), [gfMetas, visibleGastosFix]);
   const gfTotalPct   = gfTotalMeta > 0 ? (gfTotalGasto / gfTotalMeta) * 100 : -1;
 
   const totalOrcamento = Object.values(limites).reduce((a, b) => a + Number(b), 0);
@@ -710,7 +711,7 @@ function DashboardContent() {
 
   // ── Auto-abertura acordeão se alerta ─────────────────────────────────────
   useEffect(() => {
-    const alerta = GASTOS_FIXOS.some(({ key }) => {
+    const alerta = visibleGastosFix.some(({ key }) => {
       const meta = gfMetas[key];
       if (meta <= 0) return false;
       return (gfGastos[key] / meta) * 100 >= 85;
