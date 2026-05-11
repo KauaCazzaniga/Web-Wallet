@@ -143,6 +143,15 @@ const adicionarTransacaoNaWallet = (wallet, payload = {}) => {
 };
 
 module.exports = {
+    // Helpers compartilhados — usados por subscriptionController
+    _helpers: {
+        obterOuCriarWallet,
+        adicionarTransacaoNaWallet,
+        atualizarResumo,
+        sincronizarCarteirasEmCadeia,
+        competenciaEhValida,
+    },
+
     async obterDashboard(req, res) {
         try {
             await connectDB();

@@ -64,10 +64,11 @@ app.get('/', (req, res) => {
 });
 
 // --- 4. DEFINIÇÃO DAS ROTAS (API) ---
-app.use('/api/auth',        require('./routes/authRoutes'));
-app.use('/api/wallet',      require('./routes/walletRoutes'));
-app.use('/api/ai',          require('./routes/aiRoutes'));
-app.use('/api/investments', require('./routes/investmentRoutes'));
+app.use('/api/auth',          require('./routes/authRoutes'));
+app.use('/api/wallet',        require('./routes/walletRoutes'));
+app.use('/api/ai',            require('./routes/aiRoutes'));
+app.use('/api/investments',   require('./routes/investmentRoutes'));
+app.use('/api/subscriptions', require('./routes/subscriptionRoutes'));
 
 // --- 5. MIDDLEWARE DE TRATAMENTO DE ERRO (O "Pulo do Gato" de Infra) ---
 // Se alguma rota der erro interno, este middleware captura e responde em JSON
@@ -86,12 +87,42 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Endpoint não encontrado. Verifique a URL e o método (GET/POST).' });
 });
 
-// --- 7. INICIALIZAÇÃO DO SERVIDOR ---
+// --- 7. MIGRAÇÃO DE CATEGORIAS (idempotente) ---
+async function runMigrations() {
+    try {
+        const connectDB = require('./config/database');
+        const Wallet = require('./models/Wallet');
+        await connectDB();
+
+        const [r1, r2] = await Promise.all([
+            Wallet.updateMany(
+                { 'transacoes.categoria': 'gastos_fixos.streaming' },
+                { $set: { 'transacoes.$[elem].categoria': 'assinaturas.outros' } },
+                { arrayFilters: [{ 'elem.categoria': 'gastos_fixos.streaming' }] },
+            ),
+            Wallet.updateMany(
+                { 'transacoes.categoria': 'gastos_fixos.assinaturasIA' },
+                { $set: { 'transacoes.$[elem].categoria': 'assinaturas.chatgptplus' } },
+                { arrayFilters: [{ 'elem.categoria': 'gastos_fixos.assinaturasIA' }] },
+            ),
+        ]);
+
+        const total = r1.modifiedCount + r2.modifiedCount;
+        if (total > 0) {
+            logger.info(`Migration: ${r1.modifiedCount} streaming + ${r2.modifiedCount} assinaturasIA remapeadas.`);
+        }
+    } catch (err) {
+        logger.error(`Migration falhou: ${err.message}`);
+    }
+}
+
+// --- 8. INICIALIZAÇÃO DO SERVIDOR ---
 if (require.main === module) {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
         logger.info(`Servidor iniciado na porta ${PORT}`);
         logger.info(`Infraestrutura: CORS, JSON e ErrorHandler ativos.`);
+        runMigrations();
     });
 }
 

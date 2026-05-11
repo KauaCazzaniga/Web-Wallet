@@ -24,3 +24,7 @@ yarn-debug.log*
 .agents/
 .claude/
 skills-lock.json
+.superpowers/
+
+# Documentação interna e specs
+docs/

@@ -23,6 +23,7 @@ import DashboardHeader from '../components/dashboard/DashboardHeader';
 import InvestmentPanel from '../components/dashboard/InvestmentPanel';
 import GoalCards from '../components/dashboard/GoalCards';
 import TransactionList from '../components/dashboard/TransactionList';
+import SubscriptionPanel from '../components/SubscriptionPanel';
 
 // estilos e utilitários compartilhados
 import { ModalOverlay, ModalContent, ModalHeader, FormGroup, ModalFooter } from '../components/dashboard/dashboardStyles';
@@ -1006,6 +1007,9 @@ function DashboardContent() {
               gfTotalMeta={gfTotalMeta}
               gfTotalPct={gfTotalPct}
             />
+
+            {/* Assinaturas recorrentes */}
+            <SubscriptionPanel notify={notify} />
 
             {/* Tabela de transações — key={labelMes} reseta filtros/paginação ao trocar de mês */}
             <TransactionList

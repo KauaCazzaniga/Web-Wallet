@@ -30,6 +30,8 @@ const DEFAULT_CATS = Object.entries(CAT_ICONS).map(([label, icon]) => ({
 }));
 
 // ── Emoji palette for new categories ─────────────────────────────────────────
+
+
 const EMOJI_OPTIONS = [
   '🏠','💡','🎓','✈️','🎮','💻','👕','🐾','🎁','📱',
   '🔧','🏋️','🎵','📚','🍕','🛒','⚡','🌿','☕','🧴',
