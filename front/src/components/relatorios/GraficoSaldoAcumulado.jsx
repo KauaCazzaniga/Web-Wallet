@@ -12,6 +12,7 @@ import {
   YAxis,
 } from 'recharts';
 import { formatCompactCurrency, formatCurrencyBRL } from '../../utils/relatorioCalc';
+import { ChartTooltip } from './ChartTooltip';
 
 const Card = styled.div`
   padding: 1.35rem 1.4rem 1rem;
@@ -102,7 +103,10 @@ export default function GraficoSaldoAcumulado({ data }) {
             axisLine={false}
             tickFormatter={(value) => formatCompactCurrency(value)}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(55,138,221,0.28)' }} />
+          <Tooltip
+            content={<ChartTooltip formatter={(v) => formatCurrencyBRL(v)} />}
+            cursor={{ stroke: 'rgba(96,165,250,0.25)' }}
+          />
           <ReferenceLine y={0} stroke="var(--rel-border-strong)" strokeDasharray="4 4" />
           <Area type="monotone" dataKey="saldoAcumulado" stroke="none" fill="url(#saldoArea)" />
           <Line

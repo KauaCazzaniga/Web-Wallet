@@ -22,6 +22,11 @@ export const ModalContent = styled.div`
   max-height: 90vh; overflow-y: auto;
   border: 1px solid var(--dash-border);
   box-shadow: var(--dash-shadow); animation: ${fadeIn} 0.2s ease;
+
+  @media (max-width: 480px) {
+    margin: 0 1rem;
+    padding: 1.5rem;
+  }
 `;
 export const ModalHeader = styled.div`
   display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;

@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import {
   Home, FileText, Settings, LogOut, Moon, SunMedium, Wallet,
   Plus, Pencil, Trash2, Check, X, Download, Tag, Target,
-  Menu, Save, Sliders, FileDown, Package, ChevronRight,
+  Menu, Save, Sliders, FileDown, Package, ChevronRight, ChevronLeft,
   AlertCircle, CheckCircle2, TrendingUp,
 } from 'lucide-react';
 
@@ -13,6 +13,7 @@ import { ThemeContext } from '../contexts/ThemeContext';
 import { useFinance } from '../context/FinanceContext';
 import api from '../services/api';
 import { CAT_ICONS, competenciaHoje } from '../components/dashboard/dashboardUtils';
+import { resolverCategoria } from '../utils/categorizador';
 import { GASTOS_FIXOS } from '../constants/gastosFixos';
 
 // ── Storage keys ──────────────────────────────────────────────────────────────
@@ -110,9 +111,9 @@ const Sidebar = styled.aside`
   padding: 1.5rem 0;
   flex-shrink: 0;
   backdrop-filter: blur(18px);
-
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; align-self: flex-start;
   @media (max-width: 768px) {
-    position: fixed; top: 0; left: 0; height: 100vh; z-index: 400;
+    position: fixed; top: 0; left: 0; height: 100vh; z-index: 400; overflow-y: auto;
     transform: ${p => p.$open ? 'translateX(0)' : 'translateX(-100%)'};
     transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
     box-shadow: ${p => p.$open ? '4px 0 32px rgba(0,0,0,0.35)' : 'none'};
@@ -133,19 +134,24 @@ const LogoArea = styled.div`
   color: var(--cfg-primary); margin-bottom: 2rem;
 `;
 const NavMenu = styled.nav`
-  flex: 1; padding: 0 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;
+  flex: 1; padding: 0 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; position: relative;
 `;
 const NavItem = styled.button`
   display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.7rem 1rem; border: none; border-radius: 0.625rem;
-  cursor: pointer; transition: all 0.15s; width: 100%;
-  text-align: left; font-size: 0.875rem;
+  padding: 0.72rem 1rem; border: none; border-radius: 0.75rem;
+  cursor: pointer; transition: background 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+  width: 100%; text-align: left; font-size: 0.875rem; flex-shrink: 0;
   background: ${p => p.$active ? 'var(--cfg-primary-soft)' : 'transparent'};
   color:      ${p => p.$active ? 'var(--cfg-primary)'      : 'var(--cfg-muted)'};
   font-weight:${p => p.$active ? '600' : '400'};
+  box-shadow: ${p => p.$active
+    ? 'inset 0 0 0 1px var(--cfg-border-strong), 0 4px 18px rgba(37,99,235,0.13)'
+    : 'none'};
   &:hover { background: ${p => p.$active ? 'var(--cfg-primary-soft)' : 'var(--cfg-surface-muted)'}; }
-  svg { transition: transform 0.2s ease; }
-  &:hover svg { transform: translateY(-2px) scale(1.08); }
+  svg { transition: transform 0.2s ease; flex-shrink: 0;
+    ${p => p.$active ? 'transform: scale(1.1);' : ''}
+  }
+  &:hover:not([disabled]) svg { transform: ${p => p.$active ? 'scale(1.1)' : 'translateX(2px) scale(1.08)'}; }
 `;
 const SidebarFooter = styled.div`padding: 1rem 0.75rem 0; margin-top: auto; display: grid; gap: 0.75rem;`;
 const ThemeToggleBox = styled.button`
@@ -180,22 +186,36 @@ const LogoutButton = styled.button`
   box-shadow: inset 0 0 0 1px var(--cfg-danger-border);
   &:hover { filter: brightness(1.05); }
 `;
+const ActiveBar = styled.div`
+  position: absolute; left: 0; width: 4px; height: 2.6rem;
+  border-radius: 0 5px 5px 0;
+  background: linear-gradient(180deg, #93c5fd 0%, #2563eb 100%);
+  box-shadow: 0 0 18px rgba(96, 165, 250, 0.7), 0 0 8px rgba(37, 99, 235, 0.45);
+  transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+  top: ${p => p.$index * 2.85}rem;
+  opacity: ${p => p.$index >= 0 ? 1 : 0};
+`;
 
 // ── Main layout ───────────────────────────────────────────────────────────────
 const MobileHeader = styled.header`
-  display: none;
-  @media (max-width: 768px) {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 1rem 1.25rem; background: var(--cfg-shell);
-    border-bottom: 1px solid var(--cfg-border); position: sticky; top: 0; z-index: 10;
-  }
+  min-height: 64px; background: var(--cfg-shell);
+  border-bottom: 1px solid var(--cfg-border);
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0 1.75rem; flex-shrink: 0;
+  backdrop-filter: blur(18px);
+  @media (max-width: 768px) { padding: 0.75rem 1rem; }
+`;
+const MobileHeaderTitle = styled.h2`
+  font-size: 1.125rem; font-weight: 600; color: var(--cfg-heading); margin: 0;
 `;
 const MenuBtn = styled.button`
   display: none;
   @media (max-width: 768px) {
     display: flex; align-items: center; justify-content: center;
-    width: 2.25rem; height: 2.25rem; border: none; border-radius: 0.5rem;
-    background: var(--cfg-surface-muted); color: var(--cfg-heading); cursor: pointer;
+    width: 36px; height: 36px; border: 1px solid var(--cfg-border);
+    border-radius: 0.5rem; background: var(--cfg-surface); color: var(--cfg-heading);
+    cursor: pointer; flex-shrink: 0; transition: background 0.15s;
+    &:hover { background: var(--cfg-surface-muted); }
   }
 `;
 const MainContent = styled.main`flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;`;
@@ -281,6 +301,7 @@ const CatName = styled.span`
 const CatActions = styled.div`
   display: flex; gap: 0.25rem; opacity: 0; transition: opacity 0.15s;
   ${CatCard}:hover & { opacity: 1; }
+  @media (max-width: 768px) { opacity: 1; }
 `;
 const IconBtn = styled.button`
   width: 1.75rem; height: 1.75rem; display: grid; place-items: center;
@@ -451,19 +472,121 @@ const FormatBadge = styled.span`
   letter-spacing: 0.06em; text-transform: uppercase;
   background: var(--cfg-primary-soft); color: var(--cfg-primary);
 `;
-const MonthRow = styled.div`
-  display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; align-items: end;
+// ── PERIOD PICKER ─────────────────────────────────────────────────────────────
+const PickerCard = styled.div`
+  background: var(--cfg-surface);
+  border: 1px solid var(--cfg-border);
+  border-radius: 1rem;
+  box-shadow: var(--cfg-soft-shadow);
+  overflow: hidden;
+  animation: ${fadeUp} 0.35s ease both;
 `;
-const FieldLabel = styled.label`
-  display: block; font-size: 0.75rem; font-weight: 600; color: var(--cfg-muted);
-  margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.05em;
+const PickerSummaryBar = styled.div`
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  padding: 0.875rem 1.5rem;
+  background: var(--cfg-surface-muted);
+  border-bottom: 1px solid var(--cfg-border);
 `;
-const MonthInput = styled.input`
-  width: 100%; padding: 0.6rem 0.7rem; border-radius: 0.5rem;
-  border: 1px solid var(--cfg-border); background: var(--cfg-input-bg);
-  color: var(--cfg-heading); font-size: 0.85rem; font-family: inherit;
-  outline: none; transition: border-color 0.15s;
-  &:focus { border-color: var(--cfg-primary); }
+const SummaryLabel = styled.span`
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--cfg-muted);
+`;
+const SummaryChip = styled.div`
+  display: inline-flex; align-items: center;
+  padding: 0.3rem 0.8rem; border-radius: 2rem;
+  background: ${p => p.$filled
+    ? 'linear-gradient(135deg, var(--cfg-primary) 0%, #4f46e5 100%)'
+    : 'var(--cfg-surface)'};
+  color: ${p => p.$filled ? '#fff' : 'var(--cfg-muted)'};
+  font-size: 0.82rem; font-weight: ${p => p.$filled ? 700 : 500};
+  border: 1px solid ${p => p.$filled ? 'transparent' : 'var(--cfg-border)'};
+  box-shadow: ${p => p.$filled ? '0 4px 10px rgba(37,99,235,0.28)' : 'none'};
+  letter-spacing: -0.01em; transition: all 0.2s;
+`;
+const SummaryArrow = styled.span`color: var(--cfg-muted); font-size: 0.875rem;`;
+const SummaryDuration = styled.span`
+  margin-left: auto; font-size: 0.78rem; font-weight: 600;
+  color: var(--cfg-primary); white-space: nowrap;
+`;
+const PickerBody = styled.div`padding: 1.25rem 1.5rem 1.5rem;`;
+const PickerTitleText = styled.h3`
+  margin: 0 0 0.2rem; font-size: 0.9rem; font-weight: 700;
+  color: var(--cfg-heading); display: flex; align-items: center; gap: 0.5rem;
+`;
+const PickerHintText = styled.p`margin: 0; font-size: 0.78rem; color: var(--cfg-muted);`;
+const YearNavRow = styled.div`
+  display: flex; align-items: center; justify-content: center;
+  gap: 1rem; margin: 1.1rem 0 1rem;
+`;
+const YearArrowBtn = styled.button`
+  width: 2.1rem; height: 2.1rem; border: 1px solid var(--cfg-border);
+  border-radius: 0.5rem; background: var(--cfg-surface-muted);
+  color: var(--cfg-muted); cursor: pointer; display: grid; place-items: center;
+  transition: all 0.15s;
+  &:hover:not(:disabled) {
+    background: var(--cfg-primary-soft); color: var(--cfg-primary);
+    border-color: var(--cfg-primary);
+  }
+  &:disabled { opacity: 0.3; cursor: not-allowed; }
+`;
+const YearLabel = styled.div`
+  font-size: 1.15rem; font-weight: 800; color: var(--cfg-heading);
+  min-width: 4.5rem; text-align: center; letter-spacing: -0.03em;
+`;
+const MonthGrid = styled.div`
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem;
+`;
+const MonthCell = styled.button`
+  position: relative;
+  padding: 0.7rem 0.3rem 0.5rem;
+  border-radius: 0.6rem; font-family: inherit;
+  font-size: 0.825rem; font-weight: 600;
+  cursor: ${p => (p.$future || p.$unavailable) ? 'not-allowed' : 'pointer'};
+  transition: background 0.12s, border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+  opacity: ${p => p.$future ? 0.27 : p.$unavailable ? 0.38 : 1};
+  text-decoration: ${p => p.$unavailable ? 'line-through' : 'none'};
+  z-index: ${p => (p.$isStart || p.$isEnd) ? 1 : 0};
+  border: 1px solid ${p => {
+    if (p.$isStart || p.$isEnd || p.$inRange) return 'transparent';
+    return 'var(--cfg-border)';
+  }};
+  background: ${p => {
+    if (p.$isStart) return 'linear-gradient(135deg, var(--cfg-primary) 0%, #4f46e5 100%)';
+    if (p.$isEnd)   return 'linear-gradient(135deg, #4f46e5 0%, var(--cfg-primary) 100%)';
+    if (p.$inRange) return 'var(--cfg-primary-soft)';
+    return 'transparent';
+  }};
+  color: ${p => {
+    if (p.$isStart || p.$isEnd) return '#fff';
+    if (p.$inRange) return 'var(--cfg-primary)';
+    if (p.$unavailable) return 'var(--cfg-muted)';
+    return 'var(--cfg-text)';
+  }};
+  box-shadow: ${p => (p.$isStart || p.$isEnd) ? '0 4px 14px rgba(37,99,235,0.38)' : 'none'};
+  transform: ${p => (p.$isStart || p.$isEnd) ? 'scale(1.05)' : 'scale(1)'};
+  &:hover:not(:disabled) {
+    background: ${p => {
+      if (p.$isStart) return 'linear-gradient(135deg, var(--cfg-primary-strong) 0%, #4338ca 100%)';
+      if (p.$isEnd)   return 'linear-gradient(135deg, #4338ca 0%, var(--cfg-primary-strong) 100%)';
+      if (p.$inRange) return 'var(--cfg-primary-soft)';
+      return 'var(--cfg-surface-muted)';
+    }};
+    transform: ${p => (p.$isStart || p.$isEnd) ? 'scale(1.07)' : p.$inRange ? 'none' : 'translateY(-1px)'};
+    border-color: ${p => (!p.$isStart && !p.$isEnd && !p.$inRange) ? 'var(--cfg-border-strong)' : 'transparent'};
+  }
+`;
+const MonthName = styled.span`display: block; text-align: center;`;
+const EdgeLabel = styled.span`
+  display: block; text-align: center; font-size: 0.5rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.15rem;
+  height: 0.65rem; line-height: 1;
+  color: ${p => (p.$show) ? 'rgba(255,255,255,0.82)' : 'transparent'};
+`;
+const PickerFooterHint = styled.p`
+  margin: 0.875rem 0 0; text-align: center; font-size: 0.775rem;
+  color: ${p => p.$selecting ? 'var(--cfg-primary)' : 'var(--cfg-muted)'};
+  font-weight: ${p => p.$selecting ? 600 : 400};
+  transition: color 0.2s;
 `;
 const DownloadBtn = styled.button`
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -497,28 +620,16 @@ function CategoriesSection({ userKey, isDark }) {
   const {
     hiddenCatLabels: hiddenDefaults, setHiddenCatLabels: saveHiddenDefaultsCtx,
     hiddenGfKeys: hiddenGf,          setHiddenGfKeys:    saveHiddenGfCtx,
+    customCats,                      saveCustomCats:     saveCustom,
   } = useFinance();
-  const [customCats, setCustomCats] = useState([]);
   const [editingKey, setEditingKey] = useState(null);
   const [editValue, setEditValue]   = useState('');
   const [newEmoji, setNewEmoji]     = useState('🏷️');
   const [newName, setNewName]       = useState('');
   const [notify, setNotify]         = useState(null);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(CUSTOM_CATS_KEY(userKey));
-      setCustomCats(raw ? JSON.parse(raw) : []);
-    } catch { setCustomCats([]); }
-  }, [userKey]);
-
-  const saveCustom = useCallback((updated) => {
-    setCustomCats(updated);
-    localStorage.setItem(CUSTOM_CATS_KEY(userKey), JSON.stringify(updated));
-  }, [userKey]);
-
-  const saveHiddenDefaults = useCallback((updated) => saveHiddenDefaultsCtx(updated), [saveHiddenDefaultsCtx]);
-  const saveHiddenGf       = useCallback((updated) => saveHiddenGfCtx(updated), [saveHiddenGfCtx]);
+  const saveHiddenDefaults = saveHiddenDefaultsCtx;
+  const saveHiddenGf       = saveHiddenGfCtx;
 
   const showToast = (msg, type = 'success') => {
     setNotify({ msg, type });
@@ -757,7 +868,7 @@ function CategoriesSection({ userKey, isDark }) {
 
 // ── SECTION: Metas ────────────────────────────────────────────────────────────
 function GoalsSection({ userKey, isDark }) {
-  const { metas, gastosFixosMetas, salvarMetas } = useFinance();
+  const { metas, gastosFixosMetas, salvarMetas, customCats } = useFinance();
   const [localMetas, setLocalMetas] = useState({});
   const [localGfMetas, setLocalGfMetas] = useState({});
   const [savingsRate, setSavingsRate] = useState(10);
@@ -772,7 +883,10 @@ function GoalsSection({ userKey, isDark }) {
     } catch { /* noop */ }
   }, [userKey]);
 
-  const allRegular = [...DEFAULT_CATS];
+  const allRegular = [
+    ...DEFAULT_CATS,
+    ...customCats.map(c => ({ key: c.key, label: c.label, icon: c.icon })),
+  ];
 
   const setMeta = (key, val) => {
     const num = Math.max(0, Number(val) || 0);
@@ -907,24 +1021,108 @@ function GoalsSection({ userKey, isDark }) {
 }
 
 // ── SECTION: Exportar ─────────────────────────────────────────────────────────
+const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
 function ExportSection({ userKey }) {
   const { metas, gastosFixosMetas, investimentos } = useFinance();
   const hoje = competenciaHoje();
-  const [fromMonth, setFromMonth] = useState(() => {
-    const [y, m] = hoje.split('-').map(Number);
-    const prev = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
-    return prev;
-  });
-  const [toMonth, setToMonth] = useState(hoje);
-  const [loadingCSV, setLoadingCSV] = useState(false);
-  const [loadingJSON, setLoadingJSON] = useState(false);
+  const [todayYear, todayMonthNum] = hoje.split('-').map(Number);
+
+  const [fromMonth, setFromMonth]         = useState(null);
+  const [toMonth, setToMonth]             = useState(null);
+  const [loadingCSV, setLoadingCSV]       = useState(false);
+  const [loadingJSON, setLoadingJSON]     = useState(false);
+  const [mesesDisponiveis, setMesesDisp]  = useState([]);
+  const [loadingMeses, setLoadingMeses]   = useState(true);
+
+  // Picker interaction state
+  const [pickerYear, setPickerYear] = useState(todayYear);
+  const [selecting, setSelecting]   = useState(false);
+  const [hovered, setHovered]       = useState(null);
+
+  // Fetch available months on mount
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const res = await api.get('/wallet/meses');
+        const meses = (res.data?.meses || []).slice().sort();
+        setMesesDisp(meses);
+        if (meses.length > 0) {
+          const ultimo   = meses[meses.length - 1];
+          const primeiro = meses.length > 1 ? meses[meses.length - 2] : ultimo;
+          setFromMonth(primeiro);
+          setToMonth(ultimo);
+          setPickerYear(Number(ultimo.split('-')[0]));
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingMeses(false);
+      }
+    };
+    fetch();
+  }, []);
+
+  // Derive the visible range (with hover preview during selection)
+  const getEffRange = () => {
+    if (selecting && hovered) {
+      return hovered >= (fromMonth ?? '')
+        ? { start: fromMonth, end: hovered }
+        : { start: hovered, end: fromMonth };
+    }
+    return { start: fromMonth, end: toMonth };
+  };
+
+  const handleMonthClick = (monthKey) => {
+    // Guard: only allow months that have data
+    if (!mesesDisponiveis.includes(monthKey)) return;
+    if (!selecting) {
+      setFromMonth(monthKey);
+      setToMonth(monthKey);
+      setSelecting(true);
+    } else {
+      if (monthKey >= fromMonth) {
+        setToMonth(monthKey);
+      } else {
+        setToMonth(fromMonth);
+        setFromMonth(monthKey);
+      }
+      setSelecting(false);
+      setHovered(null);
+    }
+  };
+
+  const fmtMonthLabel = (key) => {
+    if (!key) return '—';
+    const [my, mm] = key.split('-').map(Number);
+    return `${MONTHS_PT[mm - 1]} ${my}`;
+  };
+
+  const countMonths = (from, to) => {
+    const [fy, fm] = from.split('-').map(Number);
+    const [ty, tm] = to.split('-').map(Number);
+    return (ty - fy) * 12 + (tm - fm) + 1;
+  };
+
+  const { start: effStart, end: effEnd } = getEffRange();
+  const duration = fromMonth && toMonth ? countMonths(fromMonth, toMonth) : 0;
+  const canExport = !loadingMeses && mesesDisponiveis.length > 0 && !!fromMonth && !!toMonth;
+
+  // Preview end month label shown in summary bar during hover
+  const summaryEnd = (selecting && hovered)
+    ? fmtMonthLabel(hovered >= fromMonth ? hovered : fromMonth)
+    : fmtMonthLabel(toMonth);
+  const summaryStart = (selecting && hovered && hovered < fromMonth)
+    ? fmtMonthLabel(hovered)
+    : fmtMonthLabel(fromMonth);
 
   const fetchTransactions = async () => {
+    if (!fromMonth || !toMonth) return [];
     const months = listMonthsBetween(fromMonth, toMonth);
     const all = [];
     for (const comp of months) {
       try {
-        const res = await api.get(`/wallet/${comp}`);
+        const res = await api.get(`/wallet/extrato/${comp}`);
         const txs = res.data?.transacoes || res.data?.transactions || [];
         all.push(...txs.map(t => ({ ...t, competencia: comp })));
       } catch { /* skip months with no data */ }
@@ -951,7 +1149,7 @@ function ExportSection({ userKey }) {
           `"${(t.descricao || '').replace(/"/g, '""')}"`,
           String(t.valor || 0).replace('.', ','),
           t.tipo || '',
-          t.categoria || '',
+          resolverCategoria(t.categoria) || '',
           t.competencia || '',
         ]),
       ];
@@ -971,7 +1169,7 @@ function ExportSection({ userKey }) {
       const payload = {
         exportedAt: new Date().toISOString(),
         periodo: { de: fromMonth, ate: toMonth },
-        transacoes: txs,
+        transacoes: txs.map(t => ({ ...t, categoria: resolverCategoria(t.categoria) })),
         metas,
         gastosFixosMetas,
         investimentos,
@@ -986,33 +1184,108 @@ function ExportSection({ userKey }) {
 
   return (
     <>
-      <Panel>
-        <PanelHeader>
-          <div>
-            <PanelTitle><FileDown size={18} /> Período de exportação</PanelTitle>
-            <PanelDesc>Selecione o intervalo de meses que deseja exportar</PanelDesc>
-          </div>
-        </PanelHeader>
-        <PanelBody>
-          <MonthRow>
-            <div>
-              <FieldLabel>De</FieldLabel>
-              <MonthInput
-                type="month" value={fromMonth} max={toMonth}
-                onChange={e => setFromMonth(e.target.value)}
-              />
-            </div>
-            <div>
-              <FieldLabel>Até</FieldLabel>
-              <MonthInput
-                type="month" value={toMonth} min={fromMonth} max={hoje}
-                onChange={e => setToMonth(e.target.value)}
-              />
-            </div>
-          </MonthRow>
-        </PanelBody>
-      </Panel>
+      {/* ── Period Picker ─────────────────────────────────────────────────── */}
+      <PickerCard>
+        {/* Summary bar — always shows current selection */}
+        <PickerSummaryBar>
+          <SummaryLabel>Período</SummaryLabel>
+          <SummaryChip $filled>{summaryStart}</SummaryChip>
+          <SummaryArrow>→</SummaryArrow>
+          <SummaryChip $filled={!selecting || !!hovered}>{summaryEnd}</SummaryChip>
+          {!selecting && duration > 0 && (
+            <SummaryDuration>
+              {duration} {duration === 1 ? 'mês' : 'meses'}
+            </SummaryDuration>
+          )}
+          {selecting && (
+            <SummaryDuration style={{ color: 'var(--cfg-primary)', fontStyle: 'italic' }}>
+              selecione o mês final →
+            </SummaryDuration>
+          )}
+        </PickerSummaryBar>
 
+        <PickerBody>
+          <div style={{ marginBottom: '0' }}>
+            <PickerTitleText><FileDown size={16} /> Selecionar período</PickerTitleText>
+            <PickerHintText>Clique no mês de início e depois no mês de fim</PickerHintText>
+          </div>
+
+          {/* Year navigation */}
+          <YearNavRow>
+            <YearArrowBtn onClick={() => setPickerYear(p => p - 1)}>
+              <ChevronLeft size={15} />
+            </YearArrowBtn>
+            <YearLabel>{pickerYear}</YearLabel>
+            <YearArrowBtn
+              onClick={() => setPickerYear(p => p + 1)}
+              disabled={pickerYear >= todayYear}
+            >
+              <ChevronRight size={15} />
+            </YearArrowBtn>
+          </YearNavRow>
+
+          {/* 4 × 3 month grid */}
+          {loadingMeses ? (
+            <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--cfg-muted)', fontSize: '0.85rem' }}>
+              Carregando meses disponíveis…
+            </div>
+          ) : mesesDisponiveis.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '1.5rem 0.5rem' }}>
+              <p style={{ margin: '0 0 0.35rem', fontSize: '1.75rem', lineHeight: 1 }}>📭</p>
+              <p style={{ margin: '0 0 0.2rem', fontWeight: 700, color: 'var(--cfg-heading)', fontSize: '0.9rem' }}>
+                Sem dados para exportar
+              </p>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--cfg-muted)' }}>
+                Adicione transações no Dashboard para liberar a exportação.
+              </p>
+            </div>
+          ) : (
+            <>
+              <MonthGrid>
+                {MONTHS_PT.map((name, idx) => {
+                  const monthKey    = `${pickerYear}-${String(idx + 1).padStart(2, '0')}`;
+                  const isFuture    = pickerYear > todayYear ||
+                    (pickerYear === todayYear && idx + 1 > todayMonthNum);
+                  const isUnavailable = !isFuture && !mesesDisponiveis.includes(monthKey);
+                  const disabled    = isFuture || isUnavailable;
+                  const isStart     = monthKey === effStart;
+                  const isEnd       = monthKey === effEnd && effStart !== effEnd;
+                  const inRange     = !isStart && !isEnd && !!effStart && !!effEnd &&
+                    monthKey > effStart && monthKey < effEnd;
+
+                  return (
+                    <MonthCell
+                      key={idx}
+                      $isStart={isStart}
+                      $isEnd={isEnd}
+                      $inRange={inRange}
+                      $future={isFuture}
+                      $unavailable={isUnavailable}
+                      disabled={disabled}
+                      onClick={() => handleMonthClick(monthKey)}
+                      onMouseEnter={() => selecting && !disabled && setHovered(monthKey)}
+                      onMouseLeave={() => selecting && setHovered(null)}
+                    >
+                      <MonthName>{name}</MonthName>
+                      <EdgeLabel $show={isStart || isEnd}>
+                        {isStart ? 'de' : isEnd ? 'até' : ''}
+                      </EdgeLabel>
+                    </MonthCell>
+                  );
+                })}
+              </MonthGrid>
+
+              <PickerFooterHint $selecting={selecting}>
+                {selecting
+                  ? `Iniciando em ${fmtMonthLabel(fromMonth)} — clique no mês final`
+                  : 'Clique em um mês com dados para iniciar a seleção'}
+              </PickerFooterHint>
+            </>
+          )}
+        </PickerBody>
+      </PickerCard>
+
+      {/* ── Export format cards ───────────────────────────────────────────── */}
       <ExportGrid>
         <ExportCard>
           <ExportCardTitle>
@@ -1024,12 +1297,8 @@ function ExportSection({ userKey }) {
             Planilha compatível com Excel, Google Sheets e outros. Inclui todas as
             transações do período com data, descrição, valor, tipo e categoria.
           </ExportCardDesc>
-          <DownloadBtn onClick={handleCSV} disabled={loadingCSV} $loading={loadingCSV}>
-            {loadingCSV ? (
-              'Buscando dados...'
-            ) : (
-              <><Download size={15} /> Baixar CSV</>
-            )}
+          <DownloadBtn onClick={handleCSV} disabled={loadingCSV || !canExport} $loading={loadingCSV || !canExport}>
+            {loadingCSV ? 'Buscando dados...' : <><Download size={15} /> Baixar CSV</>}
           </DownloadBtn>
         </ExportCard>
 
@@ -1043,16 +1312,13 @@ function ExportSection({ userKey }) {
             Backup completo: transações, metas por categoria, investimentos e gastos fixos.
             Ideal para migração ou backup seguro dos seus dados.
           </ExportCardDesc>
-          <DownloadBtn onClick={handleJSON} disabled={loadingJSON} $loading={loadingJSON}>
-            {loadingJSON ? (
-              'Buscando dados...'
-            ) : (
-              <><Download size={15} /> Baixar JSON</>
-            )}
+          <DownloadBtn onClick={handleJSON} disabled={loadingJSON || !canExport} $loading={loadingJSON || !canExport}>
+            {loadingJSON ? 'Buscando dados...' : <><Download size={15} /> Baixar JSON</>}
           </DownloadBtn>
         </ExportCard>
       </ExportGrid>
 
+      {/* ── What's included info ──────────────────────────────────────────── */}
       <Panel>
         <PanelHeader>
           <div>
@@ -1062,10 +1328,10 @@ function ExportSection({ userKey }) {
         <PanelBody>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
             {[
-              { icon: '💸', label: 'Transações', desc: 'Receitas e despesas do período', inCSV: true, inJSON: true },
-              { icon: '🎯', label: 'Metas de gasto', desc: 'Limites por categoria', inCSV: false, inJSON: true },
-              { icon: '📈', label: 'Investimentos', desc: 'Aportes registrados', inCSV: false, inJSON: true },
-              { icon: '🏠', label: 'Gastos fixos', desc: 'Metas de despesas fixas', inCSV: false, inJSON: true },
+              { icon: '💸', label: 'Transações',    desc: 'Receitas e despesas do período', inCSV: true,  inJSON: true },
+              { icon: '🎯', label: 'Metas de gasto', desc: 'Limites por categoria',         inCSV: false, inJSON: true },
+              { icon: '📈', label: 'Investimentos',  desc: 'Aportes registrados',            inCSV: false, inJSON: true },
+              { icon: '🏠', label: 'Gastos fixos',   desc: 'Metas de despesas fixas',        inCSV: false, inJSON: true },
             ].map(item => (
               <div key={item.label} style={{
                 padding: '0.875rem', borderRadius: '0.625rem',
@@ -1076,7 +1342,7 @@ function ExportSection({ userKey }) {
                 </p>
                 <p style={{ margin: '0 0 0.5rem', fontSize: '0.78rem', color: 'var(--cfg-muted)' }}>{item.desc}</p>
                 <div style={{ display: 'flex', gap: '0.35rem' }}>
-                  {item.inCSV && <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '0.3rem', background: 'var(--cfg-primary-soft)', color: 'var(--cfg-primary)' }}>CSV</span>}
+                  {item.inCSV  && <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '0.3rem', background: 'var(--cfg-primary-soft)', color: 'var(--cfg-primary)' }}>CSV</span>}
                   {item.inJSON && <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '0.3rem', background: 'var(--cfg-primary-soft)', color: 'var(--cfg-primary)' }}>JSON</span>}
                 </div>
               </div>
@@ -1113,6 +1379,7 @@ export default function Configuracoes() {
       <Sidebar $open={sidebarOpen}>
         <LogoArea><Wallet size={22} /> Waltrix</LogoArea>
         <NavMenu>
+          <ActiveBar $index={3} />
           <NavItem onClick={() => { navigate('/dashboard'); setSidebarOpen(false); }}>
             <Home size={17} /> Dashboard
           </NavItem>
@@ -1127,30 +1394,30 @@ export default function Configuracoes() {
           </NavItem>
         </NavMenu>
         <SidebarFooter>
-          <ThemeToggleBox $dark={isDark} onClick={toggleTheme}>
+          <ThemeToggleBox onClick={toggleTheme} title="Alternar tema" $dark={isDark}>
             <ThemeToggleMeta>
-              {isDark ? <Moon size={16} /> : <SunMedium size={16} />}
+              {isDark ? <Moon size={18} color="#60a5fa" /> : <SunMedium size={18} color="#2563eb" />}
               <div>
-                <strong>{isDark ? 'Modo escuro' : 'Modo claro'}</strong>
-                <span>Alternar tema</span>
+                <strong>Mode</strong>
+                <span>{isDark ? 'Dark Mode' : 'Light Mode'}</span>
               </div>
             </ThemeToggleMeta>
             <SwitchTrack $on={isDark} $dark={isDark}>
               <SwitchThumb $on={isDark}>
-                {isDark ? <Moon size={9} /> : <SunMedium size={9} />}
+                {isDark ? <Moon size={12} /> : <SunMedium size={12} />}
               </SwitchThumb>
             </SwitchTrack>
           </ThemeToggleBox>
-          <LogoutButton onClick={handleLogout}>
-            <LogOut size={17} /> Sair da conta
+          <LogoutButton onClick={handleLogout} title="Sair">
+            <LogOut size={18} /> Sair
           </LogoutButton>
         </SidebarFooter>
       </Sidebar>
 
       <MainContent>
         <MobileHeader>
-          <LogoArea style={{ margin: 0, fontSize: '1rem' }}><Wallet size={18} /> Waltrix</LogoArea>
           <MenuBtn onClick={() => setSidebarOpen(o => !o)}><Menu size={18} /></MenuBtn>
+          <MobileHeaderTitle>Configurações</MobileHeaderTitle>
         </MobileHeader>
 
         <ContentArea>

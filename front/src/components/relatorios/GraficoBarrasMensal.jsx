@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { formatCompactCurrency, formatCurrencyBRL } from '../../utils/relatorioCalc';
+import { ChartTooltip } from './ChartTooltip';
 
 const Card = styled.div`
   padding: 1.35rem 1.4rem 1rem;
@@ -97,7 +98,10 @@ export default function GraficoBarrasMensal({ data, mediaDespesas }) {
             axisLine={false}
             tickFormatter={(value) => formatCompactCurrency(value)}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(55,138,221,0.08)' }} />
+          <Tooltip
+            content={<ChartTooltip formatter={(v) => formatCurrencyBRL(v)} />}
+            cursor={{ fill: 'rgba(96,165,250,0.05)' }}
+          />
           <ReferenceLine
             y={mediaDespesas}
             stroke="#94a3b8"

@@ -73,11 +73,6 @@ const competenciaHoje = () => {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
 };
 
-const CAT_ICONS = {
-  "Alimentação": "🍔", "Transporte": "🚗",
-  "Lazer": "🎉", "Saúde": "💊", "Salário": "💰", "Investimentos": "📈", "Outros": "📦",
-};
-const CATS = Object.keys(CAT_ICONS);
 
 /**
  * @param {{ mesSelecionado: string, notify: (msg: string, type?: string) => void }} props
@@ -116,7 +111,8 @@ export default function GerenciarMetas({ mesSelecionado, notify }) {
     if (!newGoal.valor || Number(newGoal.valor) <= 0)
       return notify('Informe um valor válido', 'error');
     setGoalDrafts(prev => ({ ...prev, [newGoal.categoria]: newGoal.valor }));
-    setNewGoal({ categoria: 'Alimentação', valor: '' });
+    const firstVisible = visibleCats.filter(c => c !== 'Salário')[0] || 'Alimentação';
+    setNewGoal({ categoria: firstVisible, valor: '' });
   };
 
   const handleRemoveGoal = (cat) => {
@@ -194,7 +190,7 @@ export default function GerenciarMetas({ mesSelecionado, notify }) {
                 : Object.entries(goalDrafts).map(([cat, val]) => (
                   <GoalItem key={cat}>
                     <div className="goal-info">
-                      <span>{CAT_ICONS[cat] || '📦'} <strong>{cat}</strong></span>
+                      <span>{visibleCatIcons[cat] || '📦'} <strong>{cat}</strong></span>
                       <input
                         type="number"
                         min="0"

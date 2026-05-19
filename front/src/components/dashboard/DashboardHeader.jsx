@@ -6,7 +6,7 @@ import { formatarCompetencia } from './dashboardUtils';
 
 // ── Styled ────────────────────────────────────────────────────────────────────
 const Header = styled.header`
-  min-height: 60px; background: var(--dash-shell); border-bottom: 1px solid var(--dash-border);
+  min-height: 64px; background: var(--dash-shell); border-bottom: 1px solid var(--dash-border);
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 1.75rem; flex-shrink: 0; gap: 0.75rem; flex-wrap: wrap;
   backdrop-filter: blur(18px);

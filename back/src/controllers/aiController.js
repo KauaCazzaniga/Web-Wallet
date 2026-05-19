@@ -1,12 +1,12 @@
 const axios = require('axios');
 
-const GEMINI_BASE    = 'https://generativelanguage.googleapis.com/v1beta/models';
-const GROQ_ENDPOINT  = 'https://api.groq.com/openai/v1/chat/completions';
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions';
 
 const repassarErro = (err, res) => {
     const status = err.response?.status || 502;
-    const body   = err.response?.data   || { error: err.message };
+    const body = err.response?.data || { error: err.message };
     return res.status(status).json(body);
 };
 
@@ -53,3 +53,4 @@ const mistral = async (req, res) => {
 };
 
 module.exports = { gemini, groq, mistral };
+

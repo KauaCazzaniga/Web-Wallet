@@ -156,6 +156,9 @@ REGRAS IMPORTANTES:
 - Em "Extrato Consolidado Inteligente" do Santander, "LIQUIDO DE VENCIMENTO", "CREDITO DE SALARIO" e "REMUNERACAO APLICACAO AUTOMATICA" sao receitas
 - Ignore ruidos como "Extrato_PF_A4_Inteligente", "BALP_", "Pagina: 2/8" e linhas apenas com mes/ano
 - Se nao tiver certeza sobre uma linha, prefira ignorar em vez de inventar
+- ANTI-DUPLICACAO OBRIGATORIA: cada lancamento bancario deve aparecer EXATAMENTE UMA VEZ no resultado — se o mesmo lancamento aparecer em multiplas linhas por formatacao do extrato, unifique em uma unica transacao
+- ANTI-DUPLICACAO OBRIGATORIA: uma linha de texto sem valor proprio e apenas complemento da descricao do lancamento anterior — nunca crie uma transacao separada para ela
+- ANTI-DUPLICACAO OBRIGATORIA: nunca emita duas transacoes com mesma data, valor e descricao semelhante; escolha a representacao mais completa e ignore o restante
 
 EXEMPLO:
 Linha: "02/03/2026 DEBITO VISA ELECTRON BRASIL 28/02 CENTRO AUTOMOTIVO 113388 -165,71 544,61"

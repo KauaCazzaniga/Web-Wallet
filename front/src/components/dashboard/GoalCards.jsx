@@ -7,7 +7,7 @@ import styled from 'styled-components';
 import { AlertTriangle } from 'lucide-react';
 import GerenciarMetas from '../GerenciarMetas';
 import { Panel, PanelHeader } from './dashboardStyles';
-import { fmt, CAT_ICONS } from './dashboardUtils';
+import { fmt } from './dashboardUtils';
 import { useFinance } from '../../context/FinanceContext';
 
 // ── Styled ────────────────────────────────────────────────────────────────────
@@ -60,7 +60,8 @@ const BarInfo  = styled.div`
 `;
 const BarTrack = styled.div`height: 0.375rem; background: var(--dash-border); border-radius: 99px; overflow: hidden;`;
 const BarFill  = styled.div`
-  height: 100%; border-radius: 99px; transition: width 0.6s ease;
+  height: 100%; border-radius: 99px;
+  transition: width 0.75s cubic-bezier(0.4, 0, 0.2, 1);
   width: ${p => p.$w}%; background: ${p => p.$c};
 `;
 
@@ -95,9 +96,28 @@ const GFFilhoIcon = styled.div`
 const GFFilhoName = styled.p`font-size: 0.8125rem; font-weight: 600; color: var(--dash-heading); margin-bottom: 0.3rem;`;
 const GFBarTrack  = styled.div`height: 4px; background: var(--dash-border); border-radius: 99px; overflow: hidden;`;
 const GFBarFill   = styled.div`
-  height: 100%; border-radius: 99px; transition: width 0.6s ease;
+  height: 100%; border-radius: 99px;
+  transition: width 0.75s cubic-bezier(0.4, 0, 0.2, 1);
   width: ${p => p.$w}%; background: ${p => p.$c};
 `;
+
+function AnimatedBarFill({ w, c }) {
+  const [animated, setAnimated] = React.useState(0);
+  React.useEffect(() => {
+    const id = requestAnimationFrame(() => setAnimated(w));
+    return () => cancelAnimationFrame(id);
+  }, [w]);
+  return <BarFill $w={animated} $c={c} />;
+}
+
+function AnimatedGFBarFill({ w, c }) {
+  const [animated, setAnimated] = React.useState(0);
+  React.useEffect(() => {
+    const id = requestAnimationFrame(() => setAnimated(w));
+    return () => cancelAnimationFrame(id);
+  }, [w]);
+  return <GFBarFill $w={animated} $c={c} />;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 /** Cor progressiva para barras de Gastos Fixos */
@@ -142,7 +162,7 @@ const ProgressBar = ({ spent, limit, category }) => {
         </span>
         <span>{has ? `${Math.min(pct, 999).toFixed(0)}%` : 'Sem meta'}</span>
       </BarInfo>
-      <BarTrack><BarFill $w={has ? Math.min(pct, 100) : 100} $c={col} /></BarTrack>
+      <BarTrack><AnimatedBarFill w={has ? Math.min(pct, 100) : 100} c={col} /></BarTrack>
     </BarWrap>
   );
 };
@@ -183,7 +203,7 @@ export default function GoalCards({
   gfTotalMeta,
   gfTotalPct,
 }) {
-  const { visibleGastosFix } = useFinance();
+  const { visibleGastosFix, visibleCatIcons } = useFinance();
   return (
     <MainGrid>
       {/* Orçamento */}
@@ -224,9 +244,9 @@ export default function GoalCards({
                     <span>{gfTotalPct < 0 ? '—' : `${Math.min(gfTotalPct, 999).toFixed(0)}%`}</span>
                   </BarInfo>
                   <BarTrack>
-                    <BarFill
-                      $w={gfTotalPct < 0 ? 100 : Math.min(gfTotalPct, 100)}
-                      $c={gfTotalPct < 0 ? '#cbd5e1' : getBarColorGF(gfTotalPct)}
+                    <AnimatedBarFill
+                      w={gfTotalPct < 0 ? 100 : Math.min(gfTotalPct, 100)}
+                      c={gfTotalPct < 0 ? '#cbd5e1' : getBarColorGF(gfTotalPct)}
                     />
                   </BarTrack>
                 </BarWrap>
@@ -254,9 +274,9 @@ export default function GoalCards({
                           <span style={{ fontSize: '0.7rem' }}>{hasMeta ? `${Math.min(pct, 999).toFixed(0)}%` : 'Sem meta'}</span>
                         </BarInfo>
                         <GFBarTrack>
-                          <GFBarFill
-                            $w={hasMeta ? Math.min(pct, 100) : 100}
-                            $c={!hasMeta ? '#cbd5e1' : getBarColorGF(pct)}
+                          <AnimatedGFBarFill
+                            w={hasMeta ? Math.min(pct, 100) : 100}
+                            c={!hasMeta ? '#cbd5e1' : getBarColorGF(pct)}
                           />
                         </GFBarTrack>
                       </BarWrap>
@@ -274,7 +294,7 @@ export default function GoalCards({
               </p>
             : todasCategorias.map(cat => (
               <CatRow key={cat}>
-                <CatIcon>{CAT_ICONS[cat] || '📦'}</CatIcon>
+                <CatIcon>{visibleCatIcons[cat] || '📦'}</CatIcon>
                 <div style={{ flex: 1, paddingTop: '0.2rem' }}>
                   <CatName>{cat}</CatName>
                   <ProgressBar

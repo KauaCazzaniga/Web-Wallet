@@ -8,10 +8,11 @@ const INVESTMENTS_STORAGE_KEY = 'webwallet_investimentos';
 const HIGHLIGHT_DURATION      = 3000;
 const toImportKeysKey = (userKey) => `@WebWallet:import-keys:${String(userKey || 'anon').replace(/[^\w@.-]/g, '_')}`;
 
-const METAS_KEY       = (uk) => `webwallet_metas:${uk}`;
-const GF_METAS_KEY    = (uk) => `webwallet_gastos_fixos_metas:${uk}`;
-const HIDDEN_CATS_KEY = (uk) => `webwallet_hidden_cats:${uk}`;
-const HIDDEN_GF_KEY   = (uk) => `webwallet_hidden_gf:${uk}`;
+const METAS_KEY        = (uk) => `webwallet_metas:${uk}`;
+const GF_METAS_KEY     = (uk) => `webwallet_gastos_fixos_metas:${uk}`;
+const HIDDEN_CATS_KEY  = (uk) => `webwallet_hidden_cats:${uk}`;
+const HIDDEN_GF_KEY    = (uk) => `webwallet_hidden_gf:${uk}`;
+const CUSTOM_CATS_KEY  = (uk) => `webwallet_custom_cats:${uk}`;
 
 const toLegacyImportsKey = (userKey) => `${LEGACY_IMPORTS_PREFIX}${String(userKey || 'anon').replace(/[^\w@.-]/g, '_')}`;
 
@@ -29,6 +30,8 @@ export const FinanceProvider = ({ children, userKey }) => {
   const [hiddenCatLabels, setHiddenCatLabelsRaw] = useState([]);
   const [hiddenGfKeys, setHiddenGfKeysRaw] = useState([]);
   const [hiddenHydrated, setHiddenHydrated] = useState(false);
+  const [customCats, setCustomCats] = useState([]);
+  const [customCatsHydrated, setCustomCatsHydrated] = useState(false);
   const [importedKeys, setImportedKeys] = useState(() => new Set());
   const highlightTimerRef = useRef(null);
 
@@ -94,6 +97,36 @@ export const FinanceProvider = ({ children, userKey }) => {
     if (!hiddenHydrated) return;
     localStorage.setItem(HIDDEN_GF_KEY(userKey), JSON.stringify(hiddenGfKeys));
   }, [hiddenGfKeys, hiddenHydrated, userKey]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CUSTOM_CATS_KEY(userKey));
+      setCustomCats(raw ? JSON.parse(raw) : []);
+    } catch {
+      setCustomCats([]);
+    } finally {
+      setCustomCatsHydrated(true);
+    }
+  }, [userKey]);
+
+  // Sincroniza customCats entre abas (storage event apenas dispara em outras abas)
+  useEffect(() => {
+    if (!customCatsHydrated) return;
+    const handleStorage = (e) => {
+      if (e.key === CUSTOM_CATS_KEY(userKey)) {
+        try { setCustomCats(e.newValue ? JSON.parse(e.newValue) : []); } catch { /* noop */ }
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [userKey, customCatsHydrated]);
+
+  const saveCustomCats = useCallback((updated) => {
+    setCustomCats(updated);
+    try {
+      localStorage.setItem(CUSTOM_CATS_KEY(userKey), JSON.stringify(updated));
+    } catch { /* noop */ }
+  }, [userKey]);
 
   useEffect(() => {
     if (!metasHydrated) return;
@@ -204,11 +237,16 @@ export const FinanceProvider = ({ children, userKey }) => {
   const setHiddenCatLabels = useCallback((updated) => setHiddenCatLabelsRaw(updated), []);
   const setHiddenGfKeys    = useCallback((updated) => setHiddenGfKeysRaw(updated), []);
 
-  const visibleCatIcons = useMemo(() =>
-    Object.fromEntries(Object.entries(CAT_ICONS).filter(([k]) => !hiddenCatLabels.includes(k))),
-  [hiddenCatLabels]);
+  const visibleCatIcons = useMemo(() => {
+    const base = Object.fromEntries(Object.entries(CAT_ICONS).filter(([k]) => !hiddenCatLabels.includes(k)));
+    customCats.forEach(c => { base[c.label] = c.icon; });
+    return base;
+  }, [hiddenCatLabels, customCats]);
 
-  const visibleCats = useMemo(() => ALL_CATS.filter(c => !hiddenCatLabels.includes(c)), [hiddenCatLabels]);
+  const visibleCats = useMemo(() => [
+    ...ALL_CATS.filter(c => !hiddenCatLabels.includes(c)),
+    ...customCats.map(c => c.label),
+  ], [hiddenCatLabels, customCats]);
 
   const visibleGastosFix = useMemo(() =>
     GASTOS_FIXOS.filter(gf => !hiddenGfKeys.includes(gf.key)),
@@ -255,12 +293,14 @@ export const FinanceProvider = ({ children, userKey }) => {
     visibleCatIcons,
     visibleCats,
     visibleGastosFix,
+    customCats,
+    saveCustomCats,
   }), [
     adicionarAporte, addImportedKeys, clearLegacyImportedTransactions, gastosFixosMetas,
     highlightedIds, importTransactionsBatch, importedKeys, investimentos,
-    legacyImportedTransactions, metas, salvarMetas,
+    legacyImportedTransactions, metas, salvarMetas, editarAporte, removerAporte,
     hiddenCatLabels, hiddenGfKeys, setHiddenCatLabels, setHiddenGfKeys,
-    visibleCatIcons, visibleCats, visibleGastosFix,
+    visibleCatIcons, visibleCats, visibleGastosFix, customCats, saveCustomCats,
   ]);
 
   return (

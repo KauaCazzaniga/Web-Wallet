@@ -2,6 +2,7 @@
 // Funções puras, constantes e helpers — sem imports de React
 
 import { resolverGastoFixo } from '../../constants/gastosFixos';
+import { resolverCategoria } from '../../utils/categorizador';
 
 // ── Constantes ────────────────────────────────────────────────
 export const ITEMS_POR_PAGINA = 15;
@@ -28,6 +29,7 @@ export const CAT_ICONS = {
   'Saúde': '💊',
   'Salário': '💰',
   'Outros': '📦',
+  'Assinaturas Online': '📱',
 };
 export const CATS = Object.keys(CAT_ICONS);
 
@@ -87,5 +89,6 @@ export const sortTransactionsByDateDesc = (a, b) => {
 export const resolveCatDisplay = (cat) => {
   const fixo = resolverGastoFixo(cat);
   if (fixo) return { label: fixo.label, icon: fixo.icon };
-  return { label: cat, icon: CAT_ICONS[cat] || '📦' };
+  const resolved = resolverCategoria(cat);
+  return { label: resolved, icon: CAT_ICONS[resolved] || '📦' };
 };

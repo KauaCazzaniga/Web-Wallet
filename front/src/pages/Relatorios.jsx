@@ -53,8 +53,9 @@ const Sidebar = styled.aside`
   padding: 1.5rem 0;
   flex-shrink: 0;
   backdrop-filter: blur(18px);
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; align-self: flex-start;
   @media (max-width: 768px) {
-    position: fixed; top: 0; left: 0; height: 100vh; z-index: 400;
+    position: fixed; top: 0; left: 0; height: 100vh; z-index: 400; overflow-y: auto;
     transform: ${p => p.$open ? 'translateX(0)' : 'translateX(-100%)'};
     transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
     box-shadow: ${p => p.$open ? '4px 0 32px rgba(0,0,0,0.35)' : 'none'};
@@ -87,27 +88,25 @@ const NavMenu = styled.nav`
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  position: relative;
 `;
 
 const NavItem = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.7rem 1rem;
-  border: none;
-  border-radius: 0.625rem;
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-  font-size: 0.875rem;
-  transition: all 0.15s;
-  background: ${(props) => props.$active ? 'rgba(55,138,221,0.12)' : 'transparent'};
-  color: ${(props) => props.$active ? 'var(--rel-primary)' : 'var(--rel-muted)'};
-  font-weight: ${(props) => props.$active ? 700 : 500};
-
-  &:hover {
-    background: var(--rel-surface-muted);
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.72rem 1rem; border: none; border-radius: 0.75rem;
+  cursor: pointer; width: 100%; text-align: left; font-size: 0.875rem; flex-shrink: 0;
+  transition: background 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+  background: ${p => p.$active ? 'rgba(55,138,221,0.16)' : 'transparent'};
+  color: ${p => p.$active ? 'var(--rel-primary)' : 'var(--rel-muted)'};
+  font-weight: ${p => p.$active ? 600 : 400};
+  box-shadow: ${p => p.$active
+    ? 'inset 0 0 0 1px var(--rel-border-strong), 0 4px 18px rgba(37,99,235,0.13)'
+    : 'none'};
+  &:hover { background: ${p => p.$active ? 'rgba(55,138,221,0.16)' : 'var(--rel-surface-muted)'}; }
+  svg { transition: transform 0.2s ease; flex-shrink: 0;
+    ${p => p.$active ? 'transform: scale(1.1);' : ''}
   }
+  &:hover:not([disabled]) svg { transform: ${p => p.$active ? 'scale(1.1)' : 'translateX(2px) scale(1.08)'}; }
 `;
 
 const SidebarFooter = styled.div`
@@ -117,19 +116,34 @@ const SidebarFooter = styled.div`
   gap: 0.75rem;
 `;
 
+const ActiveBar = styled.div`
+  position: absolute; left: 0; width: 4px; height: 2.6rem;
+  border-radius: 0 5px 5px 0;
+  background: linear-gradient(180deg, #93c5fd 0%, #2563eb 100%);
+  box-shadow: 0 0 18px rgba(96, 165, 250, 0.7), 0 0 8px rgba(37, 99, 235, 0.45);
+  transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+  top: ${p => p.$index * 2.85}rem;
+  opacity: ${p => p.$index >= 0 ? 1 : 0};
+`;
+const SwitchTrack = styled.div`
+  width: 3rem; height: 1.65rem; border-radius: 999px; position: relative;
+  background: ${p => p.$on ? 'linear-gradient(135deg, #06b6d4 0%, #2563eb 100%)' : (p.$dark ? 'rgba(30,41,59,.9)' : '#d8e3f3')};
+  transition: background 0.2s ease;
+`;
+const SwitchThumb = styled.div`
+  position: absolute; top: 0.17rem; left: ${p => p.$on ? '1.52rem' : '0.17rem'};
+  width: 1.3rem; height: 1.3rem; border-radius: 999px; background: #fff;
+  display: grid; place-items: center; color: ${p => p.$on ? '#2563eb' : '#64748b'};
+  transition: left 0.2s ease; box-shadow: 0 4px 10px rgba(15,23,42,0.18);
+`;
 const ThemeButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.9rem;
-  width: 100%;
-  padding: 0.82rem 1rem;
-  border: 1px solid var(--rel-border);
-  border-radius: 0.95rem;
-  cursor: pointer;
-  background: ${(props) => props.$dark ? 'rgba(10,24,44,.85)' : '#ffffff'};
-  color: var(--rel-heading);
-  box-shadow: var(--rel-soft-shadow);
+  display: flex; align-items: center; justify-content: space-between; gap: 0.9rem; width: 100%;
+  padding: 0.82rem 1rem; border: none; border-radius: 0.95rem; cursor: pointer;
+  background: ${p => p.$dark ? 'rgba(10,24,44,.85)' : '#ffffff'}; color: var(--rel-heading);
+  box-shadow: ${p => p.$dark ? '0 14px 30px rgba(2,12,27,.28)' : '0 16px 28px rgba(15,23,42,.07)'};
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.16)' : '#d8e3f3'}; margin-top: 0.65rem;
+  transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
+  &:hover { transform: translateY(-4px) scale(1.02); filter: brightness(1.05); }
 `;
 
 const ThemeMeta = styled.div`
@@ -150,19 +164,14 @@ const ThemeMeta = styled.div`
 `;
 
 const LogoutButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.8rem 1rem;
-  border: none;
-  border-radius: 0.75rem;
-  background: ${(props) => props.$dark ? 'rgba(127,29,29,0.28)' : '#fef2f2'};
-  color: #ef4444;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-align: left;
+  display: flex; align-items: center; gap: 0.75rem; width: 100%;
+  padding: 0.8rem 1rem; border: none; border-radius: 0.75rem;
+  background: ${p => p.$dark ? 'rgba(127,29,29,0.3)' : '#fef2f2'}; color: #ef4444; cursor: pointer;
+  font-size: 0.9rem; font-weight: 600; text-align: left; transition: all 0.15s;
+  box-shadow: inset 0 0 0 1px ${p => p.$dark ? 'rgba(248,113,113,0.34)' : '#fecaca'};
+  &:hover { filter: brightness(1.05); }
+  svg { transition: transform 0.2s ease, filter 0.2s ease; }
+  &:hover svg { transform: translateY(-2px) scale(1.08); filter: brightness(1.15); }
 `;
 
 const MainContent = styled.main`
@@ -196,13 +205,14 @@ const HamburgerBtn = styled.button`
 
 const HeaderTitle = styled.h2`
   font-size: 1.125rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--rel-heading);
 `;
 
 const HeaderMeta = styled.div`
   color: var(--rel-muted);
   font-size: 0.84rem;
+  @media (max-width: 768px) { display: none; }
 `;
 
 const ContentArea = styled.div`
@@ -414,6 +424,7 @@ export default function Relatorios() {
       <Sidebar $open={sidebarOpen}>
         <LogoArea><Wallet size={22} /> Waltrix</LogoArea>
         <NavMenu>
+          <ActiveBar $index={2} />
           <NavItem onClick={() => { navigate('/dashboard'); setSidebarOpen(false); }}>
             <Home size={17} /> Dashboard
           </NavItem>
@@ -428,18 +439,22 @@ export default function Relatorios() {
           </NavItem>
         </NavMenu>
         <SidebarFooter>
-          <ThemeButton onClick={toggleTheme} type="button" $dark={isDark}>
+          <ThemeButton onClick={toggleTheme} title="Alternar tema" $dark={isDark}>
             <ThemeMeta>
-              {isDark ? <Moon size={18} color="#60a5fa" /> : <SunMedium size={18} color="#378ADD" />}
+              {isDark ? <Moon size={18} color="#60a5fa" /> : <SunMedium size={18} color="#2563eb" />}
               <div>
-                <strong>Tema</strong>
+                <strong>Mode</strong>
                 <span>{isDark ? 'Dark Mode' : 'Light Mode'}</span>
               </div>
             </ThemeMeta>
+            <SwitchTrack $on={isDark} $dark={isDark}>
+              <SwitchThumb $on={isDark}>
+                {isDark ? <Moon size={12} /> : <SunMedium size={12} />}
+              </SwitchThumb>
+            </SwitchTrack>
           </ThemeButton>
           <LogoutButton type="button" onClick={handleLogout} $dark={isDark}>
-            <LogOut size={18} />
-            Sair
+            <LogOut size={18} /> Sair
           </LogoutButton>
         </SidebarFooter>
       </Sidebar>

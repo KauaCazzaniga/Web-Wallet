@@ -191,8 +191,9 @@ const Sidebar = styled.aside`
   width: 240px; background: var(--dash-shell); border-right: 1px solid var(--dash-border);
   display: flex; flex-direction: column; padding: 1.5rem 0; flex-shrink: 0;
   backdrop-filter: blur(18px);
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; align-self: flex-start;
   @media (max-width: 768px) {
-    position: fixed; top: 0; left: 0; height: 100vh; z-index: 400;
+    position: fixed; top: 0; left: 0; height: 100vh; z-index: 400; overflow-y: auto;
     transform: ${p => p.$open ? 'translateX(0)' : 'translateX(-100%)'};
     transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
     box-shadow: ${p => p.$open ? '4px 0 32px rgba(0,0,0,0.35)' : 'none'};
@@ -211,18 +212,24 @@ const LogoArea = styled.div`
   font-size: 1.25rem; font-weight: 700; color: var(--dash-primary); margin-bottom: 2rem;
 `;
 const NavMenu = styled.nav`
-  flex: 1; padding: 0 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;
+  flex: 1; padding: 0 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; position: relative;
 `;
 const NavItem = styled.button`
-  display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 1rem;
-  border: none; border-radius: 0.625rem; cursor: pointer; transition: all 0.15s;
-  width: 100%; text-align: left; font-size: 0.875rem;
+  display: flex; align-items: center; gap: 0.75rem; padding: 0.72rem 1rem;
+  border: none; border-radius: 0.75rem; cursor: pointer;
+  transition: background 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+  width: 100%; text-align: left; font-size: 0.875rem; flex-shrink: 0;
   background: ${p => p.$active ? 'var(--dash-primary-soft)' : 'transparent'};
   color:      ${p => p.$active ? 'var(--dash-primary)'      : 'var(--dash-muted)'};
   font-weight:${p => p.$active ? '600' : '400'};
+  box-shadow: ${p => p.$active
+    ? 'inset 0 0 0 1px var(--dash-border-strong), 0 4px 18px rgba(37,99,235,0.13)'
+    : 'none'};
   &:hover { background: ${p => p.$active ? 'var(--dash-primary-soft)' : 'var(--dash-surface-muted)'}; }
-  svg { transition: transform 0.2s ease; }
-  &:hover svg { transform: translateY(-2px) scale(1.08); }
+  svg { transition: transform 0.2s ease; flex-shrink: 0;
+    ${p => p.$active ? 'transform: scale(1.1);' : ''}
+  }
+  &:hover:not([disabled]) svg { transform: ${p => p.$active ? 'scale(1.1)' : 'translateX(2px) scale(1.08)'}; }
 `;
 const SidebarFooter = styled.div`
   padding: 1rem 0.75rem 0; margin-top: auto; display: grid; gap: 0.75rem;
@@ -260,6 +267,15 @@ const SwitchThumb = styled.div`
   display: grid; place-items: center; color: ${p => p.$on ? '#2563eb' : '#64748b'};
   transition: left 0.2s; box-shadow: 0 4px 10px rgba(15,23,42,0.18);
 `;
+const ActiveBar = styled.div`
+  position: absolute; left: 0; width: 4px; height: 2.6rem;
+  border-radius: 0 5px 5px 0;
+  background: linear-gradient(180deg, #93c5fd 0%, #2563eb 100%);
+  box-shadow: 0 0 18px rgba(96, 165, 250, 0.7), 0 0 8px rgba(37, 99, 235, 0.45);
+  transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+  top: ${p => p.$index * 2.85}rem;
+  opacity: ${p => p.$index >= 0 ? 1 : 0};
+`;
 
 // ─────────────────────────────────────────────────────────────
 // LAYOUT PRINCIPAL
@@ -267,10 +283,11 @@ const SwitchThumb = styled.div`
 
 const MainContent  = styled.main`flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;`;
 const TopBar = styled.header`
-  padding: 1rem 1.75rem; border-bottom: 1px solid var(--dash-border);
-  background: var(--dash-shell); backdrop-filter: blur(12px);
+  min-height: 64px; padding: 0 1.75rem; border-bottom: 1px solid var(--dash-border);
+  background: var(--dash-shell); backdrop-filter: blur(18px);
   display: flex; align-items: center; justify-content: space-between;
-  @media (max-width: 768px) { padding: 1rem; }
+  flex-shrink: 0;
+  @media (max-width: 768px) { padding: 0.75rem 1rem; }
 `;
 const TopBarLeft = styled.div`display: flex; align-items: center; gap: 0.75rem;`;
 const MobileMenuBtn = styled.button`
@@ -300,6 +317,7 @@ const ContentWrapper = styled.div`
 const KpiGrid = styled.div`
   display: grid; gap: 1.25rem;
   grid-template-columns: repeat(2, 1fr);
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
   @media (min-width: 900px) { grid-template-columns: repeat(4, 1fr); }
 `;
 const KpiCard = styled.div`
@@ -582,6 +600,11 @@ const ModalBox = styled.div`
   max-height: 90vh; overflow-y: auto;
   border: 1px solid var(--dash-border); box-shadow: var(--dash-shadow);
   animation: ${popIn} 0.2s ease;
+
+  @media (max-width: 480px) {
+    margin: 0 1rem;
+    padding: 1.5rem;
+  }
 `;
 const ModalHead = styled.div`
   display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;
@@ -601,6 +624,7 @@ const FormGroup = styled.div`
 `;
 const FormRow = styled.div`
   display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
 `;
 const ModalFoot = styled.div`
   display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;
@@ -852,42 +876,40 @@ export default function Investimentos() {
       {/* ── Sidebar ── */}
       <MobileOverlay $visible={sidebarOpen} onClick={() => setSidebarOpen(false)} />
       <Sidebar $open={sidebarOpen}>
-        <LogoArea>
-          <Wallet size={22} />
-          <span>WebWallet</span>
-        </LogoArea>
+        <LogoArea><Wallet size={22} /> Waltrix</LogoArea>
         <NavMenu>
-          <NavItem onClick={() => navigate('/dashboard')}>
-            <Home size={18} /> Dashboard
+          <ActiveBar $index={1} />
+          <NavItem onClick={() => { navigate('/dashboard'); setSidebarOpen(false); }}>
+            <Home size={17} /> Dashboard
           </NavItem>
-          <NavItem $active onClick={() => {}}>
-            <TrendingUp size={18} /> Investimentos
+          <NavItem $active onClick={() => setSidebarOpen(false)}>
+            <TrendingUp size={17} /> Investimentos
           </NavItem>
-          <NavItem onClick={() => navigate('/relatorios')}>
-            <FileText size={18} /> Relatórios
+          <NavItem onClick={() => { navigate('/relatorios'); setSidebarOpen(false); }}>
+            <FileText size={17} /> Relatórios
           </NavItem>
-          <NavItem onClick={() => navigate('/configuracoes')}>
-            <Settings size={18} /> Configurações
+          <NavItem onClick={() => { navigate('/configuracoes'); setSidebarOpen(false); }}>
+            <Settings size={17} /> Configurações
           </NavItem>
         </NavMenu>
         <SidebarFooter>
-          <LogoutButton onClick={logout}>
-            <LogOut size={18} /> Sair
-          </LogoutButton>
-          <ThemeToggleBox $dark={isDark} onClick={toggleTheme}>
+          <ThemeToggleBox onClick={toggleTheme} title="Alternar tema" $dark={isDark}>
             <ThemeToggleMeta>
-              {isDark ? <Moon size={18} /> : <SunMedium size={18} />}
+              {isDark ? <Moon size={18} color="#60a5fa" /> : <SunMedium size={18} color="#2563eb" />}
               <div>
-                <strong>{isDark ? 'Modo escuro' : 'Modo claro'}</strong>
-                <span>Alterar tema</span>
+                <strong>Mode</strong>
+                <span>{isDark ? 'Dark Mode' : 'Light Mode'}</span>
               </div>
             </ThemeToggleMeta>
             <SwitchTrack $on={isDark} $dark={isDark}>
               <SwitchThumb $on={isDark}>
-                {isDark ? <Moon size={10} /> : <SunMedium size={10} />}
+                {isDark ? <Moon size={12} /> : <SunMedium size={12} />}
               </SwitchThumb>
             </SwitchTrack>
           </ThemeToggleBox>
+          <LogoutButton onClick={logout} title="Sair">
+            <LogOut size={18} /> Sair
+          </LogoutButton>
         </SidebarFooter>
       </Sidebar>
 
@@ -898,7 +920,6 @@ export default function Investimentos() {
             <MobileMenuBtn onClick={() => setSidebarOpen(true)}><Menu size={22} /></MobileMenuBtn>
             <PageTitle>
               <h1>Investimentos</h1>
-              <p>Carteira, cofrinhos e evolução patrimonial</p>
             </PageTitle>
           </TopBarLeft>
         </TopBar>

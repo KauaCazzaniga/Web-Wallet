@@ -1,3 +1,5 @@
+import { labelCategoria } from '../constants/gastosFixos';
+
 export const CATEGORIAS_IMPORTACAO = [
   'Alimentação',
   'Transporte',
@@ -15,21 +17,25 @@ export const CATEGORIAS_IMPORTACAO = [
   'gastos_fixos.gas',
   'gastos_fixos.cartaoCredito',
   'gastos_fixos.planoSaude',
-  // Assinaturas (módulo separado)
-  'assinaturas.spotify',
-  'assinaturas.netflix',
-  'assinaturas.amazonprime',
-  'assinaturas.disneyplus',
-  'assinaturas.max',
-  'assinaturas.youtubepremium',
-  'assinaturas.applemusic',
-  'assinaturas.chatgptplus',
-  'assinaturas.googleone',
-  'assinaturas.adobe',
-  'assinaturas.outros',
+  // Assinaturas unificadas — exibição: "Assinaturas Online"
+  'Assinaturas Online',
   'gastos_fixos.seguroCarro',
   'gastos_fixos.condominio',
 ];
+
+/**
+ * Resolve o nome de exibição de qualquer categoria.
+ * Qualquer assinaturas.* → "Assinaturas Online"; gastos_fixos.* → label legível; demais → sem alteração.
+ * Nunca escreve no banco — uso exclusivo de frontend (display e exportação).
+ * @param {string} categoria
+ * @returns {string}
+ */
+export const resolverCategoria = (categoria) => {
+  if (!categoria) return '';
+  if (categoria.startsWith('assinaturas.')) return 'Assinaturas Online';
+  if (categoria.startsWith('gastos_fixos.')) return labelCategoria(categoria);
+  return categoria;
+};
 
 const REGRAS = [
   // Gastos fixos (mais específicos primeiro para evitar conflito com Moradia/Lazer)
@@ -39,17 +45,17 @@ const REGRAS = [
   { categoria: 'gastos_fixos.internet', termos: ['internet', 'fibra', 'banda larga', 'provedor'] },
   { categoria: 'gastos_fixos.celular', termos: ['celular', 'telefone', 'vivo', 'claro', 'tim', 'oi movel', 'oi móvel'] },
   { categoria: 'gastos_fixos.gas', termos: ['gas encanado', 'gás encanado', 'gas natural', 'gás natural', 'ultragaz', 'supergasbras', 'botijao', 'botijão', 'comgas', 'comgás'] },
-  { categoria: 'assinaturas.netflix',        termos: ['netflix'] },
-  { categoria: 'assinaturas.spotify',        termos: ['spotify', 'deezer'] },
-  { categoria: 'assinaturas.amazonprime',    termos: ['prime video', 'amazon prime'] },
-  { categoria: 'assinaturas.disneyplus',     termos: ['disney+', 'disney plus'] },
-  { categoria: 'assinaturas.max',            termos: ['hbo max', 'max streaming'] },
-  { categoria: 'assinaturas.youtubepremium', termos: ['youtube premium', 'youtube music'] },
-  { categoria: 'assinaturas.applemusic',     termos: ['apple music', 'apple tv'] },
-  { categoria: 'assinaturas.chatgptplus',    termos: ['chatgpt', 'openai', 'claude', 'gemini advanced', 'copilot'] },
-  { categoria: 'assinaturas.adobe',          termos: ['adobe', 'creative cloud'] },
-  { categoria: 'assinaturas.googleone',      termos: ['google one', 'google storage'] },
-  { categoria: 'assinaturas.outros',         termos: ['globoplay', 'paramount', 'star+', 'crunchyroll'] },
+  { categoria: 'Assinaturas Online', termos: ['netflix'] },
+  { categoria: 'Assinaturas Online', termos: ['spotify', 'deezer'] },
+  { categoria: 'Assinaturas Online', termos: ['prime video', 'amazon prime'] },
+  { categoria: 'Assinaturas Online', termos: ['disney+', 'disney plus'] },
+  { categoria: 'Assinaturas Online', termos: ['hbo max', 'max streaming'] },
+  { categoria: 'Assinaturas Online', termos: ['youtube premium', 'youtube music'] },
+  { categoria: 'Assinaturas Online', termos: ['apple music', 'apple tv'] },
+  { categoria: 'Assinaturas Online', termos: ['chatgpt', 'openai', 'claude', 'gemini advanced', 'copilot'] },
+  { categoria: 'Assinaturas Online', termos: ['adobe', 'creative cloud'] },
+  { categoria: 'Assinaturas Online', termos: ['google one', 'google storage'] },
+  { categoria: 'Assinaturas Online', termos: ['globoplay', 'paramount', 'star+', 'crunchyroll'] },
   { categoria: 'gastos_fixos.planoSaude', termos: ['plano de saude', 'plano de saúde', 'unimed', 'amil', 'bradesco saude', 'bradesco saúde', 'sulamerica', 'sulamérica', 'hapvida', 'notre dame'] },
   { categoria: 'gastos_fixos.seguroCarro', termos: ['seguro auto', 'seguro carro', 'seguro veiculo', 'seguro veículo', 'porto seguro', 'tokio marine', 'azul seguros', 'hdi seguros'] },
   { categoria: 'gastos_fixos.condominio', termos: ['condominio', 'condomínio', 'taxa condominial'] },

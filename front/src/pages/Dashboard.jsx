@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useContext, useMemo } from "re
 import { useToast } from '../hooks/useToast';
 import { useTransactions } from '../hooks/useTransactions';
 import styled, { css, keyframes } from "styled-components";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from '../services/api';
 import { listarInvestimentos, listarCofrinhos } from '../services/investments';
 import { AuthContext } from '../contexts/AuthContext';
@@ -11,7 +11,7 @@ import { useFinance } from '../context/FinanceContext';
 import ImportModal from '../components/ImportModal';
 import {
   Home, ArrowUpCircle, ArrowDownCircle, Wallet,
-  Plus, AlertTriangle, X, Trash2, Settings, FileText, CheckCircle, LogOut, Moon, SunMedium, TrendingUp,
+  Plus, AlertTriangle, X, Trash2, Settings, FileText, CheckCircle, LogOut, Moon, SunMedium, TrendingUp, Sparkles,
 } from "lucide-react";
 import { GASTOS_FIXOS, GASTOS_FIXOS_PREFIX } from '../constants/gastosFixos';
 import { CATEGORIAS_IMPORTACAO, gerarChaveTransacao, prepararTransacoesImportadas } from '../utils/categorizador';
@@ -19,6 +19,9 @@ import { extractTextFromPdf } from '../utils/pdfExtractor';
 import { parseBankStatement } from '../utils/geminiParser';
 
 // sub-componentes do Dashboard
+import { useScrollReveal } from '../hooks/useScrollReveal';
+import { useCountUp } from '../hooks/useCountUp';
+import AIAdvisor from '../components/AIAdvisor';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import InvestmentPanel from '../components/dashboard/InvestmentPanel';
 import GoalCards from '../components/dashboard/GoalCards';
@@ -50,6 +53,12 @@ const ToastContainer = styled.div`
   right: 2rem;
   z-index: 200;
   display: flex; flex-direction: column; gap: 0.5rem;
+
+  @media (max-width: 768px) {
+    bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    right: 1rem;
+    left: 1rem;
+  }
 `;
 const Toast = styled.div`
   background-color: ${p => p.$type === 'error' ? '#ef4444' : '#10b981'};
@@ -89,8 +98,10 @@ const Sidebar = styled.aside`
   width: 240px; background: var(--dash-shell); border-right: 1px solid var(--dash-border);
   display: flex; flex-direction: column; padding: 1.5rem 0; flex-shrink: 0;
   backdrop-filter: blur(18px);
+  /* Mantém sidebar presa ao topo; footer sempre visível */
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; align-self: flex-start;
   @media (max-width: 768px) {
-    position: fixed; top: 0; left: 0; height: 100vh; z-index: 400;
+    position: fixed; top: 0; left: 0; height: 100vh; z-index: 400; overflow-y: auto;
     transform: ${p => p.$open ? 'translateX(0)' : 'translateX(-100%)'};
     transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
     box-shadow: ${p => p.$open ? '4px 0 32px rgba(0,0,0,0.35)' : 'none'};
@@ -109,17 +120,26 @@ const LogoArea = styled.div`
   display: flex; align-items: center; gap: 0.5rem; padding: 0 1.5rem;
   font-size: 1.25rem; font-weight: 700; color: var(--dash-primary); margin-bottom: 2rem;
 `;
-const NavMenu = styled.nav`flex: 1; padding: 0 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;`;
+const NavMenu = styled.nav`
+  flex: 1; padding: 0 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;
+  position: relative;
+`;
 const NavItem = styled.button`
-  display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 1rem;
-  border: none; border-radius: 0.625rem; cursor: pointer; transition: all 0.15s;
-  width: 100%; text-align: left; font-size: 0.875rem;
+  display: flex; align-items: center; gap: 0.75rem; padding: 0.72rem 1rem;
+  border: none; border-radius: 0.75rem; cursor: pointer;
+  transition: background 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+  width: 100%; text-align: left; font-size: 0.875rem; flex-shrink: 0;
   background: ${p => p.$active ? 'var(--dash-primary-soft)' : 'transparent'};
-  color:      ${p => p.$active ? 'var(--dash-primary)'      : 'var(--dash-muted)'};
-  font-weight:${p => p.$active ? '600' : '400'};
+  color: ${p => p.$active ? 'var(--dash-primary)' : 'var(--dash-muted)'};
+  font-weight: ${p => p.$active ? '600' : '400'};
+  box-shadow: ${p => p.$active
+    ? 'inset 0 0 0 1px var(--dash-border-strong), 0 4px 18px rgba(37,99,235,0.13)'
+    : 'none'};
   &:hover { background: ${p => p.$active ? 'var(--dash-primary-soft)' : 'var(--dash-surface-muted)'}; }
-  svg { transition: transform 0.2s ease, filter 0.2s ease; }
-  &:hover svg { transform: translateY(-2px) scale(1.08); filter: brightness(1.15); }
+  svg { transition: transform 0.2s ease; flex-shrink: 0;
+    ${p => p.$active ? 'transform: scale(1.1);' : ''}
+  }
+  &:hover:not([disabled]) svg { transform: ${p => p.$active ? 'scale(1.1)' : 'translateX(2px) scale(1.08)'}; }
 `;
 const SidebarFooter = styled.div`padding: 1rem 0.75rem 0; margin-top: auto; display: grid; gap: 0.75rem;`;
 const LogoutButton = styled.button`
@@ -160,23 +180,112 @@ const SwitchThumb = styled.div`
 const MainContent  = styled.main`flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;`;
 const ContentArea  = styled.div`
   flex: 1; padding: 1.75rem; overflow-y: auto;
-  @media (max-width: 768px) { padding: 1rem; }
+  @media (max-width: 768px) {
+    padding: 1rem;
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
 `;
 const ContentWrapper = styled.div`max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem;`;
 
+// ── Scroll reveal ─────────────────────────────────────────────────────────────
+const RevealSection = styled.div`
+  opacity: ${p => p.$visible ? 1 : 0};
+  transform: ${p => p.$visible ? 'translateY(0)' : 'translateY(20px)'};
+  transition: opacity 0.55s ease ${p => p.$delay || 0}ms,
+              transform 0.55s cubic-bezier(0.4, 0, 0.2, 1) ${p => p.$delay || 0}ms;
+`;
+
+// ── Fade on month change ──────────────────────────────────────────────────────
+const FadeWrapper = styled.div`
+  opacity: ${p => p.$fading ? 0 : 1};
+  transition: opacity ${p => p.$fading ? '120ms' : '250ms'} ease;
+`;
+
+// ── Sidebar animated active bar ───────────────────────────────────────────────
+const ActiveBar = styled.div`
+  position: absolute;
+  left: 0;
+  width: 4px;
+  height: 2.6rem;
+  border-radius: 0 5px 5px 0;
+  background: linear-gradient(180deg, #93c5fd 0%, #2563eb 100%);
+  box-shadow: 0 0 18px rgba(96, 165, 250, 0.7), 0 0 8px rgba(37, 99, 235, 0.45);
+  transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+  top: ${p => p.$index * (2.6 + 0.25)}rem;
+  opacity: ${p => p.$index >= 0 ? 1 : 0};
+`;
+
+// ── Bottom navigation (mobile) ────────────────────────────────────────────────
+const BottomNavBar = styled.nav`
+  display: none;
+  @media (max-width: 768px) {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 500;
+    background: ${p => p.$dark ? 'rgba(5, 12, 26, 0.97)' : 'rgba(255, 255, 255, 0.97)'};
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--dash-border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+`;
+
+const BottomNavItem = styled.button`
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  padding: 0.75rem 0; border: none; background: transparent;
+  color: ${p => p.$active ? 'var(--dash-primary)' : 'var(--dash-muted)'};
+  font-size: 0.6rem; font-weight: ${p => p.$active ? '600' : '400'};
+  cursor: pointer; transition: color 0.15s;
+  svg { transition: transform 0.2s ease; }
+  &:active svg { transform: scale(0.88); }
+`;
+
+// ── AI floating button ────────────────────────────────────────────────────────
+const AIFloatBtn = styled.button`
+  position: fixed;
+  right: 1.5rem;
+  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  z-index: 450;
+  width: 3rem; height: 3rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #06b6d4, #2563eb);
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  &:hover { transform: scale(1.1) translateY(-2px); box-shadow: 0 14px 32px rgba(37, 99, 235, 0.55); }
+  @media (min-width: 769px) { bottom: 2rem; }
+`;
+
 // ── Skeleton ─────────────────────────────────────────────────────────────────
 const SkeletonShimmer = styled.div`
-  border-radius: 0.875rem; background: var(--dash-surface);
+  border-radius: 0.875rem;
+  background: var(--dash-surface);
   border: 1px solid var(--dash-border);
-  background-image: linear-gradient(
-    90deg,
-    var(--dash-surface) 25%,
-    var(--dash-surface-muted) 50%,
-    var(--dash-surface) 75%
-  );
-  background-size: 200% 100%;
-  animation: dashSkeletonShimmer 1.4s ease-in-out infinite;
-  @keyframes dashSkeletonShimmer {
+  overflow: hidden;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      125deg,
+      transparent 0%,
+      transparent 30%,
+      rgba(96, 165, 250, 0.06) 50%,
+      transparent 70%,
+      transparent 100%
+    );
+    background-size: 300% 100%;
+    animation: diagShimmer 1.6s ease-in-out infinite;
+  }
+
+  @keyframes diagShimmer {
     0%   { background-position: 200% 0; }
     100% { background-position: -200% 0; }
   }
@@ -190,8 +299,27 @@ const KpiGrid = styled.div`
   @media (min-width: 768px) { grid-template-columns: repeat(3, 1fr); }
 `;
 const KpiCard = styled.div`
-  background: var(--dash-surface); padding: 1.25rem 1.5rem; border-radius: 0.875rem;
-  border: 1px solid var(--dash-border); box-shadow: var(--dash-soft-shadow);
+  background: ${p => p.$dark
+    ? 'rgba(9, 20, 38, 0.60)'
+    : 'rgba(255, 255, 255, 0.75)'};
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 1.25rem 1.5rem;
+  border-radius: 0.875rem;
+  border: 1px solid ${p => p.$dark
+    ? 'rgba(96, 165, 250, 0.10)'
+    : 'rgba(200, 215, 240, 0.60)'};
+  box-shadow: ${p => p.$dark
+    ? '0 8px 32px rgba(2, 12, 27, 0.40), inset 0 1px 0 rgba(96, 165, 250, 0.08)'
+    : '0 8px 24px rgba(15, 23, 42, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9)'};
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: ${p => p.$dark
+      ? '0 16px 40px rgba(2, 12, 27, 0.50), inset 0 1px 0 rgba(96, 165, 250, 0.12)'
+      : '0 16px 32px rgba(15, 23, 42, 0.12)'};
+  }
 `;
 const HighlightCard = styled(KpiCard)`
   background: linear-gradient(135deg, #06b6d4 0%, var(--dash-primary) 52%, #4f46e5 100%);
@@ -250,9 +378,18 @@ const ConfirmActionModal = ({ title, message, confirmLabel, onConfirm, onCancel 
   </ModalOverlay>
 );
 
+// ── Navegação ─────────────────────────────────────────────────────────────────
+const NAV_ITEMS = [
+  { id: 'dashboard', icon: Home,        label: 'Dashboard',     path: '/dashboard' },
+  { id: 'invest',   icon: TrendingUp,   label: 'Investimentos', path: '/investimentos' },
+  { id: 'reports',  icon: FileText,     label: 'Relatórios',    path: '/relatorios' },
+  { id: 'settings', icon: Settings,     label: 'Configurações', path: '/configuracoes' },
+];
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function DashboardContent() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useContext(AuthContext);
   const { isDark, toggleTheme } = useContext(ThemeContext);
   const {
@@ -271,8 +408,17 @@ function DashboardContent() {
     hiddenCatLabels,
   } = useFinance();
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const activeTab = useMemo(() => {
+    if (location.pathname.startsWith('/investimentos')) return 'invest';
+    if (location.pathname.startsWith('/relatorios')) return 'reports';
+    if (location.pathname.startsWith('/configuracoes')) return 'settings';
+    return 'dashboard';
+  }, [location.pathname]);
+  const activeIndex = NAV_ITEMS.findIndex(n => n.id === activeTab);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [fading, setFading]           = useState(false);
+  const [aiOpen, setAiOpen]           = useState(false);
 
   // Modais
   const [txModal, setTxModal] = useState(false);
@@ -336,8 +482,12 @@ function DashboardContent() {
 
   const handleMesSelecionadoChange = useCallback((next) => {
     if (!/^\d{4}-\d{2}$/.test(next)) return;
-    setMesSelecionado(next);
-    try { localStorage.setItem('webwallet_mes_selecionado', next); } catch { /* ignora */ }
+    setFading(true);
+    setTimeout(() => {
+      setMesSelecionado(next);
+      try { localStorage.setItem('webwallet_mes_selecionado', next); } catch { /* ignora */ }
+      setFading(false);
+    }, 120);
   }, []);
 
   const handleHeaderMesChange = useCallback((val) => {
@@ -669,7 +819,12 @@ function DashboardContent() {
   const gastosAtuais = useMemo(() => {
     const result = {};
     transacoesMes.forEach(t => {
-      if (t.tipo === 'despesa') result[t.categoria] = (result[t.categoria] || 0) + Number(t.valor || 0);
+      if (t.tipo === 'despesa') {
+        const cat = String(t.categoria || '').startsWith('assinaturas.')
+          ? 'Assinaturas Online'
+          : t.categoria;
+        result[cat] = (result[cat] || 0) + Number(t.valor || 0);
+      }
     });
     return result;
   }, [transacoesMes]);
@@ -682,7 +837,7 @@ function DashboardContent() {
 
   const todasCategorias = Array.from(new Set([
     ...Object.keys(gastosAtuais), ...Object.keys(limites),
-  ])).filter(c => c !== 'Salário' && c !== 'Receita' && !String(c).startsWith(GASTOS_FIXOS_PREFIX) && !hiddenCatLabels.includes(c));
+  ])).filter(c => c !== 'Salário' && c !== 'Receita' && !String(c).startsWith(GASTOS_FIXOS_PREFIX) && !String(c).startsWith('assinaturas.') && !hiddenCatLabels.includes(c));
 
   const gfGastos = useMemo(() => {
     const result = {};
@@ -722,6 +877,18 @@ function DashboardContent() {
       try { localStorage.setItem('webwallet_gastosfixos_aberto', 'true'); } catch { /* ignora */ }
     }
   }, [gfGastos, gfMetas]);
+
+  // ── Scroll reveal ─────────────────────────────────────────────────────────
+  const [refKpi, visKpi]   = useScrollReveal();
+  const [refInv, visInv]   = useScrollReveal();
+  const [refGoal, visGoal] = useScrollReveal();
+  const [refSub, visSub]   = useScrollReveal();
+  const [refTx, visTx]     = useScrollReveal();
+
+  // ── Contadores animados ───────────────────────────────────────────────────
+  const animReceitas = useCountUp(kpiReceitas);
+  const animDespesas = useCountUp(kpiDespesas);
+  const animSaldo    = useCountUp(kpiSaldo);
 
   // ── Loading skeleton ─────────────────────────────────────────────────────
   if (loading) return (
@@ -890,6 +1057,8 @@ function DashboardContent() {
         </ModalOverlay>
       )}
 
+      {/* Assistente IA — desativado temporariamente */}
+
       {/* Import Modal */}
       <ImportModal
         open={importModal} parsedData={importData} categories={CATEGORIAS_IMPORTACAO}
@@ -902,18 +1071,16 @@ function DashboardContent() {
       <Sidebar $open={sidebarOpen}>
         <LogoArea><Wallet size={22} /> Waltrix</LogoArea>
         <NavMenu>
-          <NavItem $active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); navigate('/dashboard'); setSidebarOpen(false); }}>
-            <Home size={17} /> Dashboard
-          </NavItem>
-          <NavItem onClick={() => { navigate('/investimentos'); setSidebarOpen(false); }}>
-            <TrendingUp size={17} /> Investimentos
-          </NavItem>
-          <NavItem onClick={() => { navigate('/relatorios'); setSidebarOpen(false); }}>
-            <FileText size={17} /> Relatórios
-          </NavItem>
-          <NavItem onClick={() => { navigate('/configuracoes'); setSidebarOpen(false); }}>
-            <Settings size={17} /> Configurações
-          </NavItem>
+          <ActiveBar $index={activeIndex} />
+          {NAV_ITEMS.map(item => (
+            <NavItem
+              key={item.id}
+              $active={activeTab === item.id}
+              onClick={() => { navigate(item.path); setSidebarOpen(false); }}
+            >
+              <item.icon size={17} /> {item.label}
+            </NavItem>
+          ))}
         </NavMenu>
         <SidebarFooter>
           <ThemeToggleBox onClick={toggleTheme} title="Alternar tema" $dark={isDark}>
@@ -952,80 +1119,111 @@ function DashboardContent() {
         />
 
         <ContentArea>
+          <FadeWrapper $fading={fading}>
           <ContentWrapper>
 
-            {/* KPI cards */}
-            <KpiGrid>
-              <KpiCard>
-                <KpiHeader>
-                  <h3>Receitas</h3>
-                  <IconBox $t="in"><ArrowUpCircle size={18} /></IconBox>
-                </KpiHeader>
-                <KpiVal>R$ {fmt(kpiReceitas)}</KpiVal>
-              </KpiCard>
-              <KpiCard>
-                <KpiHeader>
-                  <h3>Despesas</h3>
-                  <IconBox $t="out"><ArrowDownCircle size={18} /></IconBox>
-                </KpiHeader>
-                <KpiVal>R$ {fmt(kpiDespesas)}</KpiVal>
-              </KpiCard>
-              <HighlightCard>
-                <HiHeader>
-                  <h3>Saldo do Mês</h3>
-                  <IconBox $t="bal"><Wallet size={18} /></IconBox>
-                </HiHeader>
-                <HiVal>R$ {fmt(kpiSaldo)}</HiVal>
-              </HighlightCard>
+            {/* KPI cards — ref no KpiGrid para não acumular opacity com os filhos */}
+            <KpiGrid ref={refKpi}>
+              <RevealSection $visible={visKpi} $delay={0}>
+                <KpiCard $dark={isDark}>
+                  <KpiHeader>
+                    <h3>Receitas</h3>
+                    <IconBox $t="in"><ArrowUpCircle size={18} /></IconBox>
+                  </KpiHeader>
+                  <KpiVal>R$ {fmt(animReceitas)}</KpiVal>
+                </KpiCard>
+              </RevealSection>
+              <RevealSection $visible={visKpi} $delay={80}>
+                <KpiCard $dark={isDark}>
+                  <KpiHeader>
+                    <h3>Despesas</h3>
+                    <IconBox $t="out"><ArrowDownCircle size={18} /></IconBox>
+                  </KpiHeader>
+                  <KpiVal>R$ {fmt(animDespesas)}</KpiVal>
+                </KpiCard>
+              </RevealSection>
+              <RevealSection $visible={visKpi} $delay={160}>
+                <HighlightCard $dark={isDark}>
+                  <HiHeader>
+                    <h3>Saldo do Mês</h3>
+                    <IconBox $t="bal"><Wallet size={18} /></IconBox>
+                  </HiHeader>
+                  <HiVal>R$ {fmt(animSaldo)}</HiVal>
+                </HighlightCard>
+              </RevealSection>
             </KpiGrid>
 
             {/* Investimentos */}
-            <InvestmentPanel
-              totalInvestido={totalInvestido}
-              portfolioTotal={portfolioTotal}
-              cofrinhoTotal={cofrinhoTotal}
-              aporteMesSelecionado={aporteMesSelecionado}
-              ehMesAtual={ehMesAtual}
-              onRegisterAporte={openInvestmentModal}
-            />
+            <RevealSection ref={refInv} $visible={visInv} $delay={40}>
+              <InvestmentPanel
+                totalInvestido={totalInvestido}
+                portfolioTotal={portfolioTotal}
+                cofrinhoTotal={cofrinhoTotal}
+                aporteMesSelecionado={aporteMesSelecionado}
+                ehMesAtual={ehMesAtual}
+                onRegisterAporte={openInvestmentModal}
+              />
+            </RevealSection>
 
             {/* Orçamento + categorias */}
-            <GoalCards
-              totalDespesas={kpiDespesas}
-              totalOrcamento={totalOrcamento}
-              acima={acima}
-              todasCategorias={todasCategorias}
-              gastosAtuais={gastosAtuais}
-              limites={limites}
-              mesSelecionado={mesSelecionado}
-              notify={notify}
-              gastosFixosAberto={gastosFixosAberto}
-              toggleGastosFixos={toggleGastosFixos}
-              gfGastos={gfGastos}
-              gfMetas={gfMetas}
-              gfTotalGasto={gfTotalGasto}
-              gfTotalMeta={gfTotalMeta}
-              gfTotalPct={gfTotalPct}
-            />
+            <RevealSection ref={refGoal} $visible={visGoal} $delay={40}>
+              <GoalCards
+                totalDespesas={kpiDespesas}
+                totalOrcamento={totalOrcamento}
+                acima={acima}
+                todasCategorias={todasCategorias}
+                gastosAtuais={gastosAtuais}
+                limites={limites}
+                mesSelecionado={mesSelecionado}
+                notify={notify}
+                gastosFixosAberto={gastosFixosAberto}
+                toggleGastosFixos={toggleGastosFixos}
+                gfGastos={gfGastos}
+                gfMetas={gfMetas}
+                gfTotalGasto={gfTotalGasto}
+                gfTotalMeta={gfTotalMeta}
+                gfTotalPct={gfTotalPct}
+              />
+            </RevealSection>
 
             {/* Assinaturas recorrentes */}
-            <SubscriptionPanel notify={notify} />
+            <RevealSection ref={refSub} $visible={visSub} $delay={40}>
+              <SubscriptionPanel notify={notify} />
+            </RevealSection>
 
             {/* Tabela de transações — key={labelMes} reseta filtros/paginação ao trocar de mês */}
-            <TransactionList
-              key={labelMes}
-              transacoesMes={transacoesMes}
-              loadingMes={loadingMes}
-              labelMes={labelMes}
-              highlightedIds={highlightedIds}
-              onDelete={requestDelete}
-              onDeleteAll={requestDeleteAll}
-              onAddFirst={() => setTxModal(true)}
-            />
+            <RevealSection ref={refTx} $visible={visTx} $delay={40}>
+              <TransactionList
+                key={labelMes}
+                transacoesMes={transacoesMes}
+                loadingMes={loadingMes}
+                labelMes={labelMes}
+                highlightedIds={highlightedIds}
+                onDelete={requestDelete}
+                onDeleteAll={requestDeleteAll}
+                onAddFirst={() => setTxModal(true)}
+              />
+            </RevealSection>
 
           </ContentWrapper>
+          </FadeWrapper>
         </ContentArea>
       </MainContent>
+
+      {/* Bottom Nav — mobile only */}
+      <BottomNavBar $dark={isDark}>
+        {NAV_ITEMS.map(item => (
+          <BottomNavItem
+            key={item.id}
+            $active={activeTab === item.id}
+            onClick={() => navigate(item.path)}
+            aria-label={item.label}
+          >
+            <item.icon size={20} />
+            <span>{item.label}</span>
+          </BottomNavItem>
+        ))}
+      </BottomNavBar>
     </AppContainer>
   );
 }

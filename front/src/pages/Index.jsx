@@ -107,6 +107,10 @@ const Nav = styled.nav`
     font-size: 0.92rem;
     font-weight: 700;
   }
+
+  @media (max-width: 640px) {
+    display: none;
+  }
 `;
 
 const Actions = styled.div`
@@ -115,6 +119,10 @@ const Actions = styled.div`
   gap: 0.75rem;
   flex-wrap: wrap;
   justify-content: flex-end;
+
+  @media (max-width: 920px) {
+    justify-content: center;
+  }
 `;
 
 const ThemeButton = styled.button`
@@ -174,6 +182,8 @@ const Badge = styled.div`
   color: ${p => p.$dark ? '#d7e8ff' : '#153456'};
   background: ${p => p.$dark ? 'rgba(8,25,49,.88)' : 'rgba(255,255,255,.86)'};
   border: 1px solid ${p => p.$dark ? 'rgba(56,189,248,.2)' : 'rgba(37,99,235,.15)'};
+  max-width: 100%;
+  flex-wrap: wrap;
 `;
 
 const HeroTitle = styled.h1`
@@ -226,6 +236,11 @@ const CTA = styled(Link)`
   ${p => p.$float && css`
     animation: ${float} 6.4s ease-in-out infinite;
   `}
+
+  @media (max-width: 480px) {
+    width: 100%;
+    justify-content: center;
+  }
 `;
 
 const SignalRow = styled.div`
@@ -401,6 +416,10 @@ const MockGrid = styled.div`
   @media (max-width: 720px) {
     grid-template-columns: 1fr;
   }
+
+  @media (max-width: 480px) {
+    display: none;
+  }
 `;
 
 const Widget = styled.div`
@@ -410,6 +429,10 @@ const Widget = styled.div`
   border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.14)' : '#dbe7f6'};
   min-height: 23rem;
   ${hoverLift}
+
+  @media (max-width: 720px) {
+    min-height: 10rem;
+  }
 `;
 
 const WidgetTitle = styled.div`
@@ -721,7 +744,7 @@ export default function Index() {
               Controle financeiro pessoal com visual de produto profissional
             </Badge>
             <HeroTitle>
-              Seu dinheiro organizado com
+              Seu dinheiro organizado
               <span>com controle de verdade</span>
             </HeroTitle>
             <HeroText $dark={isDark}>
@@ -737,9 +760,9 @@ export default function Index() {
             </CTAGroup>
 
             <SignalRow>
-              <Signal $dark={isDark}><BadgeCheck size={16} /> ✅ Login seguro</Signal>
-              <Signal $dark={isDark}><Landmark size={16} /> 📅 Resumo mensal automático</Signal>
-              <Signal $dark={isDark}><Zap size={16} /> ⚡ Atualizações em tempo real</Signal>
+              <Signal $dark={isDark}><BadgeCheck size={16} /> Login seguro</Signal>
+              <Signal $dark={isDark}><Landmark size={16} /> Resumo mensal automático</Signal>
+              <Signal $dark={isDark}><Zap size={16} /> Atualizações em tempo real</Signal>
             </SignalRow>
           </HeroCopy>
 
