@@ -32,4 +32,25 @@ describe('normalizeApiBaseUrl', () => {
         );
         expect(warnSpy).toHaveBeenCalledOnce();
     });
+
+    it('preserva subpaths dentro de /api/', async () => {
+        const { normalizeApiBaseUrl } = await import('./api');
+
+        expect(normalizeApiBaseUrl('https://api-waltrix.vercel.app/api/v2')).toBe(
+            'https://api-waltrix.vercel.app/api/v2'
+        );
+    });
+
+    it('não lança ao receber uma string que não é URL válida', async () => {
+        const { normalizeApiBaseUrl } = await import('./api');
+
+        expect(() => normalizeApiBaseUrl('nao-e-url')).not.toThrow();
+    });
+
+    it('remove barras finais de strings que são URLs relativas (sem protocolo)', async () => {
+        const { normalizeApiBaseUrl } = await import('./api');
+
+        // URL relativa sem protocolo cai no catch → rawBaseUrl.replace
+        expect(normalizeApiBaseUrl('//meu-host/api/')).toBe('//meu-host/api');
+    });
 });

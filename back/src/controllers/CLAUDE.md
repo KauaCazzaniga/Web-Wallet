@@ -45,9 +45,16 @@ Métodos exportados (rotas):
 
 ## Regras
 
-- **Sempre chamar `sincronizarCarteirasEmCadeia`** após qualquer mutação que afete
-  saldo (add, delete, import). Sem ela, os meses seguintes ficam com saldo_inicial
-  desatualizado.
+- **`sincronizarCarteirasEmCadeia` apenas em mutações, nunca em leituras.**
+  Chamar após qualquer operação que altere saldo (add, delete, import, iniciarMes).
+  `obterExtrato` **não chama** — os saldos já estão corretos porque toda mutação
+  sincroniza a cadeia antes de retornar. Re-adicionar o sync em `obterExtrato` causaria
+  full-scan do banco em toda troca de mês (regressão de performance intencional removida).
+  `obterDashboard` ainda chama o sync como self-healing path para falhas parciais.
+- **Falha parcial em mutação**: se `sincronizarCarteirasEmCadeia` falhar após `wallet.save()`,
+  o chain fica temporariamente inconsistente. O próximo carregamento do Dashboard cura o chain
+  via `obterDashboard`. O frontend invalida o cache após toda mutação, então o próximo fetch
+  de qualquer mês virá direto do banco (sem servir dado stale).
 - **Soft-delete obrigatório**: nunca remover transação do array — setar `deletadoEm`.
 - **Competência**: validar com `competenciaEhValida` antes de qualquer operação.
 - `totalInvestido` filtra `categoria === 'Investimentos'` **e** `tipo === 'despesa'`

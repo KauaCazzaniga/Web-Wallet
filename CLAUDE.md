@@ -246,6 +246,65 @@ new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(date
 
 ---
 
+## Performance e cache
+
+### Contrato de leitura vs. mutação no backend
+
+`sincronizarCarteirasEmCadeia(usuario_id)` propaga `saldo_inicial` entre meses em ordem
+cronológica. A regra de quando chamá-la é **obrigatória**:
+
+| Tipo de operação | Chamar `sincronizarCarteirasEmCadeia`? |
+|---|---|
+| Mutação de saldo (`adicionarTransacao`, `deletarTransacao`, `importarTransacoes`, `iniciarMes`) | **Sim — sempre, após `wallet.save()`** |
+| Leitura (`obterExtrato`, `listarMeses`, `totalInvestido`) | **Não** — saldos já estão corretos da última mutação |
+| `obterDashboard` | **Sim** — mantido como self-healing path para falhas parciais |
+
+`obterExtrato` **não chama** `sincronizarCarteirasEmCadeia` (removido em 2026-05-21).
+Se re-adicionado, causa full-scan do banco em toda troca de mês — regressão de performance.
+
+### Cache em memória no frontend (`useTransactions`)
+
+O hook `useTransactions` mantém um `Map` em `useRef` com TTL de 5 minutos:
+
+```
+competencia → { transactions, resumo, limites, ts }
+```
+
+**Regra de invalidação: toda mutação deve chamar `cacheRef.current.clear()`** (não apenas
+`delete(mesSelecionado)`). Isso porque `sincronizarCarteirasEmCadeia` atualiza `saldo_inicial`
+em TODOS os meses downstream — usar `delete()` apenas no mês atual deixaria outros meses com
+saldo errado no cache.
+
+**API do cache no hook:**
+
+```js
+const {
+  fetchMesSelecionado,   // ({ silent?, skipCache? }) — skipCache=true ignora o cache
+  clearCache,            // () => cacheRef.current.clear() — exportado para handlers externos
+} = useTransactions(mesSelecionado, opts);
+```
+
+**Padrão obrigatório para handlers externos (Dashboard.jsx) que mutam dados:**
+
+```js
+// ✅ Correto — limpa todos os meses antes de refetch
+clearCache();
+await fetchMesSelecionado({ silent: true, skipCache: true });
+
+// ❌ Errado — só invalida o mês atual; meses downstream ficam com saldo stale
+cacheRef.current.delete(mesSelecionado);
+await fetchMesSelecionado({ silent: true, skipCache: true });
+
+// ❌ Errado — não invalida nada; cache TTL protege dados stale por até 5 min
+await fetchMesSelecionado({ silent: true });
+```
+
+**Limitação conhecida:** o cache é por instância do hook. Ao navegar
+Dashboard → Relatórios → Dashboard, o hook recria com cache vazio. O benefício é
+exclusivamente intra-sessão (trocar de mês dentro do Dashboard sem sair da página).
+
+---
+
 ## Categorias do sistema
 
 ### Categorias regulares
@@ -351,20 +410,59 @@ useEffect(() => {
 
 ## Testes
 
-Não há configuração de testes no projeto (frontend ou backend).
+### Rodar os testes
 
-### Padrão para novos testes (a implementar)
+```bash
+cd front
+npm run test          # executa todos os testes uma vez (vitest run)
+```
 
-- **Framework recomendado**: Vitest + React Testing Library (compatível com Vite, zero config extra)
-- **Arquivo de teste**: `NomeDoComponente.test.jsx` ao lado do componente
-- **O que testar em funções utilitárias**:
-  - `processarMeses`: intervalo com e sem transações, variações no primeiro mês (null), saldo acumulado
-  - `sanitizarExtrato`: linhas com data, linhas com valor, linhas sem nenhum dos dois
-  - `gerarChaveTransacao`: normalização de acentos, valores negativos, datas incompletas
-- **O que testar em componentes**:
-  - Renderização com props mínimas
-  - Estado vazio vs. com dados
-  - Interações (clique em botões, mudança de mês)
+### Setup e configuração
+
+- **Framework**: Vitest 4 + React Testing Library 16 (configurado em `vite.config.js > test`)
+- **Ambiente**: `jsdom` (browser simulado)
+- **Setup global**: `front/src/test-setup.js` — importa `@testing-library/jest-dom` e define mocks globais:
+  - `window.matchMedia` (styled-components / media queries)
+  - `window.ResizeObserver` (Recharts)
+  - `Element.prototype.scrollIntoView` (jsdom não suporta nativamente)
+
+### Arquivos de teste existentes
+
+| Arquivo de teste | O que cobre |
+|---|---|
+| `src/hooks/useScrollReveal.test.js` | IntersectionObserver mock, one-shot, guard para ambiente sem suporte |
+| `src/hooks/useCountUp.test.js` | RAF mock, animação, cleanup, correção de stale prevRef |
+| `src/components/AIAdvisor.test.jsx` | Drawer, sugestões, envio, erro de API, limpeza de input |
+| `src/components/relatorios/ChartTooltip.test.jsx` | active/payload guards, formatter, valores brutos |
+| `src/pages/Login.test.jsx` | Campos, toggle de senha, submit, redirecionamento, erro |
+| `src/services/api.test.js` | `normalizeApiBaseUrl` — origin fallback, URL com /api, edge cases |
+
+### Padrões obrigatórios para novos testes
+
+- **Arquivo**: `NomeDoComponente.test.jsx` (ou `.test.js` para utils/hooks) ao lado do arquivo testado
+- **Labels acessíveis**: sempre buscar por `getByRole`, `getByLabelText` (exact match) ou `getByText` — nunca por classe CSS
+- **Match exato para labels**: evitar `/regex/i` quando o texto pode ambiguamente corresponder a `aria-label` de outro elemento (ex: `'Senha'` em vez de `/senha/i` para evitar conflito com `aria-label="Mostrar senha"`)
+- **Mocks de API**: usar `vi.mock('../services/api', () => ({ default: { post: vi.fn() } }))` — nunca fazer chamadas HTTP reais em teste
+- **IntersectionObserver**: mockar como `class`, não como `vi.fn()` — é chamado com `new`
+- **performance.now + RAF**: usar `vi.spyOn` e controle manual de timestamps para testes de animação
+
+### Mocks de contexto
+
+```jsx
+// AuthContext
+<AuthContext.Provider value={{ login: vi.fn() }}>
+  <MemoryRouter><ComponenteTestado /></MemoryRouter>
+</AuthContext.Provider>
+
+// ThemeContext (quando necessário)
+<ThemeContext.Provider value={{ isDark: false, toggleTheme: vi.fn(), theme: {} }}>
+  <ComponenteTestado />
+</ThemeContext.Provider>
+```
+
+### TODO em testes
+
+- `AIAdvisor.test.jsx` → `it.todo` marcado: verificar que o histórico completo de mensagens é enviado à API (bloqueador 1 do adversarial-review de 2026-05-19)
 
 ---
 
@@ -380,6 +478,9 @@ Não há configuração de testes no projeto (frontend ou backend).
 - **Não usar `div` nu para contêineres** quando um styled-component já existe ou pode ser criado com uma linha — mantém a consistência do código e permite uso das CSS variables do tema.
 - **Não salvar `mesSelecionado` no FinanceContext** — é estado local da página Dashboard, não deve subir para o contexto global.
 - **Não filtrar metas (`limites`) por mês** — as metas são limites mensais fixos e globais, sempre exibidas independente do mês selecionado.
+- **Não usar `cacheRef.current.delete(mesSelecionado)` após mutações** — usar `cacheRef.current.clear()` (ou o helper `clearCache()` exportado pelo hook). `sincronizarCarteirasEmCadeia` atualiza saldo de TODOS os meses downstream; deletar só o mês atual deixa os demais com `saldo_inicial` errado no cache.
+- **Não re-adicionar `sincronizarCarteirasEmCadeia` em `obterExtrato`** — foi removido intencionalmente para reduzir latência. Leituras não precisam sincronizar; mutações já garantem consistência.
+- **Não chamar `fetchMesSelecionado({ silent: true })` após uma mutação sem `skipCache: true`** — sem esse flag o cache serve o dado anterior, não o novo.
 
 ---
 
@@ -391,3 +492,4 @@ Baseado nos `// TODO:` encontrados no código-fonte:
 - [ ] Gráfico cumulativo de investimentos e tabela de aportes na página Relatórios (`Dashboard.jsx` — seção `InvestmentPanel`)
 - [ ] Score de saúde financeira (não há TODO mas é mencionado como feature planejada)
 - [ ] Configurações de usuário — tela de Configurações retorna `alert('Configurações em breve!')` nos dois sidebars
+- [ ] **AIAdvisor: adicionar histórico de conversa** — cada chamada à API deve incluir as mensagens anteriores em `contents[]` para manter contexto entre turnos. Ver `AIAdvisor.jsx:362` e `docs/superpowers/specs/2026-05-19-frontend-polish-review.md` (BLOQUEADOR 1)

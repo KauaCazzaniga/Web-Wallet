@@ -310,7 +310,8 @@ module.exports = {
                 return res.status(400).json({ erro: 'Competencia invalida.' });
             }
 
-            await sincronizarCarteirasEmCadeia(usuario_id);
+            // sincronizarCarteirasEmCadeia é chamada após cada mutação (add/delete/import),
+            // portanto os saldos já estão corretos aqui — não é necessário sincronizar em leituras.
             const wallet = await Wallet.findOne({ usuario_id, competencia });
             if (!wallet) {
                 return res.status(200).json(await montarExtratoVirtual(usuario_id, competencia));

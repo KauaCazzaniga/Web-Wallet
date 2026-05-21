@@ -77,7 +77,7 @@ const competenciaHoje = () => {
 /**
  * @param {{ mesSelecionado: string, notify: (msg: string, type?: string) => void }} props
  */
-export default function GerenciarMetas({ mesSelecionado, notify }) {
+export default function GerenciarMetas({ mesSelecionado, notify, onSaved }) {
   const { metas, gastosFixosMetas, salvarMetas, visibleCats, visibleCatIcons, visibleGastosFix } = useFinance();
 
   const [open, setOpen]             = useState(false);
@@ -152,6 +152,7 @@ export default function GerenciarMetas({ mesSelecionado, notify }) {
       // Falha no backend não é crítica — localStorage já foi salvo
     }
 
+    onSaved?.();
     setOpen(false);
     setNewGoal({ categoria: 'Alimentação', valor: '' });
     notify('Metas atualizadas!');

@@ -202,6 +202,7 @@ export default function GoalCards({
   gfTotalGasto,
   gfTotalMeta,
   gfTotalPct,
+  onLimitesUpdated,
 }) {
   const { visibleGastosFix, visibleCatIcons } = useFinance();
   return (
@@ -225,7 +226,7 @@ export default function GoalCards({
       <CategoryPanel>
         <PanelHeader>
           <h3>Gasto por Categoria</h3>
-          <GerenciarMetas mesSelecionado={mesSelecionado} notify={notify} />
+          <GerenciarMetas mesSelecionado={mesSelecionado} notify={notify} onSaved={onLimitesUpdated} />
         </PanelHeader>
         <CatList>
 

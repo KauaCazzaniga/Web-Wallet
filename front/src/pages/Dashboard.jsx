@@ -507,6 +507,7 @@ function DashboardContent() {
 
   // Semeia metas do backend quando localStorage está vazio (sessão nova / outro browser)
   const handleLimitesLoaded = useCallback((limitesBackend) => {
+    if (!limitesBackend || Object.keys(limitesBackend).length === 0) return;
     const metasVazias = Object.keys(metas).length === 0 && Object.keys(gastosFixosMetas).length === 0;
     if (!metasVazias) return;
     const novasMetas = {};
@@ -531,6 +532,7 @@ function DashboardContent() {
     saving,
     delConfirm,
     fetchMesSelecionado,
+    clearCache,
     addTransaction,
     requestDelete,
     cancelDelete,
@@ -655,9 +657,8 @@ function DashboardContent() {
           const { data } = await api.post('/wallet/transacoes/importar', { transacoes: payload });
           if (!cancelled) {
             await importTransactionsBatch(data?.transacoes || []);
-            if (payload.some(tx => tx.competencia === mesSelecionado)) {
-              await fetchMesSelecionado({ silent: true });
-            }
+            clearCache();
+            await fetchMesSelecionado({ silent: true, skipCache: true });
             notify(`${payload.length} transações antigas foram migradas para o banco.`);
           }
         }
@@ -739,7 +740,8 @@ function DashboardContent() {
       const adicionadas = await importTransactionsBatch(data?.transacoes || []);
       addImportedKeys(selecionadas.map(tx => gerarChaveTransacao(tx)));
       closeImportModal();
-      await fetchMesSelecionado({ silent: true });
+      clearCache();
+      await fetchMesSelecionado({ silent: true, skipCache: true });
       fetchMesesDisponiveis();
       notify(`${adicionadas.length} transações importadas com sucesso`);
     } catch (err) {
@@ -778,7 +780,8 @@ function DashboardContent() {
       });
       setInvestmentModal(false);
       resetInvestmentForm();
-      await fetchMesSelecionado({ silent: true });
+      clearCache();
+      await fetchMesSelecionado({ silent: true, skipCache: true });
       fetchMesesDisponiveis();
       notify('Aporte registrado com sucesso!');
     } catch {
@@ -1183,6 +1186,7 @@ function DashboardContent() {
                 gfTotalGasto={gfTotalGasto}
                 gfTotalMeta={gfTotalMeta}
                 gfTotalPct={gfTotalPct}
+                onLimitesUpdated={clearCache}
               />
             </RevealSection>
 
