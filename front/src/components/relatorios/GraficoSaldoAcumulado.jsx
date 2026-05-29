@@ -105,7 +105,7 @@ export default function GraficoSaldoAcumulado({ data }) {
           />
           <Tooltip
             content={<ChartTooltip formatter={(v) => formatCurrencyBRL(v)} />}
-            cursor={{ stroke: 'rgba(96,165,250,0.25)' }}
+            cursor={{ stroke: 'rgba(16,185,129,0.25)' }}
           />
           <ReferenceLine y={0} stroke="var(--rel-border-strong)" strokeDasharray="4 4" />
           <Area type="monotone" dataKey="saldoAcumulado" stroke="none" fill="url(#saldoArea)" />

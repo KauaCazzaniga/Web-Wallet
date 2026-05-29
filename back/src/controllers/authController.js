@@ -5,6 +5,9 @@ const crypto = require('crypto');
 const sgMail = require('@sendgrid/mail');
 const connectDB = require('../config/database');
 
+// --- RESEND / EMAIL VERIFICATION (desativado temporariamente) ---
+// const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/emailService');
+
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 
 const generateToken = (id) => {
@@ -28,12 +31,33 @@ exports.register = async (req, res) => {
             return res.status(400).json({ error: 'Usuario ja cadastrado.' });
         }
 
-        const user = await User.create({ name, email: normalizedEmail, password });
+        // --- RESEND: gerar token de verificação e enviar e-mail (desativado) ---
+        // const rawToken = crypto.randomBytes(32).toString('hex');
+        // const verificationHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+        // const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        // const verifyUrl = `${frontendUrl}/verify-email?token=${rawToken}`;
+
+        const user = await User.create({
+            name,
+            email: normalizedEmail,
+            password,
+            // emailVerified: false,
+            // emailVerificationToken: verificationHash,
+            // emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        });
+
+        // try {
+        //     await sendVerificationEmail({ to: user.email, name: user.name, verifyUrl });
+        // } catch (emailErr) {
+        //     console.error('Falha ao enviar e-mail de verificação:', emailErr.message);
+        // }
+
         user.password = undefined;
 
         return res.status(201).json({
             user,
             token: generateToken(user._id),
+            // message: 'Conta criada! Verifique seu e-mail para ativar o acesso.',
         });
     } catch (err) {
         console.error('Erro no registro:', err);
@@ -61,6 +85,11 @@ exports.login = async (req, res) => {
             return res.status(400).json({ error: 'Senha invalida.' });
         }
 
+        // --- RESEND: bloquear login até verificar e-mail (desativado) ---
+        // if (!user.emailVerified) {
+        //     return res.status(403).json({ error: 'E-mail nao verificado. Confira sua caixa de entrada.' });
+        // }
+
         user.password = undefined;
 
         return res.json({
@@ -72,6 +101,39 @@ exports.login = async (req, res) => {
         return res.status(400).json({ error: 'Erro ao realizar login.' });
     }
 };
+
+// --- RESEND: handler de verificação de e-mail (desativado) ---
+// exports.verifyEmail = async (req, res) => {
+//     try {
+//         await connectDB();
+//         const { token } = req.query;
+//
+//         if (!token) {
+//             return res.status(400).json({ error: 'Token de verificacao ausente.' });
+//         }
+//
+//         const hash = crypto.createHash('sha256').update(token).digest('hex');
+//
+//         const user = await User.findOne({
+//             emailVerificationToken: hash,
+//             emailVerificationExpires: { $gt: Date.now() },
+//         }).select('+emailVerificationToken +emailVerificationExpires');
+//
+//         if (!user) {
+//             return res.status(400).json({ error: 'Token invalido ou expirado.' });
+//         }
+//
+//         user.emailVerified = true;
+//         user.emailVerificationToken = undefined;
+//         user.emailVerificationExpires = undefined;
+//         await user.save({ validateBeforeSave: false });
+//
+//         return res.json({ message: 'E-mail verificado com sucesso! Voce ja pode fazer login.' });
+//     } catch (err) {
+//         console.error('Erro no verifyEmail:', err);
+//         return res.status(500).json({ error: 'Erro ao verificar e-mail.' });
+//     }
+// };
 
 exports.forgotPassword = async (req, res) => {
     try {
@@ -94,6 +156,10 @@ exports.forgotPassword = async (req, res) => {
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const resetLink = `${frontendUrl}/reset-password?token=${rawToken}`;
 
+        // --- RESEND (desativado) ---
+        // await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl: resetLink });
+
+        // --- SendGrid (ativo) ---
         sgMail.setApiKey(process.env.SENDGRID_API_KEY);
         await sgMail.send({
             to: user.email,

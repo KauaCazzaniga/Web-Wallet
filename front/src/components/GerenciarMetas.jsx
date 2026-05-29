@@ -15,7 +15,8 @@ const fadeIn = keyframes`
 `;
 
 const ModalOverlay = styled.div`
-  position: fixed; inset: 0; background-color: rgba(15,23,42,0.7);
+  position: fixed; inset: 0; background-color: rgba(0,8,4,0.72);
+  backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center; z-index: 100;
 `;
 const ModalContent = styled.div`
@@ -37,7 +38,7 @@ const ModalFooter = styled.div`
     cursor: pointer; border: none; font-size: 0.875rem; transition: all 0.15s;
   }
   .cancel { background: var(--dash-surface-muted); color: var(--dash-text); &:hover { filter: brightness(1.04); } }
-  .save   { background: linear-gradient(135deg, #06b6d4 0%, var(--dash-primary) 52%, #4f46e5 100%); color: #fff; &:hover { filter: brightness(1.05); } }
+  .save   { background: var(--btn-bg, linear-gradient(135deg,#2563eb 0%,#60a5fa 100%)); color: var(--btn-text,#fff); border: 1px solid var(--btn-border,transparent); box-shadow: var(--btn-shadow,0 4px 16px rgba(59,130,246,0.35)); &:hover { filter: brightness(1.04); box-shadow: var(--btn-hover-shadow); } }
 `;
 const GoalItem = styled.div`
   display: flex; align-items: center; gap: 12px; width: 100%;
@@ -52,7 +53,7 @@ const GoalItem = styled.div`
     width: 7rem; padding: 0.6rem 0.8rem; border: 1px solid var(--dash-border-strong);
     border-radius: 0.625rem; font-size: 0.875rem; outline: none; background: var(--dash-input-bg);
     color: var(--dash-heading); -webkit-text-fill-color: var(--dash-heading); flex-shrink: 0;
-    &:focus { border-color: var(--dash-primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.14); }
+    &:focus { border-color: var(--dash-primary); box-shadow: 0 0 0 3px rgba(96,165,250,0.15); }
   }
   button { color: #ef4444; border: none; background: none; cursor: pointer; padding: 0.35rem; border-radius: 0.375rem; flex-shrink: 0; &:hover { background: #fef2f2; } }
 `;
@@ -63,7 +64,7 @@ const FormGroup = styled.div`
     padding: 0.7rem 0.875rem; border: 1px solid var(--dash-border); border-radius: 0.5rem;
     font-size: 0.875rem; outline: none; background: var(--dash-input-bg); transition: all 0.15s;
     color: var(--dash-heading); -webkit-text-fill-color: var(--dash-heading); appearance: none;
-    &:focus { border-color: var(--dash-primary); background: var(--dash-surface); box-shadow: 0 0 0 3px rgba(59,130,246,0.14); }
+    &:focus { border-color: var(--dash-primary); background: var(--dash-surface); box-shadow: 0 0 0 3px rgba(96,165,250,0.15); }
     option { color: var(--dash-heading); background: var(--dash-surface); }
   }
 `;
@@ -262,7 +263,9 @@ export default function GerenciarMetas({ mesSelecionado, notify, onSaved }) {
                 <button
                   onClick={handleAddGoal}
                   style={{
-                    background: 'linear-gradient(135deg, #06b6d4 0%, var(--dash-primary) 52%, #4f46e5 100%)',
+                    background: 'var(--btn-bg, linear-gradient(135deg, #2563eb 0%, #60a5fa 100%))',
+                    color: 'var(--btn-text, #fff)',
+                    border: '1px solid var(--btn-border, transparent)',
                     color: '#fff', border: 'none', borderRadius: '0.5rem',
                     padding: '0 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center',
                   }}

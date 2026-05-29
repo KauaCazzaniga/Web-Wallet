@@ -74,31 +74,36 @@ const shimmer = keyframes`
 const AppContainer = styled.div`
   min-height: 100vh;
   display: flex;
-  font-family: "Inter", sans-serif;
+  font-family: "Outfit", "Nunito", sans-serif;
   color: var(--cfg-heading);
   background: ${p => p.$dark
-    ? 'radial-gradient(circle at top, rgba(14,165,233,0.18), transparent 24%), linear-gradient(180deg, #04101f 0%, #071425 45%, #030b15 100%)'
-    : 'linear-gradient(180deg, #eff4ff 0%, #f8fbff 100%)'};
+    ? 'radial-gradient(ellipse at 12% 0%, rgba(96,165,250,0.10), transparent 38%), radial-gradient(ellipse at 88% 85%, rgba(59,130,246,0.06), transparent 40%), linear-gradient(180deg, #000000 0%, #02030a 50%, #000000 100%)'
+    : '#ffffff'};
 
-  --cfg-shell:          ${p => p.$dark ? 'rgba(7,18,35,0.92)'     : '#ffffff'};
-  --cfg-surface:        ${p => p.$dark ? 'rgba(9,20,38,0.88)'     : '#ffffff'};
-  --cfg-surface-muted:  ${p => p.$dark ? 'rgba(13,29,54,0.86)'    : '#f6f9ff'};
-  --cfg-border:         ${p => p.$dark ? 'rgba(96,165,250,0.16)'  : '#d8e3f3'};
-  --cfg-border-strong:  ${p => p.$dark ? 'rgba(96,165,250,0.3)'   : '#bfd0ea'};
+  --cfg-shell:          ${p => p.$dark ? 'rgba(0,0,0,0.98)'      : '#ffffff'};
+  --cfg-surface:        ${p => p.$dark ? 'rgba(5,5,12,0.92)'     : '#ffffff'};
+  --cfg-surface-muted:  ${p => p.$dark ? 'rgba(8,8,18,0.90)'     : '#f8fafc'};
+  --cfg-border:         ${p => p.$dark ? 'rgba(96,165,250,0.14)' : '#e2e8f0'};
+  --cfg-border-strong:  ${p => p.$dark ? 'rgba(96,165,250,0.28)' : '#cbd5e1'};
   --cfg-heading:        ${p => p.$dark ? '#eff6ff'  : '#0f172a'};
-  --cfg-text:           ${p => p.$dark ? '#c6d4f1'  : '#334155'};
-  --cfg-muted:          ${p => p.$dark ? '#89a0c7'  : '#7184a0'};
-  --cfg-muted-strong:   ${p => p.$dark ? '#bfd0ea'  : '#4f5f7a'};
+  --cfg-text:           ${p => p.$dark ? '#bfdbfe'  : '#334155'};
+  --cfg-muted:          ${p => p.$dark ? '#7aaacf'  : '#64748b'};
+  --cfg-muted-strong:   ${p => p.$dark ? '#a8c8e4'  : '#475569'};
   --cfg-primary:        ${p => p.$dark ? '#60a5fa'  : '#2563eb'};
   --cfg-primary-strong: ${p => p.$dark ? '#3b82f6'  : '#1d4ed8'};
-  --cfg-primary-soft:   ${p => p.$dark ? 'rgba(96,165,250,0.16)'  : '#dbeafe'};
-  --cfg-input-bg:       ${p => p.$dark ? 'rgba(6,18,34,0.92)'     : '#f8fbff'};
-  --cfg-danger-soft:    ${p => p.$dark ? 'rgba(127,29,29,0.3)'    : '#fef2f2'};
-  --cfg-danger-border:  ${p => p.$dark ? 'rgba(248,113,113,0.34)' : '#fecaca'};
-  --cfg-shadow:         ${p => p.$dark ? '0 18px 40px rgba(2,12,27,0.38)'  : '0 16px 36px rgba(15,23,42,0.08)'};
-  --cfg-soft-shadow:    ${p => p.$dark ? '0 10px 28px rgba(2,12,27,0.3)'   : '0 10px 28px rgba(15,23,42,0.05)'};
-  --cfg-success-soft:   ${p => p.$dark ? 'rgba(20,83,45,0.35)'    : '#f0fdf4'};
-  --cfg-success-border: ${p => p.$dark ? 'rgba(74,222,128,0.3)'   : '#bbf7d0'};
+  --cfg-primary-soft:   ${p => p.$dark ? 'rgba(96,165,250,0.15)' : '#eff6ff'};
+  --cfg-input-bg:       ${p => p.$dark ? 'rgba(3,7,18,0.95)'     : '#f8fafc'};
+  --cfg-danger-soft:    ${p => p.$dark ? 'rgba(127,29,29,0.3)'   : '#fef2f2'};
+  --cfg-danger-border:  ${p => p.$dark ? 'rgba(248,113,113,0.34)': '#fecaca'};
+  --cfg-shadow:         ${p => p.$dark ? '0 18px 40px rgba(0,4,16,0.55)'  : '0 16px 36px rgba(15,23,42,0.08)'};
+  --cfg-soft-shadow:    ${p => p.$dark ? '0 10px 28px rgba(0,4,16,0.40)'  : '0 10px 28px rgba(15,23,42,0.05)'};
+  --cfg-success-soft:   ${p => p.$dark ? 'rgba(20,40,80,0.35)'   : '#eff6ff'};
+  --cfg-success-border: ${p => p.$dark ? 'rgba(96,165,250,0.3)'   : '#bfdbfe'};
+  --btn-bg:             ${p => p.$dark ? 'linear-gradient(135deg,#2563eb 0%,#60a5fa 100%)' : 'linear-gradient(135deg,#dbeafe 0%,#bfdbfe 100%)'};
+  --btn-text:           ${p => p.$dark ? '#ffffff' : '#1e40af'};
+  --btn-border:         ${p => p.$dark ? 'transparent' : 'rgba(147,197,253,0.6)'};
+  --btn-shadow:         ${p => p.$dark ? '0 4px 18px rgba(59,130,246,0.40)' : '0 4px 14px rgba(96,165,250,0.18)'};
+  --btn-hover-shadow:   ${p => p.$dark ? '0 8px 26px rgba(59,130,246,0.52)' : '0 6px 20px rgba(96,165,250,0.28)'};
 `;
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -145,7 +150,7 @@ const NavItem = styled.button`
   color:      ${p => p.$active ? 'var(--cfg-primary)'      : 'var(--cfg-muted)'};
   font-weight:${p => p.$active ? '600' : '400'};
   box-shadow: ${p => p.$active
-    ? 'inset 0 0 0 1px var(--cfg-border-strong), 0 4px 18px rgba(37,99,235,0.13)'
+    ? 'inset 0 0 0 1px var(--cfg-border-strong), 0 4px 18px rgba(96,165,250,0.15)'
     : 'none'};
   &:hover { background: ${p => p.$active ? 'var(--cfg-primary-soft)' : 'var(--cfg-surface-muted)'}; }
   svg { transition: transform 0.2s ease; flex-shrink: 0;
@@ -169,14 +174,14 @@ const ThemeToggleMeta = styled.div`
 `;
 const SwitchTrack = styled.div`
   width: 3rem; height: 1.65rem; border-radius: 999px; position: relative;
-  background: ${p => p.$on ? 'linear-gradient(135deg, #06b6d4 0%, #2563eb 100%)' : (p.$dark ? 'rgba(30,41,59,.9)' : '#d8e3f3')};
+  background: ${p => p.$on ? 'linear-gradient(135deg, #93c5fd 0%, #60a5fa 100%)' : (p.$dark ? 'rgba(8,18,40,.9)' : '#c8e6d8')};
   transition: background 0.2s ease;
 `;
 const SwitchThumb = styled.div`
   position: absolute; top: 0.17rem; left: ${p => p.$on ? '1.52rem' : '0.17rem'};
   width: 1.3rem; height: 1.3rem; border-radius: 999px; background: #fff;
-  display: grid; place-items: center; color: ${p => p.$on ? '#2563eb' : '#64748b'};
-  transition: left 0.2s ease; box-shadow: 0 4px 10px rgba(15,23,42,0.18);
+  display: grid; place-items: center; color: ${p => p.$on ? '#3b82f6' : '#64748b'};
+  transition: left 0.2s ease; box-shadow: 0 4px 10px rgba(0,8,4,0.22);
 `;
 const LogoutButton = styled.button`
   display: flex; align-items: center; gap: 0.75rem; width: 100%;
@@ -189,8 +194,8 @@ const LogoutButton = styled.button`
 const ActiveBar = styled.div`
   position: absolute; left: 0; width: 4px; height: 2.6rem;
   border-radius: 0 5px 5px 0;
-  background: linear-gradient(180deg, #93c5fd 0%, #2563eb 100%);
-  box-shadow: 0 0 18px rgba(96, 165, 250, 0.7), 0 0 8px rgba(37, 99, 235, 0.45);
+  background: linear-gradient(180deg, #bfdbfe 0%, #60a5fa 100%);
+  box-shadow: 0 0 18px rgba(96, 165, 250, 0.7), 0 0 8px rgba(59, 130, 246, 0.45);
   transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
   top: ${p => p.$index * 2.85}rem;
   opacity: ${p => p.$index >= 0 ? 1 : 0};
@@ -251,7 +256,7 @@ const TabBtn = styled.button`
   background: ${p => p.$active ? 'var(--cfg-primary)' : 'var(--cfg-surface)'};
   color:      ${p => p.$active ? '#ffffff'             : 'var(--cfg-muted)'};
   border-color: ${p => p.$active ? 'var(--cfg-primary)' : 'var(--cfg-border)'};
-  box-shadow: ${p => p.$active ? '0 6px 20px rgba(37,99,235,0.3)' : 'var(--cfg-soft-shadow)'};
+  box-shadow: ${p => p.$active ? '0 6px 20px rgba(96,165,250,0.3)' : 'var(--cfg-soft-shadow)'};
   &:hover { transform: ${p => p.$active ? 'none' : 'translateY(-2px)'}; }
 `;
 
@@ -355,7 +360,7 @@ const PrimaryBtn = styled.button`
   background: var(--cfg-primary); color: #fff;
   font-size: 0.875rem; font-weight: 600; cursor: pointer;
   transition: all 0.15s; white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+  box-shadow: 0 4px 14px rgba(96,165,250,0.3);
   &:hover { transform: translateY(-2px); filter: brightness(1.08); }
   &:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 `;
@@ -376,7 +381,7 @@ const HiddenPanelTitle = styled.p`
 const RestoreBtn = styled.button`
   width: 1.75rem; height: 1.75rem; display: grid; place-items: center;
   border: none; border-radius: 0.4rem; cursor: pointer; transition: all 0.15s;
-  background: var(--cfg-success-soft); color: #10b981;
+  background: var(--cfg-success-soft); color: #60a5fa;
   box-shadow: inset 0 0 0 1px var(--cfg-success-border);
   &:hover { filter: brightness(1.1); transform: scale(1.1); }
 `;
@@ -409,7 +414,7 @@ const RangeInput = styled.input`
   &::-webkit-slider-thumb {
     -webkit-appearance: none; width: 1.1rem; height: 1.1rem;
     border-radius: 50%; background: var(--cfg-primary);
-    box-shadow: 0 2px 8px rgba(37,99,235,0.35); cursor: pointer;
+    box-shadow: 0 2px 8px rgba(96,165,250,0.35); cursor: pointer;
     transition: transform 0.15s;
   }
   &::-webkit-slider-thumb:hover { transform: scale(1.2); }
@@ -424,7 +429,7 @@ const GoalAmountInput = styled.input`
 `;
 const SavingsCard = styled.div`
   padding: 1.25rem; border-radius: 0.875rem;
-  background: linear-gradient(135deg, rgba(37,99,235,0.08) 0%, rgba(6,182,212,0.08) 100%);
+  background: linear-gradient(135deg, rgba(96,165,250,0.08) 0%, rgba(52,211,153,0.06) 100%);
   border: 1px solid var(--cfg-primary-soft);
   display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: center;
   @media (max-width: 580px) { grid-template-columns: 1fr; }
@@ -495,12 +500,12 @@ const SummaryChip = styled.div`
   display: inline-flex; align-items: center;
   padding: 0.3rem 0.8rem; border-radius: 2rem;
   background: ${p => p.$filled
-    ? 'linear-gradient(135deg, var(--cfg-primary) 0%, #4f46e5 100%)'
+    ? 'linear-gradient(135deg, var(--cfg-primary) 0%, #3b82f6 100%)'
     : 'var(--cfg-surface)'};
   color: ${p => p.$filled ? '#fff' : 'var(--cfg-muted)'};
   font-size: 0.82rem; font-weight: ${p => p.$filled ? 700 : 500};
   border: 1px solid ${p => p.$filled ? 'transparent' : 'var(--cfg-border)'};
-  box-shadow: ${p => p.$filled ? '0 4px 10px rgba(37,99,235,0.28)' : 'none'};
+  box-shadow: ${p => p.$filled ? '0 4px 10px rgba(96,165,250,0.28)' : 'none'};
   letter-spacing: -0.01em; transition: all 0.2s;
 `;
 const SummaryArrow = styled.span`color: var(--cfg-muted); font-size: 0.875rem;`;
@@ -551,8 +556,8 @@ const MonthCell = styled.button`
     return 'var(--cfg-border)';
   }};
   background: ${p => {
-    if (p.$isStart) return 'linear-gradient(135deg, var(--cfg-primary) 0%, #4f46e5 100%)';
-    if (p.$isEnd)   return 'linear-gradient(135deg, #4f46e5 0%, var(--cfg-primary) 100%)';
+    if (p.$isStart) return 'linear-gradient(135deg, var(--cfg-primary) 0%, #3b82f6 100%)';
+    if (p.$isEnd)   return 'linear-gradient(135deg, #3b82f6 0%, var(--cfg-primary) 100%)';
     if (p.$inRange) return 'var(--cfg-primary-soft)';
     return 'transparent';
   }};
@@ -562,12 +567,12 @@ const MonthCell = styled.button`
     if (p.$unavailable) return 'var(--cfg-muted)';
     return 'var(--cfg-text)';
   }};
-  box-shadow: ${p => (p.$isStart || p.$isEnd) ? '0 4px 14px rgba(37,99,235,0.38)' : 'none'};
+  box-shadow: ${p => (p.$isStart || p.$isEnd) ? '0 4px 14px rgba(96,165,250,0.38)' : 'none'};
   transform: ${p => (p.$isStart || p.$isEnd) ? 'scale(1.05)' : 'scale(1)'};
   &:hover:not(:disabled) {
     background: ${p => {
-      if (p.$isStart) return 'linear-gradient(135deg, var(--cfg-primary-strong) 0%, #4338ca 100%)';
-      if (p.$isEnd)   return 'linear-gradient(135deg, #4338ca 0%, var(--cfg-primary-strong) 100%)';
+      if (p.$isStart) return 'linear-gradient(135deg, var(--cfg-primary-strong) 0%, #047857 100%)';
+      if (p.$isEnd)   return 'linear-gradient(135deg, #047857 0%, var(--cfg-primary-strong) 100%)';
       if (p.$inRange) return 'var(--cfg-primary-soft)';
       return 'var(--cfg-surface-muted)';
     }};
@@ -594,9 +599,9 @@ const DownloadBtn = styled.button`
   cursor: pointer; font-size: 0.875rem; font-weight: 700; transition: all 0.15s;
   background: ${p => p.$loading
     ? 'var(--cfg-surface-muted)'
-    : 'linear-gradient(135deg, #06b6d4 0%, var(--cfg-primary) 52%, #4f46e5 100%)'};
+    : 'linear-gradient(135deg, #93c5fd 0%, var(--cfg-primary) 52%, #3b82f6 100%)'};
   color: ${p => p.$loading ? 'var(--cfg-muted)' : '#fff'};
-  box-shadow: ${p => p.$loading ? 'none' : '0 8px 20px rgba(37,99,235,0.3)'};
+  box-shadow: ${p => p.$loading ? 'none' : '0 8px 20px rgba(96,165,250,0.3)'};
   &:hover { transform: ${p => p.$loading ? 'none' : 'translateY(-2px)'}; filter: ${p => p.$loading ? 'none' : 'brightness(1.06)'}; }
   &:disabled { cursor: not-allowed; }
 `;
@@ -609,7 +614,7 @@ const ToastContainer = styled.div`
 const Toast = styled.div`
   display: flex; align-items: center; gap: 0.75rem;
   padding: 0.875rem 1.25rem; border-radius: 0.75rem;
-  background: ${p => p.$type === 'error' ? '#ef4444' : p.$type === 'success' ? '#10b981' : '#2563eb'};
+  background: ${p => p.$type === 'error' ? '#ef4444' : p.$type === 'success' ? '#60a5fa' : '#3b82f6'};
   color: #fff; font-size: 0.875rem; font-weight: 500;
   box-shadow: 0 8px 24px rgba(0,0,0,0.18); min-width: 240px;
   animation: ${slideRight} 0.25s ease-out;
@@ -751,7 +756,7 @@ function CategoriesSection({ userKey, isDark }) {
             <HiddenPanel>
               <HiddenPanelTitle>
                 <AlertCircle size={15} /> Categorias ocultas — clique em
-                <Check size={14} style={{ color: '#10b981' }} /> para restaurar
+                <Check size={14} style={{ color: '#60a5fa' }} /> para restaurar
               </HiddenPanelTitle>
               {hiddenDefaultItems.length > 0 && (
                 <>
@@ -1009,7 +1014,7 @@ function GoalsSection({ userKey, isDark }) {
               <Save size={16} /> Salvar todas as metas
             </SaveGoalsBtn>
             {saved && (
-              <span style={{ color: '#10b981', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ color: '#60a5fa', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <CheckCircle2 size={15} /> Salvo com sucesso!
               </span>
             )}
@@ -1396,7 +1401,7 @@ export default function Configuracoes() {
         <SidebarFooter>
           <ThemeToggleBox onClick={toggleTheme} title="Alternar tema" $dark={isDark}>
             <ThemeToggleMeta>
-              {isDark ? <Moon size={18} color="#60a5fa" /> : <SunMedium size={18} color="#2563eb" />}
+              {isDark ? <Moon size={18} color="#bfdbfe" /> : <SunMedium size={18} color="#60a5fa" />}
               <div>
                 <strong>Mode</strong>
                 <span>{isDark ? 'Dark Mode' : 'Light Mode'}</span>

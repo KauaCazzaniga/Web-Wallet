@@ -49,7 +49,7 @@ const CatIcon = styled.div`
   width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--dash-surface-muted);
   display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
   transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
-  &:hover { transform: translateY(-4px) scale(1.08); filter: brightness(1.08); box-shadow: 0 12px 24px rgba(37,99,235,0.18); }
+  &:hover { transform: translateY(-4px) scale(1.08); filter: brightness(1.08); box-shadow: 0 12px 24px rgba(96,165,250,0.18); }
 `;
 const CatName = styled.p`font-size: 0.875rem; font-weight: 600; color: var(--dash-heading); margin-bottom: 0.35rem;`;
 const BarWrap  = styled.div`width: 100%;`;
@@ -151,7 +151,7 @@ const ProgressBar = ({ spent, limit, category }) => {
   const has = limit > 0;
   const pct = has ? (spent / limit) * 100 : 0;
   const over = pct > 100;
-  const baseCol = category === 'Investimentos' ? '#7F77DD' : '#4f46e5';
+  const baseCol = category === 'Investimentos' ? '#7F77DD' : '#60a5fa';
   const col = !has ? '#cbd5e1' : over ? '#dc2626' : pct > 75 ? '#eab308' : baseCol;
   return (
     <BarWrap>
@@ -184,7 +184,14 @@ const ProgressBar = ({ spent, limit, category }) => {
  * @param {Object}   gfMetas             - { [key]: meta } de gastos fixos
  * @param {number}   gfTotalGasto        - Soma de todos os gastos fixos
  * @param {number}   gfTotalMeta         - Soma de metas de gastos fixos (com meta > 0)
- * @param {number}   gfTotalPct          - Percentual total gastos fixos (-1 = sem meta)
+ * @param {number}   gfTotalPct                  - Percentual total gastos fixos (-1 = sem meta)
+ * @param {boolean}  gastosPersonalizadosAberto  - Acordeão de personalizados aberto
+ * @param {Function} toggleGastosPersonalizados  - Toggle do acordeão de personalizados
+ * @param {Object}   gpGastos                    - { [label]: valor gasto } de personalizados
+ * @param {Object}   gpMetas                     - { [label]: meta } de personalizados
+ * @param {number}   gpTotalGasto                - Soma de todos os gastos personalizados
+ * @param {number}   gpTotalMeta                 - Soma de metas de personalizados (com meta > 0)
+ * @param {number}   gpTotalPct                  - Percentual total personalizados (-1 = sem meta)
  */
 export default function GoalCards({
   totalDespesas,
@@ -202,9 +209,16 @@ export default function GoalCards({
   gfTotalGasto,
   gfTotalMeta,
   gfTotalPct,
+  gastosPersonalizadosAberto,
+  toggleGastosPersonalizados,
+  gpGastos,
+  gpMetas,
+  gpTotalGasto,
+  gpTotalMeta,
+  gpTotalPct,
   onLimitesUpdated,
 }) {
-  const { visibleGastosFix, visibleCatIcons } = useFinance();
+  const { visibleGastosFix, visibleCatIcons, customCats } = useFinance();
   return (
     <MainGrid>
       {/* Orçamento */}
@@ -288,8 +302,68 @@ export default function GoalCards({
             </GFFilhosWrap>
           </div>
 
+          {/* Gastos Personalizados — grupo expansível */}
+          {customCats.length > 0 && (
+            <div>
+              <GFPaiRow onClick={toggleGastosPersonalizados}>
+                <CatIcon>⭐</CatIcon>
+                <div style={{ flex: 1, paddingTop: '0.2rem' }}>
+                  <CatName>Gastos Personalizados</CatName>
+                  <BarWrap>
+                    <BarInfo $over={gpTotalPct > 100}>
+                      <span>
+                        R$ {fmt(gpTotalGasto)}
+                        {gpTotalMeta > 0 && <span style={{ color: 'var(--dash-muted)' }}> / R$ {fmt(gpTotalMeta)}</span>}
+                      </span>
+                      <span>{gpTotalPct < 0 ? '—' : `${Math.min(gpTotalPct, 999).toFixed(0)}%`}</span>
+                    </BarInfo>
+                    <BarTrack>
+                      <AnimatedBarFill
+                        w={gpTotalPct < 0 ? 100 : Math.min(gpTotalPct, 100)}
+                        c={gpTotalPct < 0 ? '#cbd5e1' : getBarColorGF(gpTotalPct)}
+                      />
+                    </BarTrack>
+                  </BarWrap>
+                </div>
+                <GFChevron $open={gastosPersonalizadosAberto}>▶</GFChevron>
+              </GFPaiRow>
+
+              <GFFilhosWrap $open={gastosPersonalizadosAberto}>
+                {customCats.map(({ label, icon }) => {
+                  const gasto = gpGastos[label];
+                  const meta = gpMetas[label];
+                  const hasMeta = meta > 0;
+                  const pct = hasMeta ? (gasto / meta) * 100 : 0;
+                  return (
+                    <GFFilhoRow key={label}>
+                      <GFFilhoIcon>{icon}</GFFilhoIcon>
+                      <div style={{ flex: 1, paddingTop: '0.15rem' }}>
+                        <GFFilhoName>{label}</GFFilhoName>
+                        <BarWrap>
+                          <BarInfo $over={pct > 100} style={{ fontSize: '0.7rem' }}>
+                            <span style={{ fontSize: '0.7rem' }}>
+                              R$ {fmt(gasto)}
+                              {hasMeta && <span style={{ color: 'var(--dash-muted)' }}> / R$ {fmt(meta)}</span>}
+                            </span>
+                            <span style={{ fontSize: '0.7rem' }}>{hasMeta ? `${Math.min(pct, 999).toFixed(0)}%` : 'Sem meta'}</span>
+                          </BarInfo>
+                          <GFBarTrack>
+                            <AnimatedGFBarFill
+                              w={hasMeta ? Math.min(pct, 100) : 100}
+                              c={!hasMeta ? '#cbd5e1' : getBarColorGF(pct)}
+                            />
+                          </GFBarTrack>
+                        </BarWrap>
+                      </div>
+                    </GFFilhoRow>
+                  );
+                })}
+              </GFFilhosWrap>
+            </div>
+          )}
+
           {/* Categorias normais */}
-          {todasCategorias.length === 0 && gfTotalGasto === 0
+          {todasCategorias.length === 0 && gfTotalGasto === 0 && customCats.length === 0
             ? <p style={{ fontSize: '0.875rem', color: 'var(--dash-muted)', textAlign: 'center', padding: '1rem 0' }}>
                 Nenhuma transação ou meta registrada.
               </p>

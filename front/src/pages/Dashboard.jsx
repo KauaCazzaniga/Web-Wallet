@@ -61,7 +61,7 @@ const ToastContainer = styled.div`
   }
 `;
 const Toast = styled.div`
-  background-color: ${p => p.$type === 'error' ? '#ef4444' : '#10b981'};
+  background-color: ${p => p.$type === 'error' ? '#ef4444' : '#3b82f6'};
   color: white; padding: 0.875rem 1.25rem; border-radius: 0.5rem;
   display: flex; align-items: center; gap: 0.75rem;
   box-shadow: 0 8px 24px rgba(0,0,0,0.15);
@@ -71,40 +71,45 @@ const Toast = styled.div`
 // ── Layout ───────────────────────────────────────────────────────────────────
 const AppContainer = styled.div`
   min-height: 100vh; display: flex;
-  font-family: "Inter", sans-serif; color: var(--dash-heading);
+  font-family: "Outfit", "Nunito", sans-serif; color: var(--dash-heading);
   background: ${p => p.$dark
-    ? 'radial-gradient(circle at top, rgba(14,165,233,0.18), transparent 24%), linear-gradient(180deg, #04101f 0%, #071425 45%, #030b15 100%)'
-    : 'linear-gradient(180deg, #eff4ff 0%, #f8fbff 100%)'};
-  --dash-shell:         ${p => p.$dark ? 'rgba(7,18,35,0.92)'    : '#ffffff'};
-  --dash-surface:       ${p => p.$dark ? 'rgba(9,20,38,0.88)'    : '#ffffff'};
-  --dash-surface-muted: ${p => p.$dark ? 'rgba(13,29,54,0.86)'   : '#f6f9ff'};
-  --dash-border:        ${p => p.$dark ? 'rgba(96,165,250,0.16)' : '#d8e3f3'};
-  --dash-border-strong: ${p => p.$dark ? 'rgba(96,165,250,0.3)'  : '#bfd0ea'};
+    ? 'radial-gradient(ellipse at 12% 0%, rgba(96,165,250,0.10), transparent 38%), radial-gradient(ellipse at 88% 85%, rgba(59,130,246,0.06), transparent 40%), linear-gradient(180deg, #000000 0%, #02030a 50%, #000000 100%)'
+    : '#ffffff'};
+  --dash-shell:         ${p => p.$dark ? 'rgba(0,0,0,0.98)'      : '#ffffff'};
+  --dash-surface:       ${p => p.$dark ? 'rgba(5,5,12,0.92)'     : '#ffffff'};
+  --dash-surface-muted: ${p => p.$dark ? 'rgba(8,8,18,0.90)'     : '#f8fafc'};
+  --dash-border:        ${p => p.$dark ? 'rgba(96,165,250,0.14)' : '#e2e8f0'};
+  --dash-border-strong: ${p => p.$dark ? 'rgba(96,165,250,0.28)' : '#cbd5e1'};
   --dash-heading:       ${p => p.$dark ? '#eff6ff'   : '#0f172a'};
-  --dash-text:          ${p => p.$dark ? '#c6d4f1'   : '#334155'};
-  --dash-muted:         ${p => p.$dark ? '#89a0c7'   : '#7184a0'};
-  --dash-muted-strong:  ${p => p.$dark ? '#bfd0ea'   : '#4f5f7a'};
+  --dash-text:          ${p => p.$dark ? '#bfdbfe'   : '#334155'};
+  --dash-muted:         ${p => p.$dark ? '#7aaacf'   : '#64748b'};
+  --dash-muted-strong:  ${p => p.$dark ? '#a8c8e4'   : '#475569'};
   --dash-primary:       ${p => p.$dark ? '#60a5fa'   : '#2563eb'};
   --dash-primary-strong:${p => p.$dark ? '#3b82f6'   : '#1d4ed8'};
-  --dash-primary-soft:  ${p => p.$dark ? 'rgba(96,165,250,0.16)' : '#dbeafe'};
-  --dash-input-bg:      ${p => p.$dark ? 'rgba(6,18,34,0.92)'    : '#f8fbff'};
-  --dash-table-head:    ${p => p.$dark ? 'rgba(12,25,46,0.88)'   : '#f4f8ff'};
+  --dash-primary-soft:  ${p => p.$dark ? 'rgba(96,165,250,0.15)' : '#eff6ff'};
+  --dash-input-bg:      ${p => p.$dark ? 'rgba(3,7,18,0.95)'     : '#f8fafc'};
+  --dash-table-head:    ${p => p.$dark ? 'rgba(5,11,26,0.92)'    : '#f1f5f9'};
+  --btn-bg:             ${p => p.$dark ? 'linear-gradient(135deg,#2563eb 0%,#60a5fa 100%)' : 'linear-gradient(135deg,#dbeafe 0%,#bfdbfe 100%)'};
+  --btn-text:           ${p => p.$dark ? '#ffffff' : '#1e40af'};
+  --btn-border:         ${p => p.$dark ? 'transparent' : 'rgba(147,197,253,0.6)'};
+  --btn-shadow:         ${p => p.$dark ? '0 4px 18px rgba(59,130,246,0.40)' : '0 4px 14px rgba(96,165,250,0.18)'};
+  --btn-hover-shadow:   ${p => p.$dark ? '0 8px 26px rgba(59,130,246,0.52)' : '0 6px 20px rgba(96,165,250,0.28)'};
   --dash-danger-soft:   ${p => p.$dark ? 'rgba(127,29,29,0.3)'   : '#fef2f2'};
   --dash-danger-border: ${p => p.$dark ? 'rgba(248,113,113,0.34)': '#fecaca'};
-  --dash-shadow:        ${p => p.$dark ? '0 18px 40px rgba(2,12,27,0.38)'  : '0 16px 36px rgba(15,23,42,0.08)'};
-  --dash-soft-shadow:   ${p => p.$dark ? '0 10px 28px rgba(2,12,27,0.3)'   : '0 10px 28px rgba(15,23,42,0.05)'};
+  --dash-shadow:        ${p => p.$dark ? '0 18px 40px rgba(0,4,16,0.55)'   : '0 16px 36px rgba(13,31,24,0.09)'};
+  --dash-soft-shadow:   ${p => p.$dark ? '0 10px 28px rgba(0,4,16,0.40)'   : '0 10px 28px rgba(13,31,24,0.06)'};
 `;
 const Sidebar = styled.aside`
   width: 240px; background: var(--dash-shell); border-right: 1px solid var(--dash-border);
   display: flex; flex-direction: column; padding: 1.5rem 0; flex-shrink: 0;
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(24px);
   /* Mantém sidebar presa ao topo; footer sempre visível */
   position: sticky; top: 0; height: 100vh; overflow-y: auto; align-self: flex-start;
   @media (max-width: 768px) {
     position: fixed; top: 0; left: 0; height: 100vh; z-index: 400; overflow-y: auto;
     transform: ${p => p.$open ? 'translateX(0)' : 'translateX(-100%)'};
-    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
-    box-shadow: ${p => p.$open ? '4px 0 32px rgba(0,0,0,0.35)' : 'none'};
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: ${p => p.$open ? '8px 0 48px rgba(0,8,4,0.55)' : 'none'};
   }
 `;
 const MobileOverlay = styled.div`
@@ -117,8 +122,11 @@ const MobileOverlay = styled.div`
   }
 `;
 const LogoArea = styled.div`
-  display: flex; align-items: center; gap: 0.5rem; padding: 0 1.5rem;
-  font-size: 1.25rem; font-weight: 700; color: var(--dash-primary); margin-bottom: 2rem;
+  display: flex; align-items: center; gap: 0.625rem; padding: 0 1.5rem;
+  font-size: 1.35rem; font-weight: 800; margin-bottom: 2rem;
+  background: linear-gradient(135deg, #bfdbfe 0%, #60a5fa 55%, #3b82f6 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  letter-spacing: -0.02em;
 `;
 const NavMenu = styled.nav`
   flex: 1; padding: 0 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;
@@ -128,12 +136,12 @@ const NavItem = styled.button`
   display: flex; align-items: center; gap: 0.75rem; padding: 0.72rem 1rem;
   border: none; border-radius: 0.75rem; cursor: pointer;
   transition: background 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
-  width: 100%; text-align: left; font-size: 0.875rem; flex-shrink: 0;
+  width: 100%; text-align: left; font-size: 0.875rem; flex-shrink: 0; font-weight: 500;
   background: ${p => p.$active ? 'var(--dash-primary-soft)' : 'transparent'};
   color: ${p => p.$active ? 'var(--dash-primary)' : 'var(--dash-muted)'};
-  font-weight: ${p => p.$active ? '600' : '400'};
+  font-weight: ${p => p.$active ? '600' : '500'};
   box-shadow: ${p => p.$active
-    ? 'inset 0 0 0 1px var(--dash-border-strong), 0 4px 18px rgba(37,99,235,0.13)'
+    ? 'inset 0 0 0 1px var(--dash-border-strong), 0 4px 18px rgba(96,165,250,0.15)'
     : 'none'};
   &:hover { background: ${p => p.$active ? 'var(--dash-primary-soft)' : 'var(--dash-surface-muted)'}; }
   svg { transition: transform 0.2s ease; flex-shrink: 0;
@@ -157,7 +165,7 @@ const ThemeToggleBox = styled.button`
   padding: 0.82rem 1rem; border: none; border-radius: 0.95rem; cursor: pointer;
   background: ${p => p.$dark ? 'rgba(10,24,44,.85)' : '#ffffff'}; color: var(--dash-heading);
   box-shadow: ${p => p.$dark ? '0 14px 30px rgba(2,12,27,.28)' : '0 16px 28px rgba(15,23,42,.07)'};
-  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.16)' : '#d8e3f3'}; margin-top: 0.65rem;
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.16)' : '#d1fae5'}; margin-top: 0.65rem;
   transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
   &:hover { transform: translateY(-4px) scale(1.02); filter: brightness(1.05); }
 `;
@@ -168,14 +176,14 @@ const ThemeToggleMeta = styled.div`
 `;
 const SwitchTrack = styled.div`
   width: 3rem; height: 1.65rem; border-radius: 999px; position: relative;
-  background: ${p => p.$on ? 'linear-gradient(135deg, #06b6d4 0%, #2563eb 100%)' : (p.$dark ? 'rgba(30,41,59,.9)' : '#d8e3f3')};
+  background: ${p => p.$on ? 'linear-gradient(135deg, #93c5fd 0%, #60a5fa 100%)' : (p.$dark ? 'rgba(8,18,40,.9)' : '#c8e6d8')};
   transition: background 0.2s ease;
 `;
 const SwitchThumb = styled.div`
   position: absolute; top: 0.17rem; left: ${p => p.$on ? '1.52rem' : '0.17rem'};
   width: 1.3rem; height: 1.3rem; border-radius: 999px; background: #fff;
-  display: grid; place-items: center; color: ${p => p.$on ? '#2563eb' : '#64748b'};
-  transition: left 0.2s ease; box-shadow: 0 4px 10px rgba(15,23,42,0.18);
+  display: grid; place-items: center; color: ${p => p.$on ? '#3b82f6' : '#64748b'};
+  transition: left 0.2s ease; box-shadow: 0 4px 10px rgba(0,8,4,0.22);
 `;
 const MainContent  = styled.main`flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;`;
 const ContentArea  = styled.div`
@@ -205,11 +213,11 @@ const FadeWrapper = styled.div`
 const ActiveBar = styled.div`
   position: absolute;
   left: 0;
-  width: 4px;
+  width: 3px;
   height: 2.6rem;
-  border-radius: 0 5px 5px 0;
-  background: linear-gradient(180deg, #93c5fd 0%, #2563eb 100%);
-  box-shadow: 0 0 18px rgba(96, 165, 250, 0.7), 0 0 8px rgba(37, 99, 235, 0.45);
+  border-radius: 0 6px 6px 0;
+  background: linear-gradient(180deg, #bfdbfe 0%, #60a5fa 100%);
+  box-shadow: 0 0 20px rgba(96, 165, 250, 0.65), 0 0 8px rgba(59, 130, 246, 0.4);
   transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
   top: ${p => p.$index * (2.6 + 0.25)}rem;
   opacity: ${p => p.$index >= 0 ? 1 : 0};
@@ -250,14 +258,14 @@ const AIFloatBtn = styled.button`
   z-index: 450;
   width: 3rem; height: 3rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #06b6d4, #2563eb);
-  border: none;
+  background: linear-gradient(135deg, #93c5fd, #3b82f6);
+  border: 1px solid rgba(147,197,253,0.3);
   display: flex; align-items: center; justify-content: center;
   color: white;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 8px 24px rgba(59,130,246,0.45);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  &:hover { transform: scale(1.1) translateY(-2px); box-shadow: 0 14px 32px rgba(37, 99, 235, 0.55); }
+  &:hover { transform: scale(1.12) translateY(-3px); box-shadow: 0 16px 36px rgba(59,130,246,0.6); }
   @media (min-width: 769px) { bottom: 2rem; }
 `;
 
@@ -300,45 +308,49 @@ const KpiGrid = styled.div`
 `;
 const KpiCard = styled.div`
   background: ${p => p.$dark
-    ? 'rgba(9, 20, 38, 0.60)'
-    : 'rgba(255, 255, 255, 0.75)'};
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  padding: 1.25rem 1.5rem;
-  border-radius: 0.875rem;
+    ? 'rgba(5,5,14,0.72)'
+    : 'rgba(255,255,255,0.88)'};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  padding: 1.375rem 1.5rem;
+  border-radius: 1rem;
   border: 1px solid ${p => p.$dark
-    ? 'rgba(96, 165, 250, 0.10)'
-    : 'rgba(200, 215, 240, 0.60)'};
+    ? 'rgba(96,165,250,0.12)'
+    : 'rgba(168,212,188,0.55)'};
   box-shadow: ${p => p.$dark
-    ? '0 8px 32px rgba(2, 12, 27, 0.40), inset 0 1px 0 rgba(96, 165, 250, 0.08)'
-    : '0 8px 24px rgba(15, 23, 42, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9)'};
+    ? '0 8px 32px rgba(0,4,16,0.55), inset 0 1px 0 rgba(96,165,250,0.07)'
+    : '0 8px 24px rgba(13,31,24,0.08), inset 0 1px 0 rgba(255,255,255,0.95)'};
   transition: transform 0.22s ease, box-shadow 0.22s ease;
 
   &:hover {
-    transform: translateY(-3px);
+    transform: translateY(-4px);
     box-shadow: ${p => p.$dark
-      ? '0 16px 40px rgba(2, 12, 27, 0.50), inset 0 1px 0 rgba(96, 165, 250, 0.12)'
-      : '0 16px 32px rgba(15, 23, 42, 0.12)'};
+      ? '0 20px 48px rgba(0,4,16,0.65), inset 0 1px 0 rgba(96,165,250,0.12)'
+      : '0 18px 36px rgba(13,31,24,0.12)'};
   }
 `;
 const HighlightCard = styled(KpiCard)`
-  background: linear-gradient(135deg, #06b6d4 0%, var(--dash-primary) 52%, #4f46e5 100%);
-  border-color: transparent; box-shadow: 0 18px 34px rgba(37,99,235,0.26);
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 45%, #3b82f6 100%);
+  border-color: rgba(147,197,253,0.25);
+  box-shadow: 0 18px 40px rgba(59,130,246,0.35), inset 0 1px 0 rgba(147,197,253,0.2);
 `;
 const KpiHeader = styled.div`
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;
-  h3 { font-size: 0.75rem; font-weight: 500; color: var(--dash-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.875rem;
+  h3 { font-size: 0.7rem; font-weight: 600; color: var(--dash-muted); text-transform: uppercase; letter-spacing: 0.08em; }
 `;
-const HiHeader = styled(KpiHeader)`h3 { color: #c7d2fe; }`;
+const HiHeader = styled(KpiHeader)`h3 { color: rgba(209,250,229,0.8); }`;
 const IconBox = styled.div`
-  padding: 0.4rem; border-radius: 0.4rem; display: flex; align-items: center; justify-content: center;
+  padding: 0.45rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;
   transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
-  ${p => p.$t === 'in'  && css`background: #f0fdf4; color: #16a34a;`}
-  ${p => p.$t === 'out' && css`background: #fef2f2; color: #dc2626;`}
-  ${p => p.$t === 'bal' && css`background: rgba(255,255,255,0.2); color: #fff;`}
-  &:hover { transform: translateY(-4px) scale(1.08); filter: brightness(1.08); box-shadow: 0 12px 24px rgba(37,99,235,0.18); }
+  ${p => p.$t === 'in'  && css`background: #d1fae5; color: #065f46;`}
+  ${p => p.$t === 'out' && css`background: #fee2e2; color: #b91c1c;`}
+  ${p => p.$t === 'bal' && css`background: rgba(255,255,255,0.18); color: #d1fae5;`}
+  &:hover { transform: translateY(-4px) scale(1.1); filter: brightness(1.1); box-shadow: 0 12px 24px rgba(96,165,250,0.2); }
 `;
-const KpiVal = styled.p`font-size: 1.75rem; font-weight: 700; color: var(--dash-heading); line-height: 1;`;
+const KpiVal = styled.p`
+  font-size: 1.85rem; font-weight: 700; color: var(--dash-heading); line-height: 1;
+  letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
+`;
 const HiVal  = styled(KpiVal)`color: #fff;`;
 
 // ── Modais inline ─────────────────────────────────────────────────────────────
@@ -406,6 +418,7 @@ function DashboardContent() {
     visibleCatIcons,
     visibleGastosFix,
     hiddenCatLabels,
+    customCats,
   } = useFinance();
 
   const activeTab = useMemo(() => {
@@ -456,6 +469,15 @@ function DashboardContent() {
   const [gastosFixosAberto, setGastosFixosAberto] = useState(() => {
     try {
       const saved = localStorage.getItem('webwallet_gastosfixos_aberto');
+      if (saved !== null) return saved === 'true';
+    } catch { /* ignora */ }
+    return false;
+  });
+
+  // Gastos personalizados — acordeão
+  const [gastosPersonalizadosAberto, setGastosPersonalizadosAberto] = useState(() => {
+    try {
+      const saved = localStorage.getItem('webwallet_gastospers_aberto');
       if (saved !== null) return saved === 'true';
     } catch { /* ignora */ }
     return false;
@@ -799,6 +821,14 @@ function DashboardContent() {
     });
   }, []);
 
+  const toggleGastosPersonalizados = useCallback(() => {
+    setGastosPersonalizadosAberto(prev => {
+      const next = !prev;
+      try { localStorage.setItem('webwallet_gastospers_aberto', String(next)); } catch { /* ignora */ }
+      return next;
+    });
+  }, []);
+
   // ── Logout ────────────────────────────────────────────────────────────────
   const handleLogout = () => { logout(); navigate('/login', { replace: true }); };
 
@@ -838,9 +868,30 @@ function DashboardContent() {
     return result;
   }, [metas, gastosFixosMetas]);
 
+  const customCatLabels = useMemo(() => new Set(customCats.map(c => c.label)), [customCats]);
+
   const todasCategorias = Array.from(new Set([
-    ...Object.keys(gastosAtuais), ...Object.keys(limites),
-  ])).filter(c => c !== 'Salário' && c !== 'Receita' && !String(c).startsWith(GASTOS_FIXOS_PREFIX) && !String(c).startsWith('assinaturas.') && !hiddenCatLabels.includes(c));
+    ...Object.keys(gastosAtuais),
+    ...Object.keys(limites),
+  ])).filter(c => c !== 'Salário' && c !== 'Receita' && !String(c).startsWith(GASTOS_FIXOS_PREFIX) && !String(c).startsWith('assinaturas.') && !hiddenCatLabels.includes(c) && !customCatLabels.has(c));
+
+  const gpGastos = useMemo(() => {
+    const result = {};
+    customCats.forEach(({ label }) => { result[label] = Number(gastosAtuais[label] || 0); });
+    return result;
+  }, [gastosAtuais, customCats]);
+
+  const gpMetas = useMemo(() => {
+    const result = {};
+    customCats.forEach(({ label }) => { result[label] = Number(limites[label] || 0); });
+    return result;
+  }, [limites, customCats]);
+
+  const gpTotalGasto = useMemo(() => Object.values(gpGastos).reduce((a, b) => a + b, 0), [gpGastos]);
+  const gpTotalMeta  = useMemo(() => customCats.reduce((acc, { label }) => {
+    const m = gpMetas[label]; return m > 0 ? acc + m : acc;
+  }, 0), [gpMetas, customCats]);
+  const gpTotalPct   = gpTotalMeta > 0 ? (gpTotalGasto / gpTotalMeta) * 100 : -1;
 
   const gfGastos = useMemo(() => {
     const result = {};
@@ -880,6 +931,18 @@ function DashboardContent() {
       try { localStorage.setItem('webwallet_gastosfixos_aberto', 'true'); } catch { /* ignora */ }
     }
   }, [gfGastos, gfMetas]);
+
+  useEffect(() => {
+    const alerta = customCats.some(({ label }) => {
+      const meta = gpMetas[label];
+      if (!meta || meta <= 0) return false;
+      return (gpGastos[label] / meta) * 100 >= 85;
+    });
+    if (alerta) {
+      setGastosPersonalizadosAberto(true);
+      try { localStorage.setItem('webwallet_gastospers_aberto', 'true'); } catch { /* ignora */ }
+    }
+  }, [gpGastos, gpMetas, customCats]);
 
   // ── Scroll reveal ─────────────────────────────────────────────────────────
   const [refKpi, visKpi]   = useScrollReveal();
@@ -1005,11 +1068,18 @@ function DashboardContent() {
             <FormGroup>
               <label htmlFor="tx-cat">Categoria</label>
               <select id="tx-cat" aria-label="Categoria da transação" value={txForm.categoria} onChange={e => setTxForm({ ...txForm, categoria: e.target.value })}>
-                {visibleCats.map(c => <option key={c} value={c}>{visibleCatIcons[c]} {c}</option>)}
+                {visibleCats.filter(c => !customCatLabels.has(c)).map(c => <option key={c} value={c}>{visibleCatIcons[c]} {c}</option>)}
                 {visibleGastosFix.length > 0 && (
                   <optgroup label="── Gastos Fixos ──">
                     {visibleGastosFix.map(({ key, label, icon }) => (
                       <option key={key} value={GASTOS_FIXOS_PREFIX + key}>{icon} {label}</option>
+                    ))}
+                  </optgroup>
+                )}
+                {customCats.length > 0 && (
+                  <optgroup label="── Gastos Personalizados ──">
+                    {customCats.map(({ label, icon }) => (
+                      <option key={label} value={label}>{icon} {label}</option>
                     ))}
                   </optgroup>
                 )}
@@ -1088,7 +1158,7 @@ function DashboardContent() {
         <SidebarFooter>
           <ThemeToggleBox onClick={toggleTheme} title="Alternar tema" $dark={isDark}>
             <ThemeToggleMeta>
-              {isDark ? <Moon size={18} color="#60a5fa" /> : <SunMedium size={18} color="#2563eb" />}
+              {isDark ? <Moon size={18} color="#93c5fd" /> : <SunMedium size={18} color="#059669" />}
               <div>
                 <strong>Mode</strong>
                 <span>{isDark ? 'Dark Mode' : 'Light Mode'}</span>
@@ -1186,6 +1256,13 @@ function DashboardContent() {
                 gfTotalGasto={gfTotalGasto}
                 gfTotalMeta={gfTotalMeta}
                 gfTotalPct={gfTotalPct}
+                gastosPersonalizadosAberto={gastosPersonalizadosAberto}
+                toggleGastosPersonalizados={toggleGastosPersonalizados}
+                gpGastos={gpGastos}
+                gpMetas={gpMetas}
+                gpTotalGasto={gpTotalGasto}
+                gpTotalMeta={gpTotalMeta}
+                gpTotalPct={gpTotalPct}
                 onLimitesUpdated={clearCache}
               />
             </RevealSection>

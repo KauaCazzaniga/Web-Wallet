@@ -24,24 +24,30 @@ import { normalizeTransaction } from '../utils/transaction';
 const AppContainer = styled.div`
   min-height: 100vh;
   display: flex;
+  font-family: "Outfit", "Nunito", sans-serif;
   background: ${(props) => props.$dark
-    ? 'radial-gradient(circle at top, rgba(14,165,233,0.18), transparent 24%), linear-gradient(180deg, #04101f 0%, #071425 45%, #030b15 100%)'
-    : 'linear-gradient(180deg, #eff4ff 0%, #f8fbff 100%)'};
+    ? 'radial-gradient(ellipse at 12% 0%, rgba(96,165,250,0.10), transparent 38%), radial-gradient(ellipse at 88% 85%, rgba(59,130,246,0.06), transparent 40%), linear-gradient(180deg, #000000 0%, #02030a 50%, #000000 100%)'
+    : '#ffffff'};
   color: var(--rel-heading);
-  --rel-shell: ${(props) => props.$dark ? 'rgba(7,18,35,0.92)' : '#ffffff'};
-  --rel-surface: ${(props) => props.$dark ? 'rgba(9,20,38,0.88)' : '#ffffff'};
-  --rel-surface-muted: ${(props) => props.$dark ? 'rgba(13,29,54,0.86)' : '#f6f9ff'};
-  --rel-border: ${(props) => props.$dark ? 'rgba(96,165,250,0.16)' : '#d8e3f3'};
-  --rel-border-strong: ${(props) => props.$dark ? 'rgba(96,165,250,0.3)' : '#bfd0ea'};
+  --rel-shell: ${(props) => props.$dark ? 'rgba(0,0,0,0.98)' : '#ffffff'};
+  --rel-surface: ${(props) => props.$dark ? 'rgba(5,5,12,0.92)' : '#ffffff'};
+  --rel-surface-muted: ${(props) => props.$dark ? 'rgba(8,8,18,0.90)' : '#f8fafc'};
+  --rel-border: ${(props) => props.$dark ? 'rgba(96,165,250,0.14)' : '#e2e8f0'};
+  --rel-border-strong: ${(props) => props.$dark ? 'rgba(96,165,250,0.28)' : '#cbd5e1'};
   --rel-heading: ${(props) => props.$dark ? '#eff6ff' : '#0f172a'};
-  --rel-text: ${(props) => props.$dark ? '#c6d4f1' : '#334155'};
-  --rel-muted: ${(props) => props.$dark ? '#89a0c7' : '#7184a0'};
-  --rel-primary: ${(props) => props.$dark ? '#60a5fa' : '#378ADD'};
-  --rel-input-bg: ${(props) => props.$dark ? 'rgba(6,18,34,0.92)' : '#f8fbff'};
-  --rel-table-head: ${(props) => props.$dark ? 'rgba(12,25,46,0.88)' : '#f4f8ff'};
-  --rel-grid: ${(props) => props.$dark ? 'rgba(148,163,184,0.18)' : '#e2e8f0'};
-  --rel-shadow: ${(props) => props.$dark ? '0 18px 40px rgba(2,12,27,0.38)' : '0 16px 36px rgba(15,23,42,0.08)'};
-  --rel-soft-shadow: ${(props) => props.$dark ? '0 10px 28px rgba(2,12,27,0.3)' : '0 10px 28px rgba(15,23,42,0.05)'};
+  --rel-text: ${(props) => props.$dark ? '#bfdbfe' : '#334155'};
+  --rel-muted: ${(props) => props.$dark ? '#7aaacf' : '#64748b'};
+  --rel-primary: ${(props) => props.$dark ? '#60a5fa' : '#2563eb'};
+  --rel-input-bg: ${(props) => props.$dark ? 'rgba(3,7,18,0.95)' : '#f8fafc'};
+  --rel-table-head: ${(props) => props.$dark ? 'rgba(5,11,26,0.92)' : '#f1f5f9'};
+  --rel-grid: ${(props) => props.$dark ? 'rgba(96,165,250,0.1)' : '#e2e8f0'};
+  --rel-shadow: ${(props) => props.$dark ? '0 18px 40px rgba(0,4,16,0.55)' : '0 16px 36px rgba(15,23,42,0.08)'};
+  --rel-soft-shadow: ${(props) => props.$dark ? '0 10px 28px rgba(0,4,16,0.40)' : '0 10px 28px rgba(15,23,42,0.05)'};
+  --btn-bg:           ${(props) => props.$dark ? 'linear-gradient(135deg,#2563eb 0%,#60a5fa 100%)' : 'linear-gradient(135deg,#dbeafe 0%,#bfdbfe 100%)'};
+  --btn-text:         ${(props) => props.$dark ? '#ffffff' : '#1e40af'};
+  --btn-border:       ${(props) => props.$dark ? 'transparent' : 'rgba(147,197,253,0.6)'};
+  --btn-shadow:       ${(props) => props.$dark ? '0 4px 18px rgba(59,130,246,0.40)' : '0 4px 14px rgba(96,165,250,0.18)'};
+  --btn-hover-shadow: ${(props) => props.$dark ? '0 8px 26px rgba(59,130,246,0.52)' : '0 6px 20px rgba(96,165,250,0.28)'};
 `;
 
 const Sidebar = styled.aside`
@@ -96,13 +102,13 @@ const NavItem = styled.button`
   padding: 0.72rem 1rem; border: none; border-radius: 0.75rem;
   cursor: pointer; width: 100%; text-align: left; font-size: 0.875rem; flex-shrink: 0;
   transition: background 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
-  background: ${p => p.$active ? 'rgba(55,138,221,0.16)' : 'transparent'};
+  background: ${p => p.$active ? 'rgba(96,165,250,0.12)' : 'transparent'};
   color: ${p => p.$active ? 'var(--rel-primary)' : 'var(--rel-muted)'};
-  font-weight: ${p => p.$active ? 600 : 400};
+  font-weight: ${p => p.$active ? 600 : 500};
   box-shadow: ${p => p.$active
-    ? 'inset 0 0 0 1px var(--rel-border-strong), 0 4px 18px rgba(37,99,235,0.13)'
+    ? 'inset 0 0 0 1px var(--rel-border-strong), 0 4px 18px rgba(96,165,250,0.15)'
     : 'none'};
-  &:hover { background: ${p => p.$active ? 'rgba(55,138,221,0.16)' : 'var(--rel-surface-muted)'}; }
+  &:hover { background: ${p => p.$active ? 'rgba(96,165,250,0.12)' : 'var(--rel-surface-muted)'}; }
   svg { transition: transform 0.2s ease; flex-shrink: 0;
     ${p => p.$active ? 'transform: scale(1.1);' : ''}
   }
@@ -117,31 +123,31 @@ const SidebarFooter = styled.div`
 `;
 
 const ActiveBar = styled.div`
-  position: absolute; left: 0; width: 4px; height: 2.6rem;
-  border-radius: 0 5px 5px 0;
-  background: linear-gradient(180deg, #93c5fd 0%, #2563eb 100%);
-  box-shadow: 0 0 18px rgba(96, 165, 250, 0.7), 0 0 8px rgba(37, 99, 235, 0.45);
+  position: absolute; left: 0; width: 3px; height: 2.6rem;
+  border-radius: 0 6px 6px 0;
+  background: linear-gradient(180deg, #bfdbfe 0%, #60a5fa 100%);
+  box-shadow: 0 0 20px rgba(96,165,250,0.65), 0 0 8px rgba(59,130,246,0.4);
   transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
   top: ${p => p.$index * 2.85}rem;
   opacity: ${p => p.$index >= 0 ? 1 : 0};
 `;
 const SwitchTrack = styled.div`
   width: 3rem; height: 1.65rem; border-radius: 999px; position: relative;
-  background: ${p => p.$on ? 'linear-gradient(135deg, #06b6d4 0%, #2563eb 100%)' : (p.$dark ? 'rgba(30,41,59,.9)' : '#d8e3f3')};
+  background: ${p => p.$on ? 'linear-gradient(135deg, #93c5fd 0%, #60a5fa 100%)' : (p.$dark ? 'rgba(8,18,40,.9)' : '#c8e6d8')};
   transition: background 0.2s ease;
 `;
 const SwitchThumb = styled.div`
   position: absolute; top: 0.17rem; left: ${p => p.$on ? '1.52rem' : '0.17rem'};
   width: 1.3rem; height: 1.3rem; border-radius: 999px; background: #fff;
   display: grid; place-items: center; color: ${p => p.$on ? '#2563eb' : '#64748b'};
-  transition: left 0.2s ease; box-shadow: 0 4px 10px rgba(15,23,42,0.18);
+  transition: left 0.2s ease; box-shadow: 0 4px 10px rgba(0,8,4,0.22);
 `;
 const ThemeButton = styled.button`
   display: flex; align-items: center; justify-content: space-between; gap: 0.9rem; width: 100%;
   padding: 0.82rem 1rem; border: none; border-radius: 0.95rem; cursor: pointer;
-  background: ${p => p.$dark ? 'rgba(10,24,44,.85)' : '#ffffff'}; color: var(--rel-heading);
-  box-shadow: ${p => p.$dark ? '0 14px 30px rgba(2,12,27,.28)' : '0 16px 28px rgba(15,23,42,.07)'};
-  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.16)' : '#d8e3f3'}; margin-top: 0.65rem;
+  background: ${p => p.$dark ? 'rgba(4,13,10,.9)' : '#ffffff'}; color: var(--rel-heading);
+  box-shadow: ${p => p.$dark ? '0 14px 30px rgba(0,8,4,.32)' : '0 16px 28px rgba(13,31,24,.07)'};
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.16)' : '#c8e6d8'}; margin-top: 0.65rem;
   transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
   &:hover { transform: translateY(-4px) scale(1.02); filter: brightness(1.05); }
 `;
@@ -441,7 +447,7 @@ export default function Relatorios() {
         <SidebarFooter>
           <ThemeButton onClick={toggleTheme} title="Alternar tema" $dark={isDark}>
             <ThemeMeta>
-              {isDark ? <Moon size={18} color="#60a5fa" /> : <SunMedium size={18} color="#2563eb" />}
+              {isDark ? <Moon size={18} color="#bfdbfe" /> : <SunMedium size={18} color="#60a5fa" />}
               <div>
                 <strong>Mode</strong>
                 <span>{isDark ? 'Dark Mode' : 'Light Mode'}</span>

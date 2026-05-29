@@ -100,7 +100,7 @@ export default function GraficoBarrasMensal({ data, mediaDespesas }) {
           />
           <Tooltip
             content={<ChartTooltip formatter={(v) => formatCurrencyBRL(v)} />}
-            cursor={{ fill: 'rgba(96,165,250,0.05)' }}
+            cursor={{ fill: 'rgba(16,185,129,0.05)' }}
           />
           <ReferenceLine
             y={mediaDespesas}

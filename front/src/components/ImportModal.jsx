@@ -121,9 +121,10 @@ const Button = styled.button`
   border-radius: 0.8rem;
   border: ${(props) => (props.$primary ? 'none' : '1px solid var(--dash-border-strong)')};
   background: ${(props) => (props.$primary
-    ? 'linear-gradient(135deg, #06b6d4 0%, var(--dash-primary) 52%, #4f46e5 100%)'
+    ? 'var(--btn-bg, linear-gradient(135deg, #2563eb 0%, #60a5fa 100%))'
     : 'var(--dash-surface-muted)')};
-  color: ${(props) => (props.$primary ? '#ffffff' : 'var(--dash-heading)')};
+  color: ${(props) => (props.$primary ? 'var(--btn-text, #ffffff)' : 'var(--dash-heading)')};
+  border-color: ${(props) => (props.$primary ? 'var(--btn-border, transparent)' : 'var(--dash-border-strong)')};
   cursor: pointer;
   font-size: 0.88rem;
   font-weight: 700;

@@ -24,7 +24,20 @@ const userSchema = new mongoose.Schema({
     resetPasswordExpires: {
         type: Date,
         select: false,
-    }
+    },
+    // --- RESEND / EMAIL VERIFICATION (desativado temporariamente) ---
+    // emailVerified: {
+    //     type: Boolean,
+    //     default: false,
+    // },
+    // emailVerificationToken: {
+    //     type: String,
+    //     select: false,
+    // },
+    // emailVerificationExpires: {
+    //     type: Date,
+    //     select: false,
+    // },
 }, {
     timestamps: true
 });

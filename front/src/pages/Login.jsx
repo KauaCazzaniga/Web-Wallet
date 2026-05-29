@@ -4,6 +4,7 @@ import { Wallet, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import styled, { keyframes, css } from 'styled-components';
 
 import { AuthContext } from '../contexts/AuthContext';
+import { ThemeContext } from '../contexts/ThemeContext';
 
 // ── Animações ─────────────────────────────────────────────────────────────────
 const gridPulse = keyframes`
@@ -37,7 +38,7 @@ const Page = styled.div`
   min-height: 100vh;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  font-family: "Inter", "Segoe UI", sans-serif;
+  font-family: "Outfit", "Nunito", sans-serif;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -47,9 +48,9 @@ const Page = styled.div`
 // ── Painel visual esquerdo ────────────────────────────────────────────────────
 const VisualPanel = styled.div`
   background:
-    radial-gradient(ellipse at 25% 35%, rgba(6, 182, 212, 0.18) 0%, transparent 55%),
-    radial-gradient(ellipse at 75% 70%, rgba(37, 99, 235, 0.22) 0%, transparent 50%),
-    linear-gradient(160deg, #020b18 0%, #030e1f 55%, #020b18 100%);
+    radial-gradient(ellipse at 20% 30%, rgba(96,165,250,0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 75%, rgba(59,130,246,0.14) 0%, transparent 45%),
+    linear-gradient(160deg, #000000 0%, #02030a 55%, #000000 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -68,8 +69,8 @@ const GridOverlay = styled.div`
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(14, 165, 233, 1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(14, 165, 233, 1) 1px, transparent 1px);
+    linear-gradient(rgba(16, 185, 129, 1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 1) 1px, transparent 1px);
   background-size: 56px 56px;
   animation: ${gridPulse} 4s ease-in-out infinite;
 `;
@@ -82,14 +83,14 @@ const Orb = styled.div`
 
   ${p => p.$a && css`
     width: 360px; height: 360px;
-    background: radial-gradient(circle, rgba(6, 182, 212, 0.22), transparent 70%);
+    background: radial-gradient(circle, rgba(96,165,250,0.22), transparent 70%);
     top: 10%; left: -10%;
     animation: ${orb1Anim} 12s ease-in-out infinite;
   `}
 
   ${p => p.$b && css`
     width: 300px; height: 300px;
-    background: radial-gradient(circle, rgba(37, 99, 235, 0.25), transparent 70%);
+    background: radial-gradient(circle, rgba(59,130,246,0.2), transparent 70%);
     bottom: 15%; right: -5%;
     animation: ${orb2Anim} 10s ease-in-out infinite;
   `}
@@ -105,28 +106,27 @@ const VisualContent = styled.div`
 const LogoMark = styled.div`
   width: 5rem; height: 5rem;
   border-radius: 1.5rem;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(37, 99, 235, 0.25));
-  border: 1px solid rgba(96, 165, 250, 0.2);
+  background: linear-gradient(135deg, rgba(96,165,250,0.18), rgba(59,130,246,0.28));
+  border: 1px solid rgba(147,197,253,0.22);
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 1.75rem;
-  box-shadow: 0 0 40px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow: 0 0 40px rgba(96,165,250,0.18), inset 0 1px 0 rgba(255,255,255,0.06);
 `;
 
 const BrandName = styled.h1`
   font-size: 2.75rem;
   font-weight: 800;
   letter-spacing: -0.04em;
-  color: #eff6ff;
   line-height: 1;
   margin-bottom: 0.75rem;
-  background: linear-gradient(135deg, #bfdbfe 0%, #eff6ff 50%, #bae6fd 100%);
+  background: linear-gradient(135deg, #bfdbfe 0%, #eff6ff 50%, #a7f3d0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 `;
 
 const Tagline = styled.p`
   font-size: 1rem;
-  color: #5a7ea8;
+  color: #4a6888;
   font-weight: 400;
   line-height: 1.6;
   max-width: 280px;
@@ -152,7 +152,7 @@ const Feature = styled.div`
     content: '';
     width: 6px; height: 6px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #06b6d4, #2563eb);
+    background: linear-gradient(135deg, #93c5fd, #3b82f6);
     flex-shrink: 0;
   }
 `;
@@ -163,7 +163,7 @@ const FormPanel = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #030c1a;
+  background: ${p => p.$dark ? '#000000' : '#ffffff'};
   padding: 2.5rem 2rem;
 
   @media (max-width: 400px) {
@@ -179,15 +179,15 @@ const FormCard = styled.div`
 
 const FormHeading = styled.h2`
   font-size: 1.625rem;
-  font-weight: 700;
-  color: #eff6ff;
-  letter-spacing: -0.025em;
+  font-weight: 800;
+  color: ${p => p.$dark ? '#eff6ff' : '#0f172a'};
+  letter-spacing: -0.03em;
   margin-bottom: 0.4rem;
 `;
 
 const FormSubheading = styled.p`
   font-size: 0.875rem;
-  color: #4a6888;
+  color: #3a5a7a;
   margin-bottom: 2.25rem;
   line-height: 1.5;
 `;
@@ -200,11 +200,11 @@ const Form = styled.form`
 
 const FieldLabel = styled.label`
   display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #5a7ea8;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #3a5a7a;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   margin-bottom: 0.4rem;
 `;
 
@@ -217,7 +217,7 @@ const FieldIcon = styled.div`
   left: 0.875rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #2a4060;
+  color: #2d4a6a;
   display: flex;
   align-items: center;
   transition: color 0.2s;
@@ -230,8 +230,8 @@ const FieldIcon = styled.div`
 const FieldInput = styled.input`
   width: 100%;
   padding: 0.875rem 1rem 0.875rem 2.75rem;
-  background: rgba(9, 20, 42, 0.9);
-  border: 1px solid rgba(30, 55, 90, 0.8);
+  background: rgba(4, 8, 18, 0.92);
+  border: 1px solid rgba(16, 185, 129, 0.18);
   border-radius: 0.625rem;
   color: #eff6ff;
   font-size: 0.9rem;
@@ -239,12 +239,12 @@ const FieldInput = styled.input`
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 
-  &::placeholder { color: #2a3a55; }
+  &::placeholder { color: #1f3050; }
 
   &:focus {
-    border-color: rgba(96, 165, 250, 0.4);
-    background: rgba(9, 22, 46, 0.95);
-    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.06), 0 2px 8px rgba(2, 12, 27, 0.3);
+    border-color: rgba(16, 185, 129, 0.45);
+    background: rgba(4, 10, 22, 0.98);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1), 0 2px 8px rgba(0, 8, 4, 0.3);
   }
 `;
 
@@ -255,7 +255,7 @@ const PasswordToggle = styled.button`
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #2a4060;
+  color: #2d4a6a;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -268,29 +268,36 @@ const SubmitButton = styled.button`
   width: 100%;
   padding: 0.9rem 1rem;
   margin-top: 0.5rem;
-  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 60%, #4f46e5 100%);
-  color: white;
-  border: none;
+  background: ${p => p.$dark
+    ? 'linear-gradient(135deg, #2563eb 0%, #60a5fa 100%)'
+    : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'};
+  color: ${p => p.$dark ? '#ffffff' : '#1e40af'};
+  border: 1px solid ${p => p.$dark ? 'transparent' : 'rgba(147,197,253,0.6)'};
   border-radius: 0.625rem;
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.01em;
   cursor: pointer;
+  font-family: inherit;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   transition: all 0.2s;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+  box-shadow: ${p => p.$dark
+    ? '0 8px 24px rgba(59,130,246,0.35)'
+    : '0 4px 14px rgba(96,165,250,0.20)'};
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 14px 28px rgba(37, 99, 235, 0.45);
-    filter: brightness(1.08);
+    box-shadow: ${p => p.$dark
+      ? '0 14px 32px rgba(59,130,246,0.52)'
+      : '0 6px 20px rgba(96,165,250,0.30)'};
+    filter: brightness(1.05);
   }
 
   &:disabled {
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: not-allowed;
     transform: none;
   }
@@ -320,7 +327,7 @@ const FooterLinks = styled.div`
   margin-top: 1.75rem;
   text-align: center;
   font-size: 0.82rem;
-  color: #2a4060;
+  color: #2d4a6a;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -339,6 +346,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useContext(AuthContext);
+  const { isDark } = useContext(ThemeContext);
 
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
@@ -375,7 +383,7 @@ export default function Login() {
         <Orb $b />
         <VisualContent>
           <LogoMark>
-            <Wallet size={32} color="#60a5fa" />
+            <Wallet size={32} color="#93c5fd" />
           </LogoMark>
           <BrandName>Waltrix</BrandName>
           <Tagline>
@@ -391,9 +399,9 @@ export default function Login() {
       </VisualPanel>
 
       {/* Painel de formulário */}
-      <FormPanel>
+      <FormPanel $dark={isDark}>
         <FormCard>
-          <FormHeading>Bem-vindo de volta</FormHeading>
+          <FormHeading $dark={isDark}>Bem-vindo de volta</FormHeading>
           <FormSubheading>
             Entre na sua conta para acessar o painel financeiro.
           </FormSubheading>
@@ -444,7 +452,7 @@ export default function Login() {
             {successMessage && <SuccessBox>{successMessage}</SuccessBox>}
             {error && <ErrorBox>{error}</ErrorBox>}
 
-            <SubmitButton type="submit" disabled={isLoading}>
+            <SubmitButton type="submit" disabled={isLoading} $dark={isDark}>
               {isLoading
                 ? <><Loader2 size={17} style={{ animation: 'spin 1s linear infinite' }} /> Autenticando...</>
                 : 'Entrar no sistema'

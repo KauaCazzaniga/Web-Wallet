@@ -30,7 +30,7 @@ import {
 
 const TIPOS_INVESTIMENTO = [
   { key: 'CDB',      label: 'CDB',            icone: '🏦', cor: '#3b82f6' },
-  { key: 'LCI',      label: 'LCI',            icone: '🏡', cor: '#10b981' },
+  { key: 'LCI',      label: 'LCI',            icone: '🏡', cor: '#60a5fa' },
   { key: 'LCA',      label: 'LCA',            icone: '🌱', cor: '#06b6d4' },
   { key: 'Tesouro',  label: 'Tesouro Direto', icone: '🏛️', cor: '#f59e0b' },
   { key: 'Poupança', label: 'Poupança',        icone: '💰', cor: '#84cc16' },
@@ -41,7 +41,7 @@ const TIPOS_INVESTIMENTO = [
 ];
 
 const ICONES_COFRINHO = ['✈️','💻','🛡️','🚗','🏖️','🎓','💍','🏠','🎮','🐾','🎸','🍰'];
-const CORES_COFRINHO  = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ec4899','#f97316','#06b6d4','#84cc16','#e11d48','#14b8a6'];
+const CORES_COFRINHO  = ['#3b82f6','#8b5cf6','#60a5fa','#f59e0b','#ec4899','#f97316','#06b6d4','#84cc16','#e11d48','#14b8a6'];
 
 // ─────────────────────────────────────────────────────────────
 // HELPERS
@@ -55,7 +55,7 @@ const fmtPct = (v) => `${Math.round(v * 10) / 10}%`;
 
 /** Cor da barra de progresso de cofrinho — progresso em 0-100 */
 function corProgresso(pct) {
-  if (pct >= 100) return '#10b981';
+  if (pct >= 100) return '#60a5fa';
   if (pct >= 86)  return '#D85A30';
   if (pct >= 61)  return '#EF9F27';
   return '#378ADD';
@@ -158,29 +158,34 @@ const Spinner = styled.span`
 
 const AppContainer = styled.div`
   min-height: 100vh; display: flex;
-  font-family: "Inter", sans-serif; color: var(--dash-heading);
+  font-family: "Outfit", "Nunito", sans-serif; color: var(--dash-heading);
   background: ${p => p.$dark
-    ? 'radial-gradient(circle at top, rgba(14,165,233,0.18), transparent 24%), linear-gradient(180deg, #04101f 0%, #071425 45%, #030b15 100%)'
-    : 'linear-gradient(180deg, #eff4ff 0%, #f8fbff 100%)'};
+    ? 'radial-gradient(ellipse at 12% 18%, rgba(96,165,250,0.10), transparent 36%), radial-gradient(ellipse at 88% 72%, rgba(59,130,246,0.06), transparent 32%), linear-gradient(180deg, #000000 0%, #02030a 45%, #000000 100%)'
+    : '#ffffff'};
 
-  --dash-shell:          ${p => p.$dark ? 'rgba(7,18,35,0.92)'    : '#ffffff'};
-  --dash-surface:        ${p => p.$dark ? 'rgba(9,20,38,0.88)'    : '#ffffff'};
-  --dash-surface-muted:  ${p => p.$dark ? 'rgba(13,29,54,0.86)'   : '#f6f9ff'};
-  --dash-border:         ${p => p.$dark ? 'rgba(96,165,250,0.16)' : '#d8e3f3'};
-  --dash-border-strong:  ${p => p.$dark ? 'rgba(96,165,250,0.3)'  : '#bfd0ea'};
+  --dash-shell:          ${p => p.$dark ? 'rgba(0,0,0,0.98)'      : '#ffffff'};
+  --dash-surface:        ${p => p.$dark ? 'rgba(5,5,12,0.92)'     : '#ffffff'};
+  --dash-surface-muted:  ${p => p.$dark ? 'rgba(8,8,18,0.90)'     : '#f8fafc'};
+  --dash-border:         ${p => p.$dark ? 'rgba(96,165,250,0.14)' : '#e2e8f0'};
+  --dash-border-strong:  ${p => p.$dark ? 'rgba(96,165,250,0.28)' : '#cbd5e1'};
   --dash-heading:        ${p => p.$dark ? '#eff6ff'   : '#0f172a'};
-  --dash-text:           ${p => p.$dark ? '#c6d4f1'   : '#334155'};
-  --dash-muted:          ${p => p.$dark ? '#89a0c7'   : '#7184a0'};
-  --dash-muted-strong:   ${p => p.$dark ? '#bfd0ea'   : '#4f5f7a'};
+  --dash-text:           ${p => p.$dark ? '#bfdbfe'   : '#334155'};
+  --dash-muted:          ${p => p.$dark ? '#7aaacf'   : '#64748b'};
+  --dash-muted-strong:   ${p => p.$dark ? '#93c5fd'   : '#475569'};
   --dash-primary:        ${p => p.$dark ? '#60a5fa'   : '#2563eb'};
   --dash-primary-strong: ${p => p.$dark ? '#3b82f6'   : '#1d4ed8'};
-  --dash-primary-soft:   ${p => p.$dark ? 'rgba(96,165,250,0.16)' : '#dbeafe'};
-  --dash-input-bg:       ${p => p.$dark ? 'rgba(6,18,34,0.92)'    : '#f8fbff'};
-  --dash-table-head:     ${p => p.$dark ? 'rgba(12,25,46,0.88)'   : '#f4f8ff'};
+  --dash-primary-soft:   ${p => p.$dark ? 'rgba(96,165,250,0.16)' : '#eff6ff'};
+  --dash-input-bg:       ${p => p.$dark ? 'rgba(3,7,18,0.95)'     : '#f8fafc'};
+  --dash-table-head:     ${p => p.$dark ? 'rgba(5,11,26,0.92)'    : '#f1f5f9'};
+  --btn-bg:              ${p => p.$dark ? 'linear-gradient(135deg,#2563eb 0%,#60a5fa 100%)' : 'linear-gradient(135deg,#dbeafe 0%,#bfdbfe 100%)'};
+  --btn-text:            ${p => p.$dark ? '#ffffff' : '#1e40af'};
+  --btn-border:          ${p => p.$dark ? 'transparent' : 'rgba(147,197,253,0.6)'};
+  --btn-shadow:          ${p => p.$dark ? '0 4px 18px rgba(59,130,246,0.40)' : '0 4px 14px rgba(96,165,250,0.18)'};
+  --btn-hover-shadow:    ${p => p.$dark ? '0 8px 26px rgba(59,130,246,0.52)' : '0 6px 20px rgba(96,165,250,0.28)'};
   --dash-danger-soft:    ${p => p.$dark ? 'rgba(127,29,29,0.3)'   : '#fef2f2'};
   --dash-danger-border:  ${p => p.$dark ? 'rgba(248,113,113,0.34)': '#fecaca'};
-  --dash-shadow:         ${p => p.$dark ? '0 18px 40px rgba(2,12,27,0.38)'  : '0 16px 36px rgba(15,23,42,0.08)'};
-  --dash-soft-shadow:    ${p => p.$dark ? '0 10px 28px rgba(2,12,27,0.3)'   : '0 10px 28px rgba(15,23,42,0.05)'};
+  --dash-shadow:         ${p => p.$dark ? '0 18px 40px rgba(0,4,16,0.55)'  : '0 16px 36px rgba(6,78,59,0.08)'};
+  --dash-soft-shadow:    ${p => p.$dark ? '0 10px 28px rgba(0,4,16,0.40)'  : '0 10px 28px rgba(6,78,59,0.05)'};
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -223,7 +228,7 @@ const NavItem = styled.button`
   color:      ${p => p.$active ? 'var(--dash-primary)'      : 'var(--dash-muted)'};
   font-weight:${p => p.$active ? '600' : '400'};
   box-shadow: ${p => p.$active
-    ? 'inset 0 0 0 1px var(--dash-border-strong), 0 4px 18px rgba(37,99,235,0.13)'
+    ? 'inset 0 0 0 1px var(--dash-border-strong), 0 4px 18px rgba(96,165,250,0.13)'
     : 'none'};
   &:hover { background: ${p => p.$active ? 'var(--dash-primary-soft)' : 'var(--dash-surface-muted)'}; }
   svg { transition: transform 0.2s ease; flex-shrink: 0;
@@ -247,7 +252,7 @@ const ThemeToggleBox = styled.button`
   padding: 0.82rem 1rem; border: none; border-radius: 0.95rem; cursor: pointer;
   background: ${p => p.$dark ? 'rgba(10,24,44,.85)' : '#ffffff'}; color: var(--dash-heading);
   box-shadow: ${p => p.$dark ? '0 14px 30px rgba(2,12,27,.28)' : '0 16px 28px rgba(15,23,42,.07)'};
-  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.16)' : '#d8e3f3'}; margin-top: 0.65rem;
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.18)' : '#d1fae5'}; margin-top: 0.65rem;
   transition: transform .22s ease, box-shadow .22s ease;
   &:hover { transform: translateY(-4px) scale(1.02); filter: brightness(1.05); }
 `;
@@ -258,7 +263,7 @@ const ThemeToggleMeta = styled.div`
 `;
 const SwitchTrack = styled.div`
   width: 3rem; height: 1.65rem; border-radius: 999px; position: relative;
-  background: ${p => p.$on ? 'linear-gradient(135deg,#06b6d4,#2563eb)' : (p.$dark ? 'rgba(30,41,59,.9)' : '#d8e3f3')};
+  background: ${p => p.$on ? 'linear-gradient(135deg,#93c5fd,#60a5fa)' : (p.$dark ? 'rgba(8,18,40,.9)' : '#d1fae5')};
   transition: background 0.2s;
 `;
 const SwitchThumb = styled.div`
@@ -270,8 +275,8 @@ const SwitchThumb = styled.div`
 const ActiveBar = styled.div`
   position: absolute; left: 0; width: 4px; height: 2.6rem;
   border-radius: 0 5px 5px 0;
-  background: linear-gradient(180deg, #93c5fd 0%, #2563eb 100%);
-  box-shadow: 0 0 18px rgba(96, 165, 250, 0.7), 0 0 8px rgba(37, 99, 235, 0.45);
+  background: linear-gradient(180deg, #bfdbfe 0%, #60a5fa 100%);
+  box-shadow: 0 0 18px rgba(96, 165, 250, 0.7), 0 0 8px rgba(59, 130, 246, 0.45);
   transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
   top: ${p => p.$index * 2.85}rem;
   opacity: ${p => p.$index >= 0 ? 1 : 0};
@@ -326,8 +331,8 @@ const KpiCard = styled.div`
   animation: ${fadeIn} 0.35s ease both;
 `;
 const KpiHighlight = styled(KpiCard)`
-  background: linear-gradient(135deg, #7F77DD 0%, #5b67ff 52%, #4f46e5 100%);
-  border-color: transparent; box-shadow: 0 18px 34px rgba(127,119,221,0.3);
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 52%, #60a5fa 100%);
+  border-color: transparent; box-shadow: 0 18px 34px rgba(59,130,246,0.3);
 `;
 const KpiLabel = styled.div`
   font-size: 0.72rem; font-weight: 500; text-transform: uppercase;
@@ -422,7 +427,7 @@ const InvStat = styled.div`
   strong { display: block; font-size: 0.95rem; font-weight: 700; color: var(--dash-heading); margin-top: 0.15rem; }
 `;
 const InvRendimento = styled(InvStat)`
-  strong { color: ${p => p.$negative ? '#ef4444' : '#10b981'}; }
+  strong { color: ${p => p.$negative ? '#ef4444' : '#60a5fa'}; }
 `;
 const InvActions = styled.div`
   display: flex; gap: 0.35rem; flex-shrink: 0;
@@ -548,14 +553,14 @@ const CofrinhoAction = styled.button`
   display: inline-flex; align-items: center; gap: 0.3rem;
   padding: 0.35rem 0.7rem; border: none; border-radius: 0.5rem; cursor: pointer;
   font-size: 0.72rem; font-weight: 700; color: ${p => p.$cor || 'var(--dash-primary)'};
-  background: ${p => (p.$cor || '#3b82f6') + '18'};
+  background: ${p => (p.$cor || '#60a5fa') + '18'};
   transition: all 0.15s; flex-shrink: 0;
-  &:hover { filter: brightness(1.1); background: ${p => (p.$cor || '#3b82f6') + '30'}; }
+  &:hover { filter: brightness(1.1); background: ${p => (p.$cor || '#60a5fa') + '30'}; }
 `;
 const CofrinhoConcluidoBadge = styled.div`
   position: absolute; top: 0.5rem; right: 0.5rem; display: flex; align-items: center; gap: 0.2rem;
-  font-size: 0.65rem; font-weight: 700; color: #10b981;
-  background: #10b98122; padding: 0.15rem 0.45rem; border-radius: 999px;
+  font-size: 0.65rem; font-weight: 700; color: #60a5fa;
+  background: #60a5fa22; padding: 0.15rem 0.45rem; border-radius: 999px;
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -618,7 +623,7 @@ const FormGroup = styled.div`
     padding: 0.7rem 0.875rem; border: 1px solid var(--dash-border); border-radius: 0.5rem;
     font-size: 0.875rem; outline: none; background: var(--dash-input-bg); transition: all 0.15s;
     color: var(--dash-heading); -webkit-text-fill-color: var(--dash-heading); appearance: none;
-    &:focus { border-color: var(--dash-primary); background: var(--dash-surface); box-shadow: 0 0 0 3px rgba(59,130,246,0.14); }
+    &:focus { border-color: var(--dash-primary); background: var(--dash-surface); box-shadow: 0 0 0 3px rgba(96,165,250,0.14); }
   }
   select option { color: var(--dash-heading); background: var(--dash-surface); }
 `;
@@ -666,7 +671,7 @@ const ToastContainer = styled.div`
   display: flex; flex-direction: column; gap: 0.5rem;
 `;
 const Toast = styled.div`
-  background: ${p => p.$type === 'error' ? '#ef4444' : '#10b981'};
+  background: ${p => p.$type === 'error' ? '#ef4444' : '#3b82f6'};
   color: #fff; padding: 0.875rem 1.25rem; border-radius: 0.5rem;
   font-weight: 500; font-size: 0.875rem; min-width: 240px;
   display: flex; align-items: center; gap: 0.75rem;
@@ -895,7 +900,7 @@ export default function Investimentos() {
         <SidebarFooter>
           <ThemeToggleBox onClick={toggleTheme} title="Alternar tema" $dark={isDark}>
             <ThemeToggleMeta>
-              {isDark ? <Moon size={18} color="#60a5fa" /> : <SunMedium size={18} color="#2563eb" />}
+              {isDark ? <Moon size={18} color="#93c5fd" /> : <SunMedium size={18} color="#059669" />}
               <div>
                 <strong>Mode</strong>
                 <span>{isDark ? 'Dark Mode' : 'Light Mode'}</span>
@@ -954,7 +959,7 @@ export default function Investimentos() {
               <KpiCard>
                 <KpiLabel>
                   Aporte do Mês
-                  <KpiIconBox $bg="#dbeafe" $color="#2563eb"><ArrowUpCircle size={16} /></KpiIconBox>
+                  <KpiIconBox $bg="rgba(96,165,250,0.12)" $color="#60a5fa"><ArrowUpCircle size={16} /></KpiIconBox>
                 </KpiLabel>
                 <KpiValue>{aporteMes > 0 ? fmt(aporteMes) : '—'}</KpiValue>
                 <KpiSub>
@@ -968,7 +973,7 @@ export default function Investimentos() {
                   Rendimento Acumulado
                   <KpiIconBox $bg="#dcfce7" $color="#16a34a"><TrendingUp size={16} /></KpiIconBox>
                 </KpiLabel>
-                <KpiValue style={{ color: '#10b981' }}>{rendimentoTotal > 0 ? fmt(rendimentoTotal) : '—'}</KpiValue>
+                <KpiValue style={{ color: '#60a5fa' }}>{rendimentoTotal > 0 ? fmt(rendimentoTotal) : '—'}</KpiValue>
                 <KpiSub>em investimentos</KpiSub>
               </KpiCard>
 
@@ -1087,7 +1092,7 @@ export default function Investimentos() {
                           <span>de {fmt(cof.meta)}</span>
                         </CofrinhoValues>
                         <ProgressTrack>
-                          <ProgressFill $pct={pct} $cor={done ? '#10b981' : cor} />
+                          <ProgressFill $pct={pct} $cor={done ? '#60a5fa' : cor} />
                         </ProgressTrack>
                         <CofrinhoFooter>
                           <div>

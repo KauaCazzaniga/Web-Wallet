@@ -26,7 +26,7 @@ const Drawer = styled.div`
   position: fixed;
   top: 0; right: 0;
   width: 360px; height: 100vh;
-  background: rgba(4, 10, 22, 0.96);
+  background: rgba(0, 0, 0, 0.98);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-left: 1px solid rgba(96, 165, 250, 0.14);
@@ -34,7 +34,7 @@ const Drawer = styled.div`
   flex-direction: column;
   z-index: 600;
   animation: ${slideIn} 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: -16px 0 48px rgba(2, 12, 27, 0.55);
+  box-shadow: -16px 0 48px rgba(0, 0, 16, 0.6);
 
   @media (max-width: 768px) {
     width: 100vw;
@@ -72,7 +72,7 @@ const HeaderBadge = styled.div`
   font-weight: 600;
   color: #60a5fa;
   background: rgba(96, 165, 250, 0.1);
-  border: 1px solid rgba(96, 165, 250, 0.2);
+  border: 1px solid rgba(96, 165, 250, 0.22);
   border-radius: 999px;
   padding: 0.2rem 0.55rem;
   letter-spacing: 0.04em;
@@ -121,9 +121,9 @@ const EmptyIcon = styled.div`
   width: 3rem; height: 3rem;
   border-radius: 50%;
   background: rgba(96,165,250,0.08);
-  border: 1px solid rgba(96,165,250,0.12);
+  border: 1px solid rgba(96,165,250,0.14);
   display: flex; align-items: center; justify-content: center;
-  color: #4a6080;
+  color: #2d7a5a;
 `;
 
 const Suggestion = styled.button`
@@ -133,11 +133,12 @@ const Suggestion = styled.button`
   background: rgba(96,165,250,0.06);
   border: 1px solid rgba(96,165,250,0.12);
   border-radius: 0.625rem;
-  color: #89a0c7;
+  color: #5a9a7a;
   font-size: 0.78rem;
   cursor: pointer;
+  font-family: inherit;
   transition: all 0.15s;
-  &:hover { background: rgba(96,165,250,0.12); color: #c3d9ff; border-color: rgba(96,165,250,0.25); }
+  &:hover { background: rgba(96,165,250,0.12); color: #bfdbfe; border-color: rgba(96,165,250,0.28); }
 `;
 
 const Message = styled.div`
@@ -157,13 +158,13 @@ const Bubble = styled.div`
   word-break: break-word;
 
   ${p => p.$role === 'user' ? `
-    background: rgba(37, 99, 235, 0.25);
-    border: 1px solid rgba(96, 165, 250, 0.25);
-    color: #c7deff;
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(96, 165, 250, 0.28);
+    color: #bfdbfe;
   ` : `
-    background: rgba(14, 28, 52, 0.9);
+    background: rgba(5, 18, 12, 0.92);
     border: 1px solid rgba(96, 165, 250, 0.1);
-    color: #d4e4ff;
+    color: #b8d8cc;
   `}
 `;
 
@@ -172,7 +173,7 @@ const LoadingDots = styled.div`
   align-items: center;
   gap: 0.3rem;
   padding: 0.75rem 1rem;
-  background: rgba(14, 28, 52, 0.9);
+  background: rgba(5, 18, 12, 0.92);
   border: 1px solid rgba(96, 165, 250, 0.1);
   border-radius: 1rem 1rem 1rem 0.2rem;
 
@@ -197,7 +198,7 @@ const InputArea = styled.div`
 
 const TextArea = styled.textarea`
   flex: 1;
-  background: rgba(9, 20, 38, 0.8);
+  background: rgba(3, 12, 8, 0.85);
   border: 1px solid rgba(96, 165, 250, 0.15);
   border-radius: 0.75rem;
   padding: 0.7rem 1rem;
@@ -211,8 +212,8 @@ const TextArea = styled.textarea`
   transition: border-color 0.15s;
   line-height: 1.45;
 
-  &::placeholder { color: #4a5a7a; }
-  &:focus { border-color: rgba(96, 165, 250, 0.35); }
+  &::placeholder { color: #1f4030; }
+  &:focus { border-color: rgba(96, 165, 250, 0.38); }
 `;
 
 const spin = keyframes`
@@ -227,15 +228,15 @@ const SendBtn = styled.button`
   width: 2.5rem; height: 2.5rem;
   border-radius: 0.625rem;
   background: ${p => p.$disabled
-    ? 'rgba(30,40,60,0.5)'
-    : 'linear-gradient(135deg, #2563eb, #06b6d4)'};
-  border: none;
-  color: ${p => p.$disabled ? '#4a5a7a' : '#fff'};
+    ? 'rgba(8,28,20,0.6)'
+    : 'linear-gradient(135deg, #60a5fa, #3b82f6)'};
+  border: 1px solid ${p => p.$disabled ? 'transparent' : 'rgba(147,197,253,0.2)'};
+  color: ${p => p.$disabled ? '#2d5a42' : '#fff'};
   display: flex; align-items: center; justify-content: center;
   cursor: ${p => p.$disabled ? 'default' : 'pointer'};
   flex-shrink: 0;
   transition: all 0.15s;
-  &:not([disabled]):hover { filter: brightness(1.12); transform: scale(1.05); }
+  &:not([disabled]):hover { filter: brightness(1.1); transform: scale(1.06); }
 `;
 
 const SUGGESTIONS = [

@@ -11,7 +11,7 @@ export const ASSINATURAS = [
   { key: 'max',           label: 'Max',               simpleIconsSlug: 'hbo',         iconColor: '002BE7', iconFallback: '🎥' },
   { key: 'youtubepremium',label: 'YouTube Premium',   simpleIconsSlug: 'youtube',     iconColor: 'FF0000', iconFallback: '▶️' },
   { key: 'applemusic',    label: 'Apple Music',       simpleIconsSlug: 'applemusic',  iconColor: 'FA243C', iconFallback: '🎶' },
-  { key: 'chatgptplus',   label: 'ChatGPT Plus',      simpleIconsSlug: 'openai',      iconColor: '000000', iconFallback: '🤖' },
+  { key: 'chatgptplus',   label: 'ChatGPT Plus',      simpleIconsSlug: null,          iconColor: null,     iconFallback: '🤖' },
   { key: 'googleone',     label: 'Google One',        simpleIconsSlug: 'google',      iconColor: '4285F4', iconFallback: '☁️' },
   { key: 'adobe',         label: 'Adobe',             simpleIconsSlug: 'adobe',       iconColor: 'FF0000', iconFallback: '🎨' },
   { key: 'outros',        label: 'Outros',            simpleIconsSlug: null,          iconColor: null,     iconFallback: '📦' },

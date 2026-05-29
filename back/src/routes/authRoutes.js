@@ -22,6 +22,9 @@ router.post('/login', loginLimiter, authController.login);
 // O authMiddleware valida o token antes de deixar o controller responder
 router.get('/me', authMiddleware, authController.me);
 
+// --- RESEND: verificação de e-mail (desativado temporariamente) ---
+// router.get('/verify-email', authController.verifyEmail);
+
 // Rota para solicitar link de redefinição: POST /api/auth/forgot-password
 router.post('/forgot-password', authController.forgotPassword);
 

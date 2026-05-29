@@ -3,7 +3,8 @@
 // Depende de: assinaturas.js, subscriptionService.js, relatorioCalc.js
 
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import { createPortal } from 'react-dom';
+import styled, { keyframes } from 'styled-components';
 import { iconeUrlAssinatura, iconeFallbackAssinatura, labelAssinatura } from '../constants/assinaturas';
 import { lancarCobranca } from '../services/subscriptionService';
 import { formatCurrencyBRL } from '../utils/relatorioCalc';
@@ -11,8 +12,13 @@ import { formatCurrencyBRL } from '../utils/relatorioCalc';
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(2, 18, 12, 0.88) 0%,
+    rgba(1, 10, 7, 0.96) 100%
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -20,14 +26,31 @@ const Overlay = styled.div`
 `;
 
 const Modal = styled.div`
-  background: var(--dash-shell);
+  background: var(--dash-shell, #000000);
   border: 1px solid var(--dash-primary-strong);
-  border-radius: 16px;
+  border-radius: 18px;
   width: 420px;
   max-width: calc(100vw - 32px);
-  padding: 24px;
-  box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);
+  padding: 28px;
   position: relative;
+  box-shadow:
+    0 0 0 1px rgba(96, 165, 250, 0.08),
+    0 8px 32px rgba(0, 8, 4, 0.72),
+    0 0 64px rgba(59, 130, 246, 0.18),
+    inset 0 1px 0 rgba(96, 165, 250, 0.12);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    background: radial-gradient(
+      ellipse at 50% 0%,
+      rgba(96, 165, 250, 0.07) 0%,
+      transparent 65%
+    );
+    pointer-events: none;
+  }
 `;
 
 const CloseBtn = styled.button`
@@ -139,18 +162,65 @@ const Input = styled.input`
   }
 `;
 
+const shimmer = keyframes`
+  0%   { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(220%)  skewX(-12deg); }
+`;
+
 const ConfirmBtn = styled.button`
   width: 100%;
-  padding: 11px;
-  background: linear-gradient(90deg, var(--dash-primary-strong), var(--dash-primary));
-  border: none;
-  border-radius: 8px;
-  color: #fff;
+  padding: 12px;
+  background: var(--btn-bg, linear-gradient(135deg, #2563eb 0%, #60a5fa 100%));
+  border: 1px solid var(--btn-border, transparent);
+  border-radius: 10px;
+  color: var(--btn-text, #fff);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 4px;
-  box-shadow: 0 0 16px rgba(59, 130, 246, 0.3);
+  margin-top: 6px;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.2px;
+  box-shadow: var(--btn-shadow, 0 4px 14px rgba(59,130,246,0.35));
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s ease,
+    filter 0.22s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.22),
+      transparent
+    );
+    transform: translateX(-100%) skewX(-12deg);
+  }
+
+  &:not(:disabled):hover {
+    transform: translateY(-3px) scale(1.005);
+    filter: brightness(1.08);
+    box-shadow:
+      0 8px 26px rgba(59, 130, 246, 0.48),
+      0 3px 8px rgba(0, 8, 4, 0.36),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
+    &::after { animation: ${shimmer} 0.55s ease forwards; }
+  }
+
+  &:not(:disabled):active {
+    transform: translateY(-1px) scale(1.002);
+    box-shadow:
+      0 3px 12px rgba(59, 130, 246, 0.30),
+      0 1px 3px rgba(0, 8, 4, 0.25);
+    transition-duration: 0.08s;
+  }
 
   &:disabled {
     opacity: 0.6;
@@ -191,7 +261,7 @@ export default function LancarCobrancaModal({ subscription, onClose, onLancado, 
     }
   }
 
-  return (
+  return createPortal(
     <Overlay onClick={onClose}>
       <Modal onClick={(e) => e.stopPropagation()}>
         <CloseBtn onClick={onClose}>✕</CloseBtn>
@@ -249,6 +319,7 @@ export default function LancarCobrancaModal({ subscription, onClose, onLancado, 
           </ConfirmBtn>
         </form>
       </Modal>
-    </Overlay>
+    </Overlay>,
+    document.body,
   );
 }

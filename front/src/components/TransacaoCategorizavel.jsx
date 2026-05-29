@@ -116,8 +116,8 @@ const ToggleButton = styled.button`
   transition: transform 0.18s ease, filter 0.18s ease;
   background: ${(props) => (props.$included
     ? 'rgba(239, 68, 68, 0.14)'
-    : 'linear-gradient(135deg, #06b6d4 0%, var(--dash-primary) 52%, #4f46e5 100%)')};
-  color: ${(props) => (props.$included ? '#dc2626' : '#ffffff')};
+    : 'var(--btn-bg, linear-gradient(135deg, #2563eb 0%, #60a5fa 100%))')};
+  color: ${(props) => (props.$included ? '#dc2626' : 'var(--btn-text, #ffffff)')};
 
   &:hover {
     transform: translateY(-1px);

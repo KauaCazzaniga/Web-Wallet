@@ -39,12 +39,14 @@ const TxHeader = styled(PanelHeader)`
 `;
 const TextLink = styled.button`
   display: inline-flex; align-items: center; gap: 0.45rem;
-  font-size: 0.82rem; color: #ffffff; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
-  border: none; cursor: pointer; padding: 0.7rem 0.95rem; border-radius: 999px;
-  background: linear-gradient(135deg, #06b6d4 0%, var(--dash-primary) 52%, #4f46e5 100%);
-  box-shadow: 0 14px 28px rgba(37,99,235,0.24);
+  font-size: 0.78rem; color: #fff; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  cursor: pointer; padding: 0.6rem 1rem; border-radius: 999px;
+  background: var(--btn-bg, linear-gradient(135deg,#2563eb 0%,#60a5fa 100%));
+  color: var(--btn-text, #fff);
+  border: 1px solid var(--btn-border, rgba(147,197,253,0.2));
+  box-shadow: var(--btn-shadow, 0 6px 20px rgba(59,130,246,0.35)); font-family: inherit;
   transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
-  &:hover { transform: translateY(-4px) scale(1.03); filter: brightness(1.06); }
+  &:hover { transform: translateY(-3px) scale(1.03); filter: brightness(1.04); box-shadow: var(--btn-hover-shadow, 0 10px 28px rgba(59,130,246,0.5)); }
 `;
 const Table = styled.table`
   width: 100%; text-align: left; border-collapse: collapse;
@@ -283,7 +285,7 @@ export default function TransactionList({
               <tr
                 key={tx._id}
                 style={highlighted ? {
-                  background: 'rgba(59,130,246,0.10)',
+                  background: 'rgba(96,165,250,0.10)',
                   boxShadow: 'inset 0 0 0 1px var(--dash-primary)',
                 } : undefined}
               >

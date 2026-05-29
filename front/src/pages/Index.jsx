@@ -36,8 +36,8 @@ const Page = styled.main`
   min-height: 100vh;
   overflow: hidden;
   background: ${p => p.$dark
-    ? 'radial-gradient(circle at top, rgba(14,165,233,.18), transparent 26%), linear-gradient(180deg, #030814 0%, #071122 48%, #040b17 100%)'
-    : 'radial-gradient(circle at top, rgba(37,99,235,.16), transparent 26%), linear-gradient(180deg, #eef5ff 0%, #f8fbff 48%, #edf4ff 100%)'};
+    ? 'radial-gradient(ellipse at 12% 18%, rgba(96,165,250,0.10), transparent 36%), radial-gradient(ellipse at 88% 72%, rgba(59,130,246,0.06), transparent 32%), linear-gradient(180deg, #000000 0%, #02030a 48%, #000000 100%)'
+    : '#ffffff'};
   color: ${p => p.$dark ? '#eff6ff' : '#0f172a'};
 `;
 
@@ -56,8 +56,8 @@ const Header = styled.header`
   margin-bottom: 3rem;
   border-radius: 1.25rem;
   backdrop-filter: blur(18px);
-  background: ${p => p.$dark ? 'rgba(6,14,28,.72)' : 'rgba(255,255,255,.74)'};
-  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.18)' : '#d8e3f3'};
+  background: ${p => p.$dark ? 'rgba(3,6,14,.72)' : 'rgba(255,255,255,.74)'};
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.18)' : '#d1fae5'};
   box-shadow: ${p => p.$dark ? '0 20px 45px rgba(2,12,27,.38)' : '0 18px 40px rgba(15,23,42,.08)'};
 
   @media (max-width: 920px) {
@@ -80,8 +80,8 @@ const Brand = styled(Link)`
     border-radius: 1rem;
     display: grid;
     place-items: center;
-    background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 45%, #4f46e5 100%);
-    box-shadow: 0 12px 28px rgba(37,99,235,.3);
+    background: linear-gradient(135deg, #93c5fd 0%, #60a5fa 45%, #3b82f6 100%);
+    box-shadow: 0 12px 28px rgba(96,165,250,.3);
   }
 
   span {
@@ -129,9 +129,9 @@ const ThemeButton = styled.button`
   width: 2.9rem;
   height: 2.9rem;
   border-radius: 999px;
-  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.18)' : '#d8e3f3'};
-  background: ${p => p.$dark ? 'rgba(10,24,44,.88)' : '#fff'};
-  color: ${p => p.$dark ? '#eff6ff' : '#0f172a'};
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.18)' : '#d1fae5'};
+  background: ${p => p.$dark ? 'rgba(3,6,14,.88)' : '#fff'};
+  color: ${p => p.$dark ? '#eff6ff' : '#064e3b'};
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -143,14 +143,20 @@ const HeaderLink = styled(Link)`
   padding: .82rem 1rem;
   border-radius: 0.95rem;
   font-weight: 800;
-  color: ${p => p.$ghost ? (p.$dark ? '#d9e6ff' : '#173155') : '#fff'};
+  color: ${p => p.$ghost
+    ? (p.$dark ? '#d9e6ff' : '#173155')
+    : (p.$dark ? '#ffffff' : '#1e40af')};
   background: ${p => p.$ghost
-    ? (p.$dark ? 'rgba(10,24,44,.85)' : '#fff')
-    : 'linear-gradient(135deg, #06b6d4 0%, #2563eb 52%, #4f46e5 100%)'};
-  border: 1px solid ${p => p.$ghost ? (p.$dark ? 'rgba(96,165,250,.16)' : '#d8e3f3') : 'transparent'};
+    ? (p.$dark ? 'rgba(10,24,44,.85)' : '#ffffff')
+    : (p.$dark
+        ? 'linear-gradient(135deg, #2563eb 0%, #60a5fa 100%)'
+        : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)')};
+  border: 1px solid ${p => p.$ghost
+    ? (p.$dark ? 'rgba(96,165,250,.16)' : '#e2e8f0')
+    : (p.$dark ? 'transparent' : 'rgba(147,197,253,0.6)')};
   box-shadow: ${p => p.$ghost
-    ? (p.$dark ? '0 14px 30px rgba(2,12,27,.28)' : '0 16px 28px rgba(15,23,42,.07)')
-    : '0 18px 36px rgba(37,99,235,.28)'};
+    ? (p.$dark ? '0 14px 30px rgba(0,4,16,.28)' : '0 10px 24px rgba(15,23,42,.06)')
+    : (p.$dark ? '0 18px 36px rgba(59,130,246,.30)' : '0 8px 20px rgba(96,165,250,.22)')};
   ${hoverLift}
 `;
 
@@ -181,7 +187,7 @@ const Badge = styled.div`
   font-weight: 800;
   color: ${p => p.$dark ? '#d7e8ff' : '#153456'};
   background: ${p => p.$dark ? 'rgba(8,25,49,.88)' : 'rgba(255,255,255,.86)'};
-  border: 1px solid ${p => p.$dark ? 'rgba(56,189,248,.2)' : 'rgba(37,99,235,.15)'};
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.2)' : 'rgba(96,165,250,.15)'};
   max-width: 100%;
   flex-wrap: wrap;
 `;
@@ -195,7 +201,7 @@ const HeroTitle = styled.h1`
 
   span {
     display: block;
-    background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 38%, #4f46e5 72%, #38bdf8 100%);
+    background: linear-gradient(135deg, #bfdbfe 0%, #60a5fa 38%, #3b82f6 72%, #93c5fd 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
@@ -224,14 +230,20 @@ const CTA = styled(Link)`
   padding: 1rem 1.3rem;
   border-radius: 1rem;
   font-weight: 800;
-  color: ${p => p.$secondary ? (p.$dark ? '#d9e6ff' : '#173155') : '#fff'};
+  color: ${p => p.$secondary
+    ? (p.$dark ? '#d9e6ff' : '#173155')
+    : (p.$dark ? '#ffffff' : '#1e40af')};
   background: ${p => p.$secondary
-    ? (p.$dark ? 'rgba(10,24,44,.85)' : '#fff')
-    : 'linear-gradient(135deg, #06b6d4 0%, #2563eb 48%, #4f46e5 100%)'};
-  border: 1px solid ${p => p.$secondary ? (p.$dark ? 'rgba(96,165,250,.16)' : '#d8e3f3') : 'transparent'};
+    ? (p.$dark ? 'rgba(10,24,44,.85)' : '#ffffff')
+    : (p.$dark
+        ? 'linear-gradient(135deg, #2563eb 0%, #60a5fa 100%)'
+        : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)')};
+  border: 1px solid ${p => p.$secondary
+    ? (p.$dark ? 'rgba(96,165,250,.16)' : '#e2e8f0')
+    : (p.$dark ? 'transparent' : 'rgba(147,197,253,0.6)')};
   box-shadow: ${p => p.$secondary
-    ? (p.$dark ? '0 14px 30px rgba(2,12,27,.28)' : '0 16px 28px rgba(15,23,42,.07)')
-    : '0 18px 36px rgba(37,99,235,.28)'};
+    ? (p.$dark ? '0 14px 30px rgba(0,4,16,.28)' : '0 10px 24px rgba(15,23,42,.06)')
+    : (p.$dark ? '0 18px 36px rgba(59,130,246,.30)' : '0 8px 20px rgba(96,165,250,.22)')};
   ${hoverLift}
   ${p => p.$float && css`
     animation: ${float} 6.4s ease-in-out infinite;
@@ -256,7 +268,7 @@ const Signal = styled.div`
   padding: .74rem .95rem;
   border-radius: 999px;
   background: ${p => p.$dark ? 'rgba(9,22,40,.78)' : 'rgba(255,255,255,.86)'};
-  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.14)' : 'rgba(148,163,184,.14)'};
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.14)' : 'rgba(96,165,250,.12)'};
   color: ${p => p.$dark ? '#d3e1fb' : '#244267'};
   font-size: .84rem;
   font-weight: 800;
@@ -311,8 +323,8 @@ const LiveChipLabel = styled.div`
     width: .72rem;
     height: .72rem;
     border-radius: 999px;
-    background: linear-gradient(135deg, #22d3ee 0%, #2563eb 68%, #4f46e5 100%);
-    box-shadow: 0 0 0 6px rgba(59,130,246,.14);
+    background: linear-gradient(135deg, #bfdbfe 0%, #60a5fa 68%, #3b82f6 100%);
+    box-shadow: 0 0 0 6px rgba(96,165,250,.14);
     flex: 0 0 auto;
   }
 `;
@@ -329,7 +341,7 @@ const LiveChipValue = styled.div`
 const LiveChipDelta = styled.small`
   display: block;
   margin-top: .35rem;
-  color: ${p => p.$dark ? '#7dd3fc' : '#2563eb'};
+  color: ${p => p.$dark ? '#bfdbfe' : '#3b82f6'};
   font-weight: 800;
   line-height: 1.3;
 `;
@@ -339,8 +351,8 @@ const Mock = styled.div`
   overflow: hidden;
   border-radius: 1.8rem;
   padding: 1.4rem;
-  background: ${p => p.$dark ? 'rgba(4,13,26,.86)' : 'rgba(255,255,255,.9)'};
-  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.18)' : 'rgba(148,163,184,.16)'};
+  background: ${p => p.$dark ? 'rgba(4,8,18,.88)' : 'rgba(255,255,255,.9)'};
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.18)' : 'rgba(96,165,250,.12)'};
   box-shadow: ${p => p.$dark ? '0 30px 70px rgba(2,12,27,.48)' : '0 30px 70px rgba(15,23,42,.12)'};
   backdrop-filter: blur(18px);
 
@@ -380,14 +392,14 @@ const Metric = styled.div`
   padding: 1.1rem 1.15rem;
   border-radius: 1.1rem;
   background: ${p => p.$highlight
-    ? 'linear-gradient(135deg, rgba(14,165,233,.26), rgba(37,99,235,.34), rgba(79,70,229,.28))'
-    : (p.$dark ? 'rgba(9,22,40,.88)' : '#f8fbff')};
-  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.14)' : '#dbe7f6'};
+    ? 'linear-gradient(135deg, rgba(96,165,250,.22), rgba(59,130,246,.30), rgba(30,58,138,.28))'
+    : (p.$dark ? 'rgba(4,8,18,.88)' : '#f0fdf4')};
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.14)' : '#d1fae5'};
   display: flex;
   flex-direction: column;
   justify-content: center;
   box-shadow: ${p => p.$highlight
-    ? '0 18px 34px rgba(37,99,235,.2)'
+    ? '0 18px 34px rgba(96,165,250,.2)'
     : 'none'};
 
   small {
@@ -425,8 +437,8 @@ const MockGrid = styled.div`
 const Widget = styled.div`
   border-radius: 1.3rem;
   padding: 1.1rem;
-  background: ${p => p.$dark ? 'rgba(8,19,37,.92)' : 'rgba(244,248,255,.95)'};
-  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.14)' : '#dbe7f6'};
+  background: ${p => p.$dark ? 'rgba(4,8,18,.92)' : 'rgba(240,253,244,.95)'};
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.14)' : '#d1fae5'};
   min-height: 23rem;
   ${hoverLift}
 
@@ -451,8 +463,8 @@ const Ring = styled.div`
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle, ${p => p.$dark ? '#07111f' : '#fff'} 0 57%, transparent 58%),
-    conic-gradient(#22d3ee 0 26%, #2563eb 26% 68%, rgba(148,163,184,.18) 68% 100%);
+    radial-gradient(circle, ${p => p.$dark ? '#03060e' : '#fff'} 0 57%, transparent 58%),
+    conic-gradient(#93c5fd 0 26%, #60a5fa 26% 68%, rgba(96,165,250,.18) 68% 100%);
 `;
 
 const Flow = styled.div`
@@ -468,7 +480,7 @@ const FlowRow = styled.div`
   padding: .85rem .9rem;
   border-radius: 1rem;
   background: ${p => p.$dark ? 'rgba(13,29,54,.8)' : '#fff'};
-  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.12)' : '#e0e9f7'};
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.12)' : '#d1fae5'};
 
   strong { font-size: .94rem; }
   > strong {
@@ -517,7 +529,7 @@ const SectionHead = styled.div`
     align-items: center;
     gap: .45rem;
     margin-bottom: .75rem;
-    color: ${p => p.$dark ? '#7dd3fc' : '#0f5dc5'};
+    color: ${p => p.$dark ? '#bfdbfe' : '#3b82f6'};
     font-size: .78rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -555,7 +567,7 @@ const FeatureCard = styled.article`
   padding: 1.2rem;
   border-radius: 1.35rem;
   background: ${p => p.$dark ? 'rgba(6,17,33,.88)' : 'rgba(255,255,255,.92)'};
-  border: 1px solid ${p => p.$active ? 'rgba(59,130,246,.38)' : (p.$dark ? 'rgba(96,165,250,.12)' : '#dde7f5')};
+  border: 1px solid ${p => p.$active ? 'rgba(96,165,250,.38)' : (p.$dark ? 'rgba(96,165,250,.12)' : '#d1fae5')};
   box-shadow: ${p => p.$dark ? '0 18px 48px rgba(2,12,27,.32)' : '0 18px 40px rgba(15,23,42,.08)'};
   transform: translateY(${p => p.$active ? '-6px' : '0'});
   transition: transform .25s ease, border-color .25s ease;
@@ -580,8 +592,8 @@ const IconTile = styled.div`
   border-radius: 1rem;
   display: grid;
   place-items: center;
-  background: ${p => p.$dark ? 'rgba(14,165,233,.12)' : 'rgba(37,99,235,.08)'};
-  color: ${p => p.$dark ? '#7dd3fc' : '#1d4ed8'};
+  background: ${p => p.$dark ? 'rgba(96,165,250,.12)' : 'rgba(96,165,250,.08)'};
+  color: ${p => p.$dark ? '#bfdbfe' : '#3b82f6'};
   ${hoverLift}
 `;
 
@@ -599,8 +611,8 @@ const Panel = styled.div`
   padding: 1.35rem;
   border-radius: 1.45rem;
   background: ${p => p.$dark ? 'rgba(6,18,34,.88)' : 'rgba(255,255,255,.92)'};
-  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.14)' : '#dbe7f6'};
-  box-shadow: ${p => p.$dark ? '0 20px 48px rgba(2,12,27,.3)' : '0 20px 42px rgba(15,23,42,.08)'};
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.14)' : '#d1fae5'};
+  box-shadow: ${p => p.$dark ? '0 20px 48px rgba(0,6,3,.3)' : '0 20px 42px rgba(6,78,59,.08)'};
   ${hoverLift}
 `;
 
@@ -636,7 +648,7 @@ const BarRow = styled.div`
     height: 100%;
     width: ${p => p.$width}%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #22d3ee 0%, #3b82f6 45%, #4f46e5 100%);
+    background: linear-gradient(90deg, #bfdbfe 0%, #60a5fa 45%, #3b82f6 100%);
   }
   ${hoverLift}
 `;
@@ -655,7 +667,7 @@ const SignalCard = styled.div`
   padding: .95rem 1rem;
   border-radius: 1rem;
   background: ${p => p.$dark ? 'rgba(11,25,46,.88)' : '#f8fbff'};
-  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.12)' : '#dbe7f6'};
+  border: 1px solid ${p => p.$dark ? 'rgba(96,165,250,.12)' : '#d1fae5'};
 
   strong {
     display: block;
@@ -783,7 +795,7 @@ export default function Index() {
 
                 <MockGrid>
                   <Widget $dark={isDark}>
-                    <WidgetTitle><span>Como estão suas metas</span><BarChart3 size={16} color={isDark ? '#7dd3fc' : '#2563eb'} /></WidgetTitle>
+                    <WidgetTitle><span>Como estão suas metas</span><BarChart3 size={16} color={isDark ? '#bfdbfe' : '#3b82f6'} /></WidgetTitle>
                     <Ring $dark={isDark}>
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '1.55rem', fontWeight: 800 }}>68%</div>
@@ -793,7 +805,7 @@ export default function Index() {
                   </Widget>
 
                   <Widget $dark={isDark}>
-                    <WidgetTitle><span>Entradas e saídas recentes</span><Wallet size={16} color={isDark ? '#7dd3fc' : '#2563eb'} /></WidgetTitle>
+                    <WidgetTitle><span>Entradas e saídas recentes</span><Wallet size={16} color={isDark ? '#bfdbfe' : '#3b82f6'} /></WidgetTitle>
                     <Flow>
                       <FlowRow $dark={isDark}>
                         <Dot $bg="#22c55e" $ring="rgba(34,197,94,.18)" />
@@ -848,7 +860,7 @@ export default function Index() {
 
           <DoubleGrid>
             <Panel $dark={isDark}>
-              <WidgetTitle><span>Distribuição por categoria</span><Zap size={16} color={isDark ? '#7dd3fc' : '#2563eb'} /></WidgetTitle>
+              <WidgetTitle><span>Distribuição por categoria</span><Zap size={16} color={isDark ? '#bfdbfe' : '#3b82f6'} /></WidgetTitle>
               <Bars>
                 <BarRow $dark={isDark} $width={78}>
                   <div className="bar-label"><span>Moradia</span><span>78%</span></div>
@@ -870,7 +882,7 @@ export default function Index() {
             </Panel>
 
             <Panel $dark={isDark}>
-              <WidgetTitle><span>Painel de sinais</span><ShieldCheck size={16} color={isDark ? '#7dd3fc' : '#2563eb'} /></WidgetTitle>
+              <WidgetTitle><span>Painel de sinais</span><ShieldCheck size={16} color={isDark ? '#bfdbfe' : '#3b82f6'} /></WidgetTitle>
               <SignalBoard>
                 <SignalCard $dark={isDark}>
                   <div><strong>Dashboard sincronizado</strong><small>Metas, resumo e recentes atualizados</small></div>
@@ -878,11 +890,11 @@ export default function Index() {
                 </SignalCard>
                 <SignalCard $dark={isDark}>
                   <div><strong>Alertas de orçamento</strong><small>Barras mostram aproximação do limite</small></div>
-                  <Sparkles size={18} color="#38bdf8" />
+                  <Sparkles size={18} color="#60a5fa" />
                 </SignalCard>
                 <SignalCard $dark={isDark}>
                   <div><strong>Histórico completo</strong><small>odas as transações registradas e filtráveis.</small></div>
-                  <ShieldCheck size={18} color="#6366f1" />
+                  <ShieldCheck size={18} color="#3b82f6" />
                 </SignalCard>
               </SignalBoard>
             </Panel>

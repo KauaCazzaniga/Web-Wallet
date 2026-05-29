@@ -3,7 +3,7 @@
 // Depende de: subscriptionService.js, assinaturas.js, SubscriptionCard, SubscriptionFormModal, LancarCobrancaModal
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { getSubscriptions, deleteSubscription } from '../services/subscriptionService';
 import { formatCurrencyBRL } from '../utils/relatorioCalc';
 import SubscriptionCard from './SubscriptionCard';
@@ -130,20 +130,89 @@ const Grid = styled.div`
   margin-bottom: 14px;
 `;
 
+const shimmer = keyframes`
+  0%   { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(220%)  skewX(-12deg); }
+`;
+
 const AddBtn = styled.button`
   width: 100%;
-  padding: 10px;
-  background: transparent;
-  border: 1px dashed var(--dash-primary-strong);
-  border-radius: 8px;
+  padding: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(96, 165, 250, 0.06) 0%,
+    rgba(59, 130, 246, 0.10) 100%
+  );
+  border: 1px solid var(--dash-primary-strong);
+  border-radius: 10px;
   color: var(--dash-primary);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.2px;
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s ease,
+    background 0.22s ease,
+    border-color 0.22s ease,
+    color 0.22s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(96, 165, 250, 0.0) 0%,
+      rgba(96, 165, 250, 0.14) 50%,
+      rgba(96, 165, 250, 0.0) 100%
+    );
+    opacity: 0;
+    transition: opacity 0.22s ease;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(147, 197, 253, 0.22),
+      transparent
+    );
+    transform: translateX(-100%) skewX(-12deg);
+  }
 
   &:hover {
-    background: var(--dash-primary-soft);
+    transform: translateY(-3px) scale(1.005);
+    background: linear-gradient(
+      135deg,
+      rgba(96, 165, 250, 0.14) 0%,
+      rgba(59, 130, 246, 0.20) 100%
+    );
+    border-color: var(--dash-primary);
+    color: var(--dash-primary);
+    box-shadow:
+      0 6px 20px rgba(59, 130, 246, 0.30),
+      0 2px 6px rgba(0, 8, 4, 0.28),
+      inset 0 1px 0 rgba(147, 197, 253, 0.18);
+
+    &::before { opacity: 1; }
+    &::after  { animation: ${shimmer} 0.55s ease forwards; }
+  }
+
+  &:active {
+    transform: translateY(-1px) scale(1.002);
+    box-shadow:
+      0 3px 10px rgba(59, 130, 246, 0.22),
+      0 1px 3px rgba(0, 8, 4, 0.2);
+    transition-duration: 0.08s;
   }
 `;
 
