@@ -50,7 +50,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response && error.response.status === 401) {
+        const url = error.config?.url || '';
+        const isAiRoute = url.startsWith('/ai/') || url.includes('/ai/');
+        if (error.response?.status === 401 && !isAiRoute) {
             console.error('Token invalido ou expirado. Refaca o login.');
         }
 

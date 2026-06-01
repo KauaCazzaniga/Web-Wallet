@@ -5,7 +5,10 @@ const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions';
 
 const repassarErro = (err, res) => {
-    const status = err.response?.status || 502;
+    const providerStatus = err.response?.status || 502;
+    // 401/403 from the AI provider mean a bad server-side API key, not a user auth failure.
+    // Forwarding them as-is would trigger the frontend's JWT-expired interceptor incorrectly.
+    const status = [401, 403].includes(providerStatus) ? 502 : providerStatus;
     const body = err.response?.data || { error: err.message };
     return res.status(status).json(body);
 };
