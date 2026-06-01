@@ -4,10 +4,6 @@ export const normalizeApiBaseUrl = (rawBaseUrl) => {
     const fallbackBaseUrl = 'http://localhost:3000/api';
 
     if (!rawBaseUrl) {
-        if (typeof window !== 'undefined' && window.location?.origin) {
-            return `${window.location.origin}/api`;
-        }
-
         return fallbackBaseUrl;
     }
 

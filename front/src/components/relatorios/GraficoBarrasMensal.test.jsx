@@ -158,6 +158,35 @@ describe('GraficoBarrasMensal — integração ChartTooltip', () => {
   });
 });
 
+// ── Guards defensivos (adicionados) ──────────────────────────────────────────
+
+describe('GraficoBarrasMensal — guards de array', () => {
+  it('retorna null quando data e array vazio', () => {
+    const { container } = render(<GraficoBarrasMensal data={[]} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('retorna null sem prop data (usa default [])', () => {
+    const { container } = render(<GraficoBarrasMensal />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('retorna null quando data nao e array (objeto)', () => {
+    const { container } = render(<GraficoBarrasMensal data={{ mes: '2026-01' }} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('retorna null quando data e null', () => {
+    const { container } = render(<GraficoBarrasMensal data={null} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('renderiza o card quando data tem ao menos um item', () => {
+    render(<GraficoBarrasMensal data={sampleData} mediaDespesas={3000} />);
+    expect(screen.getByText('Gastos por mês')).toBeInTheDocument();
+  });
+});
+
 // ── ChartTooltip unitário — formatter ────────────────────────────────────────
 
 describe('ChartTooltip — formatter de moeda', () => {

@@ -80,7 +80,8 @@ const CustomTooltip = ({ active, payload }) => {
   );
 };
 
-export default function GraficoBarrasMensal({ data, mediaDespesas }) {
+export default function GraficoBarrasMensal({ data = [], mediaDespesas = 0 }) {
+  if (!Array.isArray(data) || data.length === 0) return null;
   return (
     <Card>
       <Head>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Home, FileText, Settings, LogOut, Moon, SunMedium, Wallet,
   Plus, Pencil, Trash2, Check, X, Download, Tag, Target,
@@ -192,12 +192,12 @@ const LogoutButton = styled.button`
   &:hover { filter: brightness(1.05); }
 `;
 const ActiveBar = styled.div`
-  position: absolute; left: 0; width: 4px; height: 2.6rem;
-  border-radius: 0 5px 5px 0;
+  position: absolute; left: 0; width: 3px; height: 2.6rem;
+  border-radius: 0 6px 6px 0;
   background: linear-gradient(180deg, #bfdbfe 0%, #60a5fa 100%);
-  box-shadow: 0 0 18px rgba(96, 165, 250, 0.7), 0 0 8px rgba(59, 130, 246, 0.45);
+  box-shadow: 0 0 20px rgba(96, 165, 250, 0.65), 0 0 8px rgba(59, 130, 246, 0.4);
   transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
-  top: ${p => p.$index * 2.85}rem;
+  top: ${p => p.$index * (2.6 + 0.25)}rem;
   opacity: ${p => p.$index >= 0 ? 1 : 0};
 `;
 
@@ -227,7 +227,10 @@ const MainContent = styled.main`flex: 1; display: flex; flex-direction: column; 
 const ContentArea = styled.div`
   flex: 1; padding: 2rem 2.5rem; overflow-y: auto;
   @media (max-width: 1024px) { padding: 1.5rem; }
-  @media (max-width: 768px)  { padding: 1rem; }
+  @media (max-width: 768px)  {
+    padding: 1rem;
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
 `;
 const ContentWrapper = styled.div`max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem;`;
 
@@ -1359,13 +1362,53 @@ function ExportSection({ userKey }) {
   );
 }
 
+const BottomNavBar = styled.nav`
+  display: none;
+  @media (max-width: 768px) {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 500;
+    background: ${p => p.$dark ? 'rgba(5, 12, 26, 0.97)' : 'rgba(255, 255, 255, 0.97)'};
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--cfg-border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+`;
+const BottomNavItem = styled.button`
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  padding: 0.75rem 0; border: none; background: transparent;
+  color: ${p => p.$active ? 'var(--cfg-primary)' : 'var(--cfg-muted)'};
+  font-size: 0.6rem; font-weight: ${p => p.$active ? '600' : '400'};
+  cursor: pointer; transition: color 0.15s;
+  svg { transition: transform 0.2s ease; }
+  &:active svg { transform: scale(0.88); }
+`;
+
+const CFG_NAV_ITEMS = [
+  { id: 'dashboard', icon: Home,       label: 'Dashboard',     path: '/dashboard' },
+  { id: 'invest',   icon: TrendingUp,  label: 'Investimentos', path: '/investimentos' },
+  { id: 'reports',  icon: FileText,    label: 'Relatórios',    path: '/relatorios' },
+  { id: 'settings', icon: Settings,    label: 'Configurações', path: '/configuracoes' },
+];
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function Configuracoes() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, user } = useContext(AuthContext);
   const { isDark, toggleTheme } = useContext(ThemeContext);
   const [section, setSection] = useState('categorias');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const activeTab = React.useMemo(() => {
+    if (location.pathname.startsWith('/investimentos')) return 'invest';
+    if (location.pathname.startsWith('/relatorios')) return 'reports';
+    if (location.pathname.startsWith('/configuracoes')) return 'settings';
+    return 'dashboard';
+  }, [location.pathname]);
 
   const userKey = user?._id || user?.email || 'anon';
 
@@ -1457,6 +1500,19 @@ export default function Configuracoes() {
           </ContentWrapper>
         </ContentArea>
       </MainContent>
+
+      <BottomNavBar $dark={isDark}>
+        {CFG_NAV_ITEMS.map(item => (
+          <BottomNavItem
+            key={item.id}
+            $active={activeTab === item.id}
+            onClick={() => navigate(item.path)}
+          >
+            <item.icon size={20} />
+            {item.label}
+          </BottomNavItem>
+        ))}
+      </BottomNavBar>
     </AppContainer>
   );
 }

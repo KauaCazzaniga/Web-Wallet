@@ -965,15 +965,11 @@ export const parseBankStatement = async (textoExtraido) => {
   let resultado = await tentarProvider(PROVIDERS.gemini, textoCompactado, erros);
 
   if (!resultado) {
-    const erroGemini = erros.findLast((erro) => erro?.provider === 'gemini');
+    resultado = await tentarProvider(PROVIDERS.groq, textoCompactado, erros);
+  }
 
-    if (erroGemini?.status === 429) {
-      resultado = await tentarProvider(PROVIDERS.groq, textoCompactado, erros);
-    }
-
-    if (!resultado) {
-      resultado = await tentarProvider(PROVIDERS.mistral, textoCompactado, erros);
-    }
+  if (!resultado) {
+    resultado = await tentarProvider(PROVIDERS.mistral, textoCompactado, erros);
   }
 
   if (resultado?.transacoes?.length) {

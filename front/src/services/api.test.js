@@ -5,14 +5,21 @@ afterEach(() => {
 });
 
 describe('normalizeApiBaseUrl', () => {
-    it('usa a origem atual quando a variavel nao existe', async () => {
+    it('retorna localhost quando nenhum argumento e passado', async () => {
+        const { normalizeApiBaseUrl } = await import('./api');
+
+        expect(normalizeApiBaseUrl()).toBe('http://localhost:3000/api');
+    });
+
+    it('retorna localhost mesmo com window.location definido (sem usar origin)', async () => {
         vi.stubGlobal('window', {
             location: { origin: 'https://www.waltrix.com.br' },
         });
 
         const { normalizeApiBaseUrl } = await import('./api');
 
-        expect(normalizeApiBaseUrl()).toBe('https://www.waltrix.com.br/api');
+        // Após a correção, o fallback é sempre localhost — não usa window.location.origin
+        expect(normalizeApiBaseUrl()).toBe('http://localhost:3000/api');
     });
 
     it('mantem uma URL de API valida', async () => {

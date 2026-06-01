@@ -78,12 +78,13 @@ const CustomTooltip = ({ active, payload }) => {
  * @param {Array}  transacoes - Transações do período com categoria === 'Investimentos' (fonte: servidor)
  * @param {Array}  meses      - Array de "YYYY-MM" do período selecionado em Relatórios
  */
-export default function GraficoInvestimentos({ transacoes, meses }) {
+export default function GraficoInvestimentos({ transacoes = [], meses = [] }) {
   /**
    * Monta série temporal com investimento mensal e acumulado.
    * Usa data?.slice(0,7) como chave de mês para cada transação.
    */
   const chartData = useMemo(() => {
+    if (!Array.isArray(meses) || !Array.isArray(transacoes)) return [];
     const aportePorMes = meses.map((mes) => ({
       mes,
       aporte: transacoes
@@ -102,9 +103,10 @@ export default function GraficoInvestimentos({ transacoes, meses }) {
   }, [transacoes, meses]);
 
   /** Transações individuais de investimento no período, mais recentes primeiro */
-  const transacoesPeriodo = useMemo(() =>
-    [...transacoes].sort((a, b) => String(b.data || '').localeCompare(String(a.data || ''))),
-  [transacoes]);
+  const transacoesPeriodo = useMemo(() => {
+    if (!Array.isArray(transacoes)) return [];
+    return [...transacoes].sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')));
+  }, [transacoes]);
 
   const totalPeriodo = transacoesPeriodo.reduce((s, tx) => s + Number(tx.valor || 0), 0);
 

@@ -1,5 +1,5 @@
 const express = require('express');
-const { rateLimit } = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const router = express.Router();
 const authMiddleware = require('../middlewares/auth');
 const aiController = require('../controllers/aiController');
@@ -9,7 +9,7 @@ const aiController = require('../controllers/aiController');
 const aiLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 15,
-    keyGenerator: (req) => req.usuarioId || req.ip,
+    keyGenerator: (req) => req.usuarioId || ipKeyGenerator(req),
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     message: { erro: 'Muitas requisições ao assistente. Aguarde um momento antes de enviar outra mensagem.' },

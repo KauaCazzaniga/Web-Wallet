@@ -75,7 +75,8 @@ const CustomTooltip = ({ active, payload }) => {
   );
 };
 
-export default function GraficoSaldoAcumulado({ data }) {
+export default function GraficoSaldoAcumulado({ data = [] }) {
+  if (!Array.isArray(data) || data.length === 0) return null;
   const hasNegative = data.some((item) => item.saldoAcumulado < 0);
   const stroke = hasNegative ? '#E24B4A' : '#378ADD';
   const fill = hasNegative ? 'rgba(226,75,74,0.15)' : 'rgba(55,138,221,0.15)';

@@ -96,10 +96,9 @@ describe('GraficoSaldoAcumulado — cor baseada em hasNegative', () => {
     expect(area.getAttribute('data-fill')).toBe('url(#saldoArea)');
   });
 
-  it('mantém azul com array de dados vazio (sem negativo)', () => {
-    render(<GraficoSaldoAcumulado data={[]} />);
-    const line = screen.getByTestId('line');
-    expect(line.getAttribute('data-stroke')).toBe('#378ADD');
+  it('retorna null com array de dados vazio (guard defensivo)', () => {
+    const { container } = render(<GraficoSaldoAcumulado data={[]} />);
+    expect(container.firstChild).toBeNull();
   });
 
   it('detecta negativo mesmo com apenas um item negativo no meio do array', () => {
@@ -177,5 +176,34 @@ describe('ChartTooltip — com saldo acumulado', () => {
       <ChartTooltip active={true} payload={[]} label="Jan" formatter={formatCurrencyBRL} />
     );
     expect(container.firstChild).toBeNull();
+  });
+});
+
+// ── Guards defensivos (adicionados) ──────────────────────────────────────────
+
+describe('GraficoSaldoAcumulado — guards de array', () => {
+  it('retorna null quando data e array vazio', () => {
+    const { container } = render(<GraficoSaldoAcumulado data={[]} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('retorna null sem prop data (usa default [])', () => {
+    const { container } = render(<GraficoSaldoAcumulado />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('retorna null quando data nao e array (objeto)', () => {
+    const { container } = render(<GraficoSaldoAcumulado data={{ mes: '2026-01' }} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('retorna null quando data e null', () => {
+    const { container } = render(<GraficoSaldoAcumulado data={null} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('renderiza normalmente quando data tem itens validos', () => {
+    render(<GraficoSaldoAcumulado data={dataPositivo} />);
+    expect(screen.getByTestId('composed-chart')).toBeInTheDocument();
   });
 });

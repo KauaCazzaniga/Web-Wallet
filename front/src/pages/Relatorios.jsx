@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FileText, Home, LogOut, Menu, Moon, Settings, SunMedium, Wallet, TrendingUp, Download } from 'lucide-react';
 
 import api from '../services/api';
@@ -225,7 +225,10 @@ const ContentArea = styled.div`
   flex: 1;
   padding: 1.75rem;
   overflow-y: auto;
-  @media (max-width: 768px) { padding: 1rem; }
+  @media (max-width: 768px) {
+    padding: 1rem;
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
 `;
 
 const ContentWrapper = styled.div`
@@ -296,12 +299,52 @@ const LoadingState = styled.div`
   color: var(--rel-muted);
 `;
 
+const BottomNavBar = styled.nav`
+  display: none;
+  @media (max-width: 768px) {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 500;
+    background: ${p => p.$dark ? 'rgba(5, 12, 26, 0.97)' : 'rgba(255, 255, 255, 0.97)'};
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--rel-border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+`;
+const BottomNavItem = styled.button`
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  padding: 0.75rem 0; border: none; background: transparent;
+  color: ${p => p.$active ? 'var(--rel-primary)' : 'var(--rel-muted)'};
+  font-size: 0.6rem; font-weight: ${p => p.$active ? '600' : '400'};
+  cursor: pointer; transition: color 0.15s;
+  svg { transition: transform 0.2s ease; }
+  &:active svg { transform: scale(0.88); }
+`;
+
+const NAV_ITEMS = [
+  { id: 'dashboard', icon: Home,       label: 'Dashboard',     path: '/dashboard' },
+  { id: 'invest',   icon: TrendingUp,  label: 'Investimentos', path: '/investimentos' },
+  { id: 'reports',  icon: FileText,    label: 'Relatórios',    path: '/relatorios' },
+  { id: 'settings', icon: Settings,    label: 'Configurações', path: '/configuracoes' },
+];
+
 
 export default function Relatorios() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useContext(AuthContext);
   const { isDark, toggleTheme } = useContext(ThemeContext);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const activeTab = useMemo(() => {
+    if (location.pathname.startsWith('/investimentos')) return 'invest';
+    if (location.pathname.startsWith('/relatorios')) return 'reports';
+    if (location.pathname.startsWith('/configuracoes')) return 'settings';
+    return 'dashboard';
+  }, [location.pathname]);
   const [periodo, setPeriodo] = useState(getDefaultReportRange);
   const [serverTransactions, setServerTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -430,19 +473,16 @@ export default function Relatorios() {
       <Sidebar $open={sidebarOpen}>
         <LogoArea><Wallet size={22} /> Waltrix</LogoArea>
         <NavMenu>
-          <ActiveBar $index={2} />
-          <NavItem onClick={() => { navigate('/dashboard'); setSidebarOpen(false); }}>
-            <Home size={17} /> Dashboard
-          </NavItem>
-          <NavItem onClick={() => { navigate('/investimentos'); setSidebarOpen(false); }}>
-            <TrendingUp size={17} /> Investimentos
-          </NavItem>
-          <NavItem $active onClick={() => { navigate('/relatorios'); setSidebarOpen(false); }}>
-            <FileText size={17} /> Relatórios
-          </NavItem>
-          <NavItem onClick={() => { navigate('/configuracoes'); setSidebarOpen(false); }}>
-            <Settings size={17} /> Configurações
-          </NavItem>
+          <ActiveBar $index={NAV_ITEMS.findIndex(n => n.id === activeTab)} />
+          {NAV_ITEMS.map(item => (
+            <NavItem
+              key={item.id}
+              $active={activeTab === item.id}
+              onClick={() => { navigate(item.path); setSidebarOpen(false); }}
+            >
+              <item.icon size={17} /> {item.label}
+            </NavItem>
+          ))}
         </NavMenu>
         <SidebarFooter>
           <ThemeButton onClick={toggleTheme} title="Alternar tema" $dark={isDark}>
@@ -527,6 +567,19 @@ export default function Relatorios() {
           </ContentWrapper>
         </ContentArea>
       </MainContent>
+
+      <BottomNavBar $dark={isDark}>
+        {NAV_ITEMS.map(item => (
+          <BottomNavItem
+            key={item.id}
+            $active={activeTab === item.id}
+            onClick={() => navigate(item.path)}
+          >
+            <item.icon size={20} />
+            {item.label}
+          </BottomNavItem>
+        ))}
+      </BottomNavBar>
     </AppContainer>
   );
 }
