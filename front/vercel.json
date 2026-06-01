@@ -1,6 +1,9 @@
 {
   "installCommand": "npm install --legacy-peer-deps",
-  "rewrites": [{ "source": "/:path*", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://web-wallet-orcin.vercel.app/api/:path*" },
+    { "source": "/:path*", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/assets/:file*",
