@@ -34,12 +34,23 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (name, email, password) => {
         try {
-            await api.post('/auth/register', { name, email, password });
-            return true;
+            const response = await api.post('/auth/register', { name, email, password });
+            // 201 (conta criada) ou 200 (já existia e não verificada → código reenviado)
+            return { success: true, ...response.data };
         } catch (error) {
             console.error("Erro no registro:", error);
-            return false;
+            return { success: false, error: error.response?.data?.error };
         }
+    };
+
+    const verifyEmail = async (email, code) => {
+        const response = await api.post('/auth/verify-email', { email, code });
+        return response.data;
+    };
+
+    const resendVerification = async (email) => {
+        const response = await api.post('/auth/resend-verification', { email });
+        return response.data;
     };
 
     const forgotPassword = async (email) => {
@@ -47,8 +58,8 @@ export const AuthProvider = ({ children }) => {
         return response.data;
     };
 
-    const resetPassword = async (token, newPassword) => {
-        const response = await api.post('/auth/reset-password', { token, newPassword });
+    const resetPassword = async (email, code, newPassword) => {
+        const response = await api.post('/auth/reset-password', { email, code, newPassword });
         return response.data;
     };
 
@@ -82,6 +93,8 @@ export const AuthProvider = ({ children }) => {
             logout,
             forgotPassword,
             resetPassword,
+            verifyEmail,
+            resendVerification,
         }}>
             {children}
         </AuthContext.Provider>

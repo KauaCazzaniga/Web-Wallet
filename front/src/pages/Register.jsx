@@ -26,11 +26,11 @@ export default function Register() {
     setError('');
     setIsLoading(true);
     try {
-      const success = await register(name, email, password);
-      if (success) {
-        navigate('/login');
+      const result = await register(name, email, password);
+      if (result.success) {
+        navigate('/verify-email', { state: { email: email.trim() } });
       } else {
-        setError('Erro ao cadastrar. Tente outro e-mail.');
+        setError(result.error || 'Erro ao cadastrar. Tente outro e-mail.');
       }
     } catch {
       setError('Ocorreu um erro no servidor. Tente mais tarde.');

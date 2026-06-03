@@ -69,88 +69,72 @@ function baseLayout(content) {
 }
 
 /**
- * Template de verificação de e-mail (enviado no registro).
+ * Template de verificação de e-mail (enviado no registro) — exibe um código numérico.
  * @param {object} params
- * @param {string} params.name         — Nome do usuário
- * @param {string} params.verifyUrl    — URL completa de verificação
+ * @param {string} params.name   — Nome do usuário
+ * @param {string} params.code   — Código de verificação (6 dígitos)
  */
-function verificationEmail({ name, verifyUrl }) {
+function verificationEmail({ name, code }) {
     const content = `
       <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:${BASE_STYLE.white};">
         Bem-vindo, ${name}! 👋
       </h2>
       <p style="margin:0 0 24px;font-size:15px;color:${BASE_STYLE.muted};line-height:1.6;">
-        Sua conta foi criada com sucesso. Clique no botão abaixo para confirmar seu e-mail e ativar sua conta.
+        Sua conta foi criada com sucesso. Use o código de verificação abaixo para confirmar seu e-mail e ativar sua conta.
       </p>
 
-      <!-- Botão CTA -->
-      <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-        <tr>
-          <td style="border-radius:8px;background-color:${BASE_STYLE.accent};">
-            <a href="${verifyUrl}"
-               style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:${BASE_STYLE.white};text-decoration:none;border-radius:8px;">
-              Verificar meu e-mail
-            </a>
-          </td>
-        </tr>
-      </table>
+      <!-- Código de verificação -->
+      <div style="margin:0 0 28px;padding:24px;background-color:${BASE_STYLE.bg};border:1px solid ${BASE_STYLE.border};border-radius:12px;text-align:center;">
+        <p style="margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:${BASE_STYLE.muted};">
+          Seu código de verificação
+        </p>
+        <span style="display:inline-block;font-size:36px;font-weight:700;letter-spacing:10px;color:${BASE_STYLE.white};font-family:'Courier New',monospace;">
+          ${code}
+        </span>
+      </div>
 
       <p style="margin:0 0 8px;font-size:13px;color:${BASE_STYLE.muted};line-height:1.6;">
-        O link expira em <strong style="color:${BASE_STYLE.text};">24 horas</strong>.
+        O código expira em <strong style="color:${BASE_STYLE.text};">24 horas</strong>.
       </p>
       <p style="margin:0;font-size:13px;color:${BASE_STYLE.muted};line-height:1.6;">
         Se você não criou esta conta, ignore este e-mail com segurança.
       </p>
-
-      <!-- URL fallback -->
-      <div style="margin-top:24px;padding:16px;background-color:${BASE_STYLE.bg};border-radius:8px;border:1px solid ${BASE_STYLE.border};">
-        <p style="margin:0 0 6px;font-size:12px;color:${BASE_STYLE.muted};">Se o botão não funcionar, copie e cole este link no navegador:</p>
-        <a href="${verifyUrl}" style="font-size:12px;color:${BASE_STYLE.accent};word-break:break-all;">${verifyUrl}</a>
-      </div>
     `;
     return baseLayout(content);
 }
 
 /**
- * Template de redefinição de senha.
+ * Template de redefinição de senha — exibe um código de verificação numérico.
  * @param {object} params
- * @param {string} params.name       — Nome do usuário
- * @param {string} params.resetUrl   — URL completa de reset
+ * @param {string} params.name   — Nome do usuário
+ * @param {string} params.code   — Código de verificação (6 dígitos)
  */
-function passwordResetEmail({ name, resetUrl }) {
+function passwordResetEmail({ name, code }) {
     const content = `
       <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:${BASE_STYLE.white};">
         Redefinição de senha 🔑
       </h2>
       <p style="margin:0 0 24px;font-size:15px;color:${BASE_STYLE.muted};line-height:1.6;">
         Olá, <strong style="color:${BASE_STYLE.text};">${name}</strong>! Recebemos uma solicitação para redefinir a senha da sua conta Waltrix.
-        Clique no botão abaixo para criar uma nova senha.
+        Use o código de verificação abaixo para criar uma nova senha.
       </p>
 
-      <!-- Botão CTA -->
-      <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-        <tr>
-          <td style="border-radius:8px;background-color:${BASE_STYLE.accent};">
-            <a href="${resetUrl}"
-               style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:${BASE_STYLE.white};text-decoration:none;border-radius:8px;">
-              Redefinir minha senha
-            </a>
-          </td>
-        </tr>
-      </table>
+      <!-- Código de verificação -->
+      <div style="margin:0 0 28px;padding:24px;background-color:${BASE_STYLE.bg};border:1px solid ${BASE_STYLE.border};border-radius:12px;text-align:center;">
+        <p style="margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:${BASE_STYLE.muted};">
+          Seu código de verificação
+        </p>
+        <span style="display:inline-block;font-size:36px;font-weight:700;letter-spacing:10px;color:${BASE_STYLE.white};font-family:'Courier New',monospace;">
+          ${code}
+        </span>
+      </div>
 
       <p style="margin:0 0 8px;font-size:13px;color:${BASE_STYLE.muted};line-height:1.6;">
-        O link expira em <strong style="color:${BASE_STYLE.text};">15 minutos</strong>.
+        O código expira em <strong style="color:${BASE_STYLE.text};">15 minutos</strong>.
       </p>
       <p style="margin:0;font-size:13px;color:${BASE_STYLE.muted};line-height:1.6;">
         Se você não solicitou a redefinição, ignore este e-mail — sua senha permanece a mesma.
       </p>
-
-      <!-- URL fallback -->
-      <div style="margin-top:24px;padding:16px;background-color:${BASE_STYLE.bg};border-radius:8px;border:1px solid ${BASE_STYLE.border};">
-        <p style="margin:0 0 6px;font-size:12px;color:${BASE_STYLE.muted};">Se o botão não funcionar, copie e cole este link no navegador:</p>
-        <a href="${resetUrl}" style="font-size:12px;color:${BASE_STYLE.accent};word-break:break-all;">${resetUrl}</a>
-      </div>
     `;
     return baseLayout(content);
 }

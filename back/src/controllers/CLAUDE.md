@@ -6,8 +6,21 @@ modelos, retorna JSON.
 ## Arquivos
 
 ### `authController.js`
-- `register` — cria usuário (bcrypt na senha via pre-save do model User)
-- `login` — valida credenciais e retorna JWT assinado com `JWT_SECRET`
+- `register` — cria usuário (bcrypt na senha via pre-save do model User) + envia **código** de
+  verificação por e-mail (não falha o cadastro se o e-mail não sair)
+- `login` — valida credenciais e retorna JWT assinado com `JWT_SECRET`; **403** se `emailVerified` false
+- `verifyEmail` — `{ email, code }`: confirma o e-mail por código (idempotente, limite de tentativas→429, `timingSafeEqual`)
+- `resendVerification` — `{ email }` (rate-limit): regenera e reenvia o código; resposta genérica (anti-enumeration)
+- `forgotPassword` — gera **código de 6 dígitos**, salva o hash sha256 + expiração (15 min),
+  zera `resetPasswordAttempts` e envia o código por e-mail (Resend). Resposta sempre genérica
+  (anti-enumeration).
+- `resetPassword` — recebe `{ email, code, newPassword }`; valida código (não expirado, dentro
+  de 5 tentativas → senão `429`), confere o hash com `crypto.timingSafeEqual`, troca a senha e
+  limpa token/expiração/tentativas. E-mail e código nunca vivem no frontend.
+
+> Dependências de I/O do authController (`connectDB`, `emailService`) são CommonJS — ver a nota
+> de testes no `CLAUDE.md` raiz: `vi.mock` não intercepta `require()` aqui; use o curto-circuito
+> de `global.mongoose.conn` e a ponte CJS `authController.testdeps.js`.
 
 ### `walletController.js`
 Toda a lógica financeira. Funções internas (não exportadas):

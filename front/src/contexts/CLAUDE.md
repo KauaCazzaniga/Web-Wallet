@@ -19,6 +19,10 @@ Hook de acesso: `useAuth()`
 | `login(email, password)` | async fn | POST /auth/login, salva token + user |
 | `logout()` | fn | Limpa localStorage, zera estado |
 | `register(name, email, password)` | async fn | POST /auth/register |
+| `forgotPassword(email)` | async fn | POST /auth/forgot-password — dispara o envio do código |
+| `resetPassword(email, code, newPassword)` | async fn | POST /auth/reset-password — redefine com o código |
+| `verifyEmail(email, code)` | async fn | POST /auth/verify-email — verifica e-mail por código |
+| `resendVerification(email)` | async fn | POST /auth/resend-verification — reenvia o código de verificação |
 
 **Chaves do localStorage:**
 - `@WebWallet:token` — JWT string

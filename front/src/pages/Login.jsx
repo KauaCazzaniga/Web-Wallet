@@ -352,6 +352,7 @@ export default function Login() {
   const [password, setPassword]   = useState('');
   const [showPwd, setShowPwd]     = useState(false);
   const [error, setError]         = useState('');
+  const [needsVerify, setNeedsVerify] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const successMessage = location.state?.message || '';
@@ -359,6 +360,7 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+    setNeedsVerify(false);
     setIsLoading(true);
     try {
       const result = await login(email, password);
@@ -366,6 +368,10 @@ export default function Login() {
         navigate('/dashboard');
       } else {
         setError(result.error || 'E-mail ou senha incorretos. Verifique seus dados.');
+        // Backend retorna 403 com mensagem de e-mail não verificado
+        if (/verificad/i.test(result.error || '')) {
+          setNeedsVerify(true);
+        }
       }
     } catch {
       setError('Ocorreu um erro no servidor. Tente mais tarde.');
@@ -450,7 +456,19 @@ export default function Login() {
             </div>
 
             {successMessage && <SuccessBox>{successMessage}</SuccessBox>}
-            {error && <ErrorBox>{error}</ErrorBox>}
+            {error && (
+              <ErrorBox>
+                {error}
+                {needsVerify && (
+                  <>
+                    {' '}
+                    <Link to="/verify-email" state={{ email: email.trim() }} style={{ color: '#60a5fa', fontWeight: 600 }}>
+                      Verificar e-mail agora
+                    </Link>
+                  </>
+                )}
+              </ErrorBox>
+            )}
 
             <SubmitButton type="submit" disabled={isLoading} $dark={isDark}>
               {isLoading

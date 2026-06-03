@@ -7,6 +7,15 @@ Responsabilidade: schemas Mongoose e modelos do MongoDB.
 ### `User.js`
 Campos: `name`, `email` (unique, lowercase), `password` (select: false).
 
+Redefinição de senha (todos `select: false`): `resetPasswordToken` (hash sha256 do código
+de 6 dígitos), `resetPasswordExpires` (Date, 15 min), `resetPasswordAttempts` (Number,
+default 0 — limite anti-brute-force, máx. 5).
+
+Verificação de e-mail (mesmo padrão do reset, todos `select: false` exceto `emailVerified`):
+`emailVerified` (Boolean, default false), `emailVerificationToken` (hash sha256 do código de
+6 dígitos), `emailVerificationExpires` (Date, 24 h) e `emailVerificationAttempts` (Number,
+default 0 — limite máx. 5).
+
 Hook `pre('save')`: se `password` foi modificada, aplica `bcrypt.genSalt(10)` +
 `bcrypt.hash`. Não usa `next()` — a função é async e o Mongoose detecta o fim.
 

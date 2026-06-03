@@ -1,8 +1,46 @@
 # Web-Wallet — Guia para o Claude Code
 
+## ⚠️ Política de manutenção deste guia (LEIA PRIMEIRO)
+
+Estas regras são **obrigatórias** e têm precedência sobre qualquer comportamento padrão.
+
+1. **Leitura na inicialização** — No início de **toda** sessão/conversa, antes de qualquer
+   outra ação, o Claude Code deve **ler este `CLAUDE.md` por completo** e usá-lo como fonte
+   de verdade sobre arquitetura, padrões e regras de negócio. Se houver conflito entre o
+   código e este guia, sinalize a divergência ao usuário em vez de assumir um dos lados.
+
+2. **Registro de toda alteração** — **Toda** alteração de código (novo módulo, função,
+   rota, model, regra de negócio, mudança de comportamento ou remoção) deve ser **refletida
+   neste `CLAUDE.md`** na mesma entrega. Atualize a seção pertinente (estrutura de pastas,
+   exports de módulos, backend, categorias, persistência, testes ou backlog). Um PR/commit
+   que muda comportamento **sem** atualizar o guia está incompleto.
+
+3. **Testes unitários obrigatórios (regra de negócio + DDD)** — **Toda** alteração deve vir
+   acompanhada de testes unitários que validem a **regra de negócio** envolvida, organizados
+   por **domínio (DDD)**:
+   - Cada agregado/domínio (Wallet, Investment, Goal/Cofrinho, Subscription, Auth) testa
+     suas **invariantes** — ex.: valor positivo, competência `YYYY-MM`, `valorAtual` nunca
+     negativo, saque não excede saldo do cofrinho, soft-delete não some da base.
+   - Lógica de domínio fica em funções puras testáveis (ex.: `utils/validators.js` no back,
+     `utils/*.js` no front); teste-as isoladamente, sem I/O.
+   - O teste descreve a **regra**, não a implementação — nome do `it()` deve enunciar o
+     comportamento esperado do domínio (ex.: `it('rejeita aporte com valor negativo')`).
+   - Frontend: `vitest run` em `front/`. Backend: `vitest run` em `back/src/`. Uma alteração
+     só é considerada concluída quando **ambas as suítes afetadas passam**.
+
+> Resumo do ciclo de trabalho: **ler o guia → alterar código → escrever/ajustar testes de
+> domínio → atualizar este guia → rodar `vitest run` nos pacotes afetados.**
+
+---
+
 ## Visão geral do projeto
 
-Aplicação web de controle financeiro pessoal com arquitetura full-stack: frontend em React 19 + Vite 8 com styled-components e o backend em Node.js/Express 5 com MongoDB/Mongoose. O usuário pode registrar receitas e despesas por categoria, definir metas mensais de gastos, importar extratos bancários em PDF via Gemini AI e acompanhar relatórios de evolução patrimonial. O projeto está em desenvolvimento ativo — as páginas Dashboard e Relatórios estão funcionais; edição/remoção de aportes de investimentos ainda não foi implementada.
+Aplicação web de controle financeiro pessoal com arquitetura full-stack: frontend em React 19 + Vite 8 com styled-components e o backend em Node.js/Express 5 com MongoDB/Mongoose. O usuário pode registrar receitas e despesas por categoria, definir metas mensais de gastos, importar extratos bancários em PDF via IA (Gemini/Groq/Mistral, com fallback e parser local), gerenciar assinaturas recorrentes, manter uma carteira de investimentos e cofrinhos (metas) e acompanhar relatórios de evolução patrimonial. As páginas **Dashboard**, **Relatórios**, **Investimentos** e **Configurações** estão funcionais.
+
+> Domínio (DDD) — agregados principais: **Wallet** (fluxo de caixa mensal e transações),
+> **Investment** (carteira de ativos), **Goal/Cofrinho** (metas com progresso), **Subscription**
+> (assinaturas recorrentes) e **Auth/User**. Cada um tem model, controller e regras de negócio
+> próprias no backend, e deve ter testes de domínio dedicados (ver Política de manutenção).
 
 ---
 
@@ -23,7 +61,12 @@ npm run lint         # ESLint com regras react-hooks e react-refresh
 cd back/src
 npm install          # instalar dependências
 node server.js       # iniciar API na porta 3000 (ou PORT do .env)
+npm run test         # executa os testes de backend (vitest run)
 ```
+
+> Ao iniciar (`require.main === module`), o `server.js` roda `runMigrations()` — migração
+> **idempotente** que remapeia categorias antigas (`gastos_fixos.streaming` →
+> `assinaturas.outros`, `gastos_fixos.assinaturasIA` → `assinaturas.chatgptplus`).
 
 > O frontend espera a API em `http://localhost:3000/api` (configurado em `front/src/services/api.js`).
 
@@ -35,58 +78,109 @@ node server.js       # iniciar API na porta 3000 (ou PORT do .env)
 Web-Wallet/
 ├── front/                          # Aplicação React/Vite
 │   ├── src/
-│   │   ├── App.jsx                 # Roteador + providers (AuthProvider > FinanceGate > rotas)
+│   │   ├── App.jsx                 # Roteador + providers (ThemeProvider > AuthProvider > FinanceGate > ErrorBoundary > rotas)
 │   │   ├── main.jsx                # Entry point — monta <App /> em StrictMode
 │   │   ├── index.css               # Reset global mínimo
 │   │   ├── pages/
-│   │   │   ├── Dashboard.jsx       # Página principal: KPIs, categorias, gastos fixos, tabela
-│   │   │   ├── Relatorios.jsx      # Relatórios mensais: gráficos + tabela comparativa
+│   │   │   ├── Dashboard.jsx       # Página principal: KPIs, categorias, gastos fixos, assinaturas, tabela
+│   │   │   ├── Relatorios.jsx      # Relatórios mensais: gráficos + tabela comparativa + investimentos
+│   │   │   ├── Investimentos.jsx   # Carteira por tipo, cofrinhos (metas) e evolução patrimonial
+│   │   │   ├── Configuracoes.jsx   # Metas, categorias, tema, export de dados, conta
 │   │   │   ├── Login.jsx           # Formulário de autenticação
 │   │   │   ├── Register.jsx        # Formulário de cadastro
+│   │   │   ├── ForgotPassword.jsx  # Redefinição de senha em 2 etapas: e-mail → código + nova senha
+│   │   │   ├── VerifyEmail.jsx      # Verificação de e-mail em 2 etapas: e-mail → código (mesmo padrão)
 │   │   │   └── Index.jsx           # Landing page pública
 │   │   ├── components/
 │   │   │   ├── ImportButton.jsx    # Botão que abre o file picker para PDF
 │   │   │   ├── ImportModal.jsx     # Modal de revisão/categorização das transações importadas
 │   │   │   ├── ProtectedRoute.jsx  # Guarda de rota — redireciona para /login se não autenticado
+│   │   │   ├── ErrorBoundary.jsx   # Class component — captura erros de render e exibe fallback
+│   │   │   ├── AIAdvisor.jsx       # Drawer do assistente financeiro de IA
+│   │   │   ├── GerenciarMetas.jsx  # Modal de metas de gastos por categoria + gastos fixos
 │   │   │   ├── TransacaoCategorizavel.jsx  # Linha editável no ImportModal
+│   │   │   ├── SubscriptionPanel.jsx       # Acordeão de assinaturas no Dashboard
+│   │   │   ├── SubscriptionCard.jsx        # Card individual de assinatura
+│   │   │   ├── SubscriptionFormModal.jsx   # Modal criar/editar assinatura
+│   │   │   ├── LancarCobrancaModal.jsx     # Confirma lançamento de cobrança como despesa
+│   │   │   ├── dashboard/
+│   │   │   │   ├── DashboardHeader.jsx     # Cabeçalho: mês, ações, import
+│   │   │   │   ├── GoalCards.jsx           # Orçamento (donut), gastos por categoria, gastos fixos
+│   │   │   │   ├── InvestmentPanel.jsx     # Resumo de patrimônio + botão registrar aporte
+│   │   │   │   ├── TransactionList.jsx     # Tabela paginada com busca e filtro
+│   │   │   │   ├── dashboardStyles.js      # Styled-components compartilhados (Panel, PanelHeader…)
+│   │   │   │   └── dashboardUtils.js       # Funções puras: fmt, parseDate, resolveCatDisplay, ITEMS_POR_PAGINA
+│   │   │   ├── ui/AuthForm/index.js        # Componentes compartilhados de formulário de auth
 │   │   │   └── relatorios/
 │   │   │       ├── FiltroMes.jsx           # Dois inputs type="month" (De/Até)
 │   │   │       ├── CardsResumo.jsx         # 4 cards: receitas, despesas, saldo, média
+│   │   │       ├── CardTaxaPoupanca.jsx    # % da receita que sobrou por mês + alerta < 10%
+│   │   │       ├── ChartTooltip.jsx        # Tooltip compartilhado dos gráficos Recharts
 │   │   │       ├── GraficoBarrasMensal.jsx # Recharts BarChart receita vs despesa por mês
 │   │   │       ├── GraficoSaldoAcumulado.jsx # Recharts ComposedChart linha + área
+│   │   │       ├── GraficoInvestimentos.jsx  # Área de patrimônio acumulado + tabela de aportes
 │   │   │       └── TabelaComparativo.jsx   # Tabela mensal com variações %
 │   │   ├── context/
 │   │   │   └── FinanceContext.jsx  # Transações importadas + investimentos (veja seção dedicada)
 │   │   ├── contexts/
 │   │   │   ├── AuthContext.jsx     # user, login(), logout(), register(), authenticated, loading
 │   │   │   └── ThemeContext.jsx    # isDark, toggleTheme(), theme (objeto com tokens de cor)
+│   │   ├── hooks/
+│   │   │   ├── useTransactions.js  # Estado/fetch/CRUD das transações do mês + cache (ver Performance)
+│   │   │   ├── useToast.js         # Toast reutilizável: { toast, notify(msg, type) }
+│   │   │   ├── useCountUp.js       # Animação de contagem de números (RAF)
+│   │   │   └── useScrollReveal.js  # Reveal on scroll via IntersectionObserver
 │   │   ├── constants/
-│   │   │   └── gastosFixos.js      # GASTOS_FIXOS[], GASTOS_FIXOS_MAP, GASTOS_FIXOS_PREFIX, helpers
+│   │   │   ├── gastosFixos.js      # GASTOS_FIXOS[], GASTOS_FIXOS_MAP, GASTOS_FIXOS_PREFIX, helpers
+│   │   │   └── assinaturas.js      # ASSINATURAS[], ASSINATURAS_MAP, ASSINATURAS_PREFIX, helpers de ícone
 │   │   ├── utils/
-│   │   │   ├── geminiParser.js     # parseBankStatement() — chama Gemini API; sanitização + lotes
+│   │   │   ├── bankStatementParser.js # parseBankStatement() — IA via proxy backend (Gemini/Groq/Mistral) + parser local
+│   │   │   ├── geminiParser.js     # (legado) GEMINI_SYSTEM_PROMPT, parseBankStatement direto na API Gemini
 │   │   │   ├── pdfExtractor.js     # extractTextFromPdf() — usa pdfjs-dist via CDN worker
-│   │   │   ├── categorizador.js    # sugerirCategoria(), prepararTransacoesImportadas(), gerarChaveTransacao()
+│   │   │   ├── categorizador.js    # sugerirCategoria(), resolverCategoria(), prepararTransacoesImportadas(), gerarChaveTransacao()
+│   │   │   ├── transaction.js      # normalizeDate(), normalizeTransaction() — formato interno padrão
 │   │   │   └── relatorioCalc.js    # processarMeses(), formatCurrencyBRL(), listMonthsBetween(), etc.
 │   │   ├── services/
-│   │   │   └── api.js              # Instância axios com baseURL, interceptor de token JWT
+│   │   │   ├── api.js              # Instância axios com baseURL, interceptor de token JWT
+│   │   │   ├── investments.js      # CRUD de investimentos e cofrinhos (normaliza valorMeta→meta)
+│   │   │   └── subscriptionService.js # CRUD de assinaturas + lancarCobranca()
 │   │   └── styles/
-│   │       └── global.js           # (arquivo presente, estilos globais via styled-components)
+│   │       └── global.js           # estilos globais via styled-components
 │   ├── .env                        # VITE_API_URL, VITE_GEMINI_API_KEY, VITE_GEMINI_MODEL (opcional)
-│   └── vite.config.js              # Plugin @vitejs/plugin-react apenas
+│   └── vite.config.js              # Plugin @vitejs/plugin-react + config de testes (vitest)
 │
 └── back/src/                       # API Node.js
-    ├── server.js                   # Express app: CORS, JSON, rotas, error handler, porta 3000
-    ├── config/database.js          # Conexão Mongoose com MONGODB_URI do .env
+    ├── server.js                   # Express app: helmet, CORS, JSON, rotas, error handler, runMigrations, porta 3000
+    ├── config/
+    │   ├── database.js             # Conexão Mongoose com MONGODB_URI do .env
+    │   └── logger.js               # Instância Winston (json em prod, printf em dev)
     ├── routes/
-    │   ├── authRoutes.js           # POST /api/auth/login, POST /api/auth/register
-    │   └── walletRoutes.js         # Rotas /api/wallet/* — todas protegidas por authMiddleware
+    │   ├── authRoutes.js           # /api/auth/* — register, login (rate-limit), me, verify-email (código)/resend-verification, forgot/reset-password (rate-limit no envio de código)
+    │   ├── walletRoutes.js         # /api/wallet/* — protegidas + validação Joi + ownership
+    │   ├── aiRoutes.js             # /api/ai/{gemini,groq,mistral} — proxy IA com rate-limit por usuário
+    │   ├── investmentRoutes.js     # /api/investments/* (investimentos) + /goals/* (cofrinhos)
+    │   └── subscriptionRoutes.js   # /api/subscriptions/* — CRUD + /:id/lancar
     ├── controllers/
-    │   ├── authController.js       # Lógica de login/registro com bcryptjs + JWT
-    │   └── walletController.js     # obterDashboard, iniciarMes, adicionarTransacao, etc.
-    ├── middlewares/auth.js         # Valida Bearer token e injeta req.usuarioId
+    │   ├── authController.js       # register (envia código), login, me, verifyEmail/resendVerification (código), forgotPassword/resetPassword (código) (bcrypt + JWT)
+    │   ├── walletController.js     # obterDashboard, iniciarMes, adicionarTransacao, etc. + _helpers exportados
+    │   ├── aiController.js         # Proxy p/ Gemini/Groq/Mistral — esconde API keys, normaliza 401/403→502
+    │   ├── investmentController.js # CRUD de investimentos (listar/criar/atualizar/remover soft-delete)
+    │   ├── goalController.js       # CRUD de cofrinhos + depositar (depósito/retirada)
+    │   └── subscriptionController.js # CRUD de assinaturas + lancar (gera despesa via walletController._helpers)
+    ├── middlewares/
+    │   ├── auth.js                 # Valida Bearer token e injeta req.usuarioId
+    │   ├── validate.js             # validate(schema) Joi + schemas (transacao, iniciarMes, importacao, definirLimites)
+    │   └── resourceOwnership.js    # verifyTransactionOwnership — garante que a transação é do usuário
+    ├── utils/
+    │   ├── validators.js           # Funções puras de validação (competencia, valorPositivo, corHex, etc.)
+    │   ├── emailService.js         # Envio de e-mail (Resend) — código de verificação de conta e código de reset de senha
+    │   └── emailTemplates.js       # Templates HTML dos e-mails
     └── models/
-        ├── User.js                 # Schema: name, email, password (hash bcrypt no pre-save)
-        ├── Wallet.js               # Schema: usuario_id, competencia "YYYY-MM", resumo, transacoes[], limites_gastos (Map)
+        ├── User.js                 # name, email, password (hash bcrypt), resetPasswordToken/Expires/Attempts, emailVerified/Token/Expires
+        ├── Wallet.js               # usuario_id, competencia "YYYY-MM", resumo, transacoes[], limites_gastos (Map)
+        ├── Investment.js           # usuario_id, tipo (enum TIPOS_VALIDOS), nome, taxa, valor, rendimento, mesInicio, ativo
+        ├── Goal.js                 # Cofrinho: nome, icone, cor (#rrggbb), valorMeta, valorAtual, prazo, ativo
+        ├── Subscription.js         # nome, categoria, valor, billing_cycle (mensal|anual), next_charge_date, status, ativo
         └── Transaction.js          # (modelo separado, não usado diretamente — embutido em Wallet)
 ```
 
@@ -111,16 +205,123 @@ Web-Wallet/
 
 **`src/utils/categorizador.js`**
 - `CATEGORIAS_IMPORTACAO` — array com categorias disponíveis no modal de importação
+- `resolverCategoria(categoria)` — resolve label/ícone de qualquer categoria
+- `normalizarDescricao(descricao)` — normaliza string para matching de termos
 - `sugerirCategoria(descricao)` — retorna categoria baseada em termos da descrição
 - `gerarChaveTransacao({ data, valor, descricao })` — chave para deduplicação
 - `prepararTransacoesImportadas(transacoes)` — normaliza + sugere categoria + adiciona `incluir: true`
 
-**`src/utils/geminiParser.js`**
-- `GEMINI_SYSTEM_PROMPT` — prompt fixo do parser de extratos
-- `parseBankStatement(textoExtraido, apiKey)` — sanitiza, divide em lotes se > 60 linhas, chama Gemini, retorna `{ banco, periodo, transacoes[], total_transacoes, observacoes }`
+**`src/utils/transaction.js`**
+- `normalizeDate(raw)` — converte ISO/Date/string para `"YYYY-MM-DD"` (ou `null`)
+- `normalizeTransaction(t)` — normaliza qualquer transação para `{ id, data, descricao, valor, tipo, categoria }`
+
+**`src/utils/bankStatementParser.js`** (parser de extratos atual — usa proxy de IA no backend)
+- `GEMINI_SYSTEM_PROMPT` — prompt fixo do parser
+- `parseBankStatement(textoExtraido)` — sanitiza, tenta parser **local** por regex primeiro; se insuficiente, chama IA via `/api/ai/*` (Gemini → Groq → Mistral como fallback), em lotes. Chaves de IA ficam **só no backend**.
+
+**`src/utils/geminiParser.js`** (legado — chamada direta à API Gemini do browser)
+- `GEMINI_SYSTEM_PROMPT`, `parseBankStatement(textoExtraido, apiKey)` — preferir `bankStatementParser.js` em código novo.
 
 **`src/utils/pdfExtractor.js`**
 - `extractTextFromPdf(file)` — lê arquivo PDF e retorna texto concatenado de todas as páginas
+
+**`src/constants/assinaturas.js`**
+- `ASSINATURAS_PREFIX` — string `"assinaturas."`
+- `ASSINATURAS` — array `{ key, label, simpleIconsSlug, iconColor, iconFallback }`
+- `ASSINATURAS_MAP` — lookup O(1) por key
+- `resolverAssinatura(categoria)` / `labelAssinatura(categoria)` — resolução de label
+- `iconeUrlAssinatura(categoria)` — URL do ícone via `cdn.simpleicons.org` (ou `null`)
+- `iconeFallbackAssinatura(categoria)` — emoji de fallback
+
+**`src/services/investments.js`** — wrapper axios; normaliza `valorMeta/valorAtual` → `meta/atual`
+- Investimentos: `listarInvestimentos()`, `criarInvestimento()`, `atualizarInvestimento()`, `removerInvestimento()`
+- Cofrinhos: `listarCofrinhos()`, `criarCofrinho()`, `atualizarCofrinho()`, `depositarCofrinho(id, valor)`, `removerCofrinho()`
+
+**`src/services/subscriptionService.js`**
+- `getSubscriptions()`, `createSubscription()`, `updateSubscription()`, `deleteSubscription()`, `lancarCobranca(id, payload)`
+
+**`src/hooks/useToast.js`** — `useToast()` → `{ toast, notify(message, type) }` (auto-hide 3,5 s)
+
+---
+
+## Backend — domínios, rotas e regras de negócio
+
+> Todas as rotas (exceto `/`, `/api/auth/register`, `/api/auth/login`, forgot/reset) exigem
+> JWT via `authMiddleware`, que injeta `req.usuarioId`. Validação de entrada via Joi em
+> `middlewares/validate.js`. Camada de domínio pura e testável em `utils/validators.js`.
+
+### Wallet (`/api/wallet/*`)
+Fluxo de caixa mensal por competência `"YYYY-MM"`. Endpoints: `listarMeses`, `totalInvestido`,
+`obterDashboard`, `iniciarMes`, `adicionarTransacao`, `importarTransacoes`, `obterExtrato`,
+`deletarTransacao`, `deletarTodasTransacoes`, `definirLimites`. Mutações validadas por Joi e
+protegidas por `verifyTransactionOwnership` quando operam sobre `:transacaoId`. **Regra de
+ouro**: mutações chamam `sincronizarCarteirasEmCadeia`; leituras não (ver Performance e cache).
+`walletController._helpers` expõe helpers reutilizados por `subscriptionController`.
+
+### Investment (`/api/investments`)
+Carteira de ativos. `tipo` ∈ `TIPOS_VALIDOS` (`CDB, LCI, LCA, Tesouro, Poupança, Ações, FII,
+Cripto, Outro`). Invariantes: `valor ≥ 0`, `rendimento ≥ 0`, `mesInicio` em `YYYY-MM`. Remoção é
+**soft-delete** (`ativo = false`). `listar/criar/atualizar/remover`.
+
+### Goal/Cofrinho (`/api/investments/goals`)
+Meta com progresso. Invariantes: `valorMeta ≥ 1`, `valorAtual ≥ 0` (**nunca negativo**), `cor`
+em `#rrggbb`, `prazo` nulo ou `YYYY-MM`. `PATCH /:id/depositar` aplica depósito **ou** retirada —
+uma retirada não pode deixar `valorAtual` negativo. Soft-delete. Rotas `/goals` declaradas
+**antes** de `/:id` para evitar conflito de parâmetro dinâmico.
+
+### Subscription (`/api/subscriptions`)
+Assinaturas recorrentes. `billing_cycle` ∈ `{mensal, anual}`, `valor ≥ 0.01`, `status` ∈
+`{ativo, pausado, cancelado}`. `POST /:id/lancar` gera uma despesa na Wallet (via
+`walletController._helpers`) e avança `next_charge_date` pelo ciclo, com **correção de overflow
+de fim de mês** (31/jan + 1 mês → 28/fev, nunca 03/mar). Soft-delete.
+
+### Auth (`/api/auth`)
+`register`, `login` (rate-limit 10/15 min por IP), `me`.
+
+> **Códigos de e-mail** (verificação e reset) seguem o **mesmo padrão**: código numérico de
+> 6 dígitos (`crypto.randomInt`), guardado como **hash sha256** no User, com expiração, limite de
+> **5 tentativas** (`MAX_CODE_ATTEMPTS` → `429`) e conferência em **tempo constante**
+> (`crypto.timingSafeEqual`). TTLs: verificação **24 h** (`VERIFY_CODE_TTL_MS`), reset **15 min**
+> (`RESET_CODE_TTL_MS`). Envio rate-limited a **5/15 min por IP** (`emailCodeLimiter`).
+
+**Verificação de e-mail por código (cadastro):**
+- `register` cria o usuário com `emailVerified: false`, gera o código, salva o hash em
+  `emailVerificationToken` + `emailVerificationExpires` + `emailVerificationAttempts = 0` e envia
+  o código (Resend). O cadastro **não falha** se o e-mail não sair (loga e segue) — o usuário usa
+  "reenviar código" na tela de verificação.
+- **E-mail já existente:** se a conta já existe e está **verificada** → `400`; se existe e **não
+  verificada** → `register` reenvia um novo código e responde `200 { needsVerification, email }`
+  (o frontend leva o usuário para `/verify-email`), evitando um beco sem saída.
+- `verifyEmail` recebe `{ email, code }`: valida (idempotente se já verificado), confere o hash,
+  expiração e tentativas, e marca `emailVerified = true` limpando os campos de verificação.
+- `resendVerification` (rate-limit) regenera o código e reenvia; resposta genérica
+  (anti-enumeration) se a conta não existir ou já estiver verificada.
+- `login` retorna **403** enquanto `emailVerified` for falso; o frontend oferece link para
+  `/verify-email` nesse caso.
+
+**Redefinição de senha por código (não por link):**
+- `forgotPassword` (rate-limit **5/15 min por IP**) gera um **código numérico de 6 dígitos**,
+  salva o **hash sha256** em `resetPasswordToken` + `resetPasswordExpires` (15 min), zera
+  `resetPasswordAttempts` e envia o código por e-mail (Resend). Sempre responde com mensagem
+  genérica (anti-enumeration), exista o e-mail ou não.
+- `resetPassword` recebe `{ email, code, newPassword }`, busca o usuário pelo e-mail, valida:
+  código existente, não expirado, dentro do limite de **5 tentativas** (senão `429`) e confere
+  o hash em **tempo constante** (`crypto.timingSafeEqual`). Tentativa errada incrementa o
+  contador; sucesso troca a senha e limpa token/expiração/tentativas. Mensagens de falha são
+  genéricas (`"Codigo invalido ou expirado."`).
+- E-mail via `utils/emailService.js` (**Resend**), template `passwordResetEmail({ name, code })`
+  em `utils/emailTemplates.js`. O cliente Resend é construído de forma **lazy** (`getResend()`),
+  para não quebrar no import quando `RESEND_API_KEY` está ausente (ex.: testes).
+
+### AI proxy (`/api/ai/{gemini,groq,mistral}`)
+Proxy server-side que injeta as API keys (`GEMINI_API_KEY`, `GROQ_API_KEY`, `MISTRAL_API_KEY`)
+e nunca as expõe ao browser. Rate-limit de **15 req/min por usuário** (chave = `req.usuarioId`).
+`401/403` do provider são remapeados para `502` para **não** disparar o interceptor de
+JWT-expirado no frontend.
+
+### `utils/validators.js` (domínio puro — alvo prioritário de testes unitários)
+`competenciaEhValida`, `tipoInvestimentoEhValido`, `valorPositivo`, `valorNaoNegativo`,
+`corHexEhValida`, `prazoEhValido`, `stringObrigatoria`, `sanitizarValor`.
 
 ---
 
@@ -341,6 +542,15 @@ A barra de progresso usa cores progressivas: azul `#378ADD` (0–60%), âmbar `#
 Para checar se uma categoria é gasto fixo: `categoria.startsWith("gastos_fixos.")`.  
 Para resolver label/ícone de qualquer categoria: `resolveCatDisplay(cat)` ou `labelCategoria(cat)` + `iconeCategoria(cat)`.
 
+### Assinaturas (`ASSINATURAS_PREFIX = "assinaturas."`)
+
+Fonte única em `src/constants/assinaturas.js`. Ícones via `cdn.simpleicons.org` (com emoji
+de fallback). Keys: `spotify`, `netflix`, `amazonprime`, `disneyplus`, `max`, `youtubepremium`,
+`applemusic`, `chatgptplus`, `googleone`, `adobe`, `outros`. Categoria salva = `assinaturas.<key>`.
+Não hardcodar esta lista fora de `assinaturas.js` — importar `ASSINATURAS`. A migração no
+`server.js` remapeia as categorias antigas `gastos_fixos.streaming`/`gastos_fixos.assinaturasIA`
+para `assinaturas.outros`/`assinaturas.chatgptplus`.
+
 ---
 
 ## Integrações externas
@@ -413,29 +623,58 @@ useEffect(() => {
 ### Rodar os testes
 
 ```bash
-cd front
-npm run test          # executa todos os testes uma vez (vitest run)
+cd front && npm run test     # frontend — Vitest + React Testing Library
+cd back/src && npm run test  # backend  — Vitest (controllers + validators de domínio)
 ```
+
+> Toda alteração deve rodar a(s) suíte(s) afetada(s) antes de ser considerada concluída
+> (ver **Política de manutenção**). Mudou backend → rode a suíte do backend; mudou frontend
+> → rode a do frontend; mexeu em ambos → rode as duas.
 
 ### Setup e configuração
 
-- **Framework**: Vitest 4 + React Testing Library 16 (configurado em `vite.config.js > test`)
-- **Ambiente**: `jsdom` (browser simulado)
-- **Setup global**: `front/src/test-setup.js` — importa `@testing-library/jest-dom` e define mocks globais:
+- **Framework**: Vitest 4 + React Testing Library 16 (front configurado em `vite.config.js > test`)
+- **Ambiente**: `jsdom` (browser simulado) no frontend
+- **Setup global (front)**: `front/src/test-setup.js` — importa `@testing-library/jest-dom` e define mocks globais:
   - `window.matchMedia` (styled-components / media queries)
   - `window.ResizeObserver` (Recharts)
   - `Element.prototype.scrollIntoView` (jsdom não suporta nativamente)
 
 ### Arquivos de teste existentes
 
+**Frontend (`front/`)**
+
 | Arquivo de teste | O que cobre |
 |---|---|
 | `src/hooks/useScrollReveal.test.js` | IntersectionObserver mock, one-shot, guard para ambiente sem suporte |
 | `src/hooks/useCountUp.test.js` | RAF mock, animação, cleanup, correção de stale prevRef |
 | `src/components/AIAdvisor.test.jsx` | Drawer, sugestões, envio, erro de API, limpeza de input |
+| `src/components/dashboard/dashboardUtils.test.js` | Funções puras: fmt, parseDate, resolveCatDisplay |
+| `src/components/dashboard/GoalCards.test.jsx` | Orçamento, gastos por categoria, gastos fixos |
+| `src/components/dashboard/TransactionList.test.jsx` | Paginação, busca, filtro por categoria |
 | `src/components/relatorios/ChartTooltip.test.jsx` | active/payload guards, formatter, valores brutos |
+| `src/components/relatorios/GraficoBarrasMensal.test.jsx` | Render do BarChart receita vs despesa |
+| `src/components/relatorios/GraficoSaldoAcumulado.test.jsx` | Render da linha + área de saldo acumulado |
+| `src/components/relatorios/GraficoInvestimentos.test.jsx` | Área de patrimônio + tabela de aportes |
 | `src/pages/Login.test.jsx` | Campos, toggle de senha, submit, redirecionamento, erro |
+| `src/pages/Dashboard.test.jsx` | Render integrado e fluxos principais do Dashboard |
+| `src/pages/ForgotPassword.test.jsx` | Fluxo de 2 etapas: envio do e-mail → código + nova senha, validações e redirect |
+| `src/pages/VerifyEmail.test.jsx` | Verificação por código em 2 etapas: vindo do cadastro (e-mail no state) ou digitando e-mail, validações e redirect |
 | `src/services/api.test.js` | `normalizeApiBaseUrl` — origin fallback, URL com /api, edge cases |
+| `src/utils/categorizador.test.js` | sugerirCategoria, gerarChaveTransacao, prepararTransacoesImportadas |
+| `src/utils/relatorioCalc.test.js` | processarMeses, formatação, intervalos de meses |
+| `src/utils/bankStatementParser.test.js` | Sanitização, parser local por regex, fallback de IA |
+
+**Backend (`back/src/`)**
+
+| Arquivo de teste | O que cobre |
+|---|---|
+| `controllers/authController.test.js` | register (envia código), verifyEmail/resendVerification e forgot/resetPassword — todos por código (inválido/expirado, limite→429, anti-enumeration, sucesso). Mocka I/O sem `vi.mock`: curto-circuita `connectDB` via `global.mongoose.conn` e espiona o emailService pela ponte CJS `authController.testdeps.js` |
+| `controllers/investmentController.test.js` | CRUD + invariantes de Investment, soft-delete, ownership |
+| `controllers/goalController.test.js` | CRUD + depósito/retirada, `valorAtual` nunca negativo |
+
+> **Lacuna conhecida**: `subscriptionController` e `walletController` ainda não têm suíte
+> dedicada — qualquer alteração nesses domínios deve **criar** os testes (regra de negócio).
 
 ### Padrões obrigatórios para novos testes
 
@@ -445,6 +684,33 @@ npm run test          # executa todos os testes uma vez (vitest run)
 - **Mocks de API**: usar `vi.mock('../services/api', () => ({ default: { post: vi.fn() } }))` — nunca fazer chamadas HTTP reais em teste
 - **IntersectionObserver**: mockar como `class`, não como `vi.fn()` — é chamado com `new`
 - **performance.now + RAF**: usar `vi.spyOn` e controle manual de timestamps para testes de animação
+
+### Testes orientados a domínio (DDD) — obrigatório
+
+Toda alteração precisa de testes que validem a **regra de negócio**, não a implementação:
+
+- **Nomeie pela regra**: `it('rejeita aporte com valor negativo')`, não `it('retorna 400')`.
+- **Teste as invariantes de cada agregado**: Wallet (competência `YYYY-MM`, valor positivo,
+  saldo encadeado), Investment (`tipo` válido, `valor ≥ 0`, soft-delete oculta da listagem),
+  Goal/Cofrinho (`valorAtual` nunca negativo, retirada limitada ao saldo, `cor` `#rrggbb`),
+  Subscription (`billing_cycle` válido, avanço de data sem overflow de fim de mês), Auth
+  (hash de senha, expiração de token).
+- **Isole o domínio**: prefira testar funções puras (`back/src/utils/validators.js`,
+  `front/src/utils/*.js`) sem I/O. Controllers que tocam Mongoose mockam o model.
+- **Ownership/segurança é regra de negócio**: cubra o caso de recurso de outro usuário
+  (espera 403/404), não só o caminho feliz.
+- **Backend (importante — `vi.mock` NÃO intercepta `require()` CJS neste setup)**: nunca
+  conectar a um banco real, mas não confie em `vi.mock` para substituir dependências de um
+  controller CommonJS. Padrões que funcionam aqui:
+  - **Model Mongoose**: `import Model from '...'` + `vi.spyOn(Model, 'findOne')` funciona porque
+    o model é deduplicado por `mongoose.models.X` (import e require devolvem o mesmo objeto).
+  - **`connectDB`**: curto-circuite o cache do `config/database.js` setando
+    `global.mongoose.conn = {}` no topo do teste — o `connectDB` retorna cedo e nunca chama
+    `mongoose.connect`.
+  - **Módulos utilitários CJS que exportam objeto** (ex.: `emailService`): `import` (ESM) e
+    `require` (CJS) devolvem objetos DIFERENTES no vitest, então espione via uma **ponte CJS**
+    (`module.exports = require('../utils/x')`) importada pelo teste — assim você obtém a mesma
+    instância que o controller usa. Ver `controllers/authController.testdeps.js`.
 
 ### Mocks de contexto
 
@@ -481,15 +747,27 @@ npm run test          # executa todos os testes uma vez (vitest run)
 - **Não usar `cacheRef.current.delete(mesSelecionado)` após mutações** — usar `cacheRef.current.clear()` (ou o helper `clearCache()` exportado pelo hook). `sincronizarCarteirasEmCadeia` atualiza saldo de TODOS os meses downstream; deletar só o mês atual deixa os demais com `saldo_inicial` errado no cache.
 - **Não re-adicionar `sincronizarCarteirasEmCadeia` em `obterExtrato`** — foi removido intencionalmente para reduzir latência. Leituras não precisam sincronizar; mutações já garantem consistência.
 - **Não chamar `fetchMesSelecionado({ silent: true })` após uma mutação sem `skipCache: true`** — sem esse flag o cache serve o dado anterior, não o novo.
+- **Não entregar alteração sem atualizar este `CLAUDE.md`** — qualquer novo módulo/rota/regra ou mudança de comportamento deve ser refletida no guia na mesma entrega (ver Política de manutenção).
+- **Não entregar alteração sem testes de domínio** — toda mudança precisa de testes unitários que validem a regra de negócio (DDD), com as suítes afetadas passando em `vitest run`.
+- **Não expor API keys de IA no frontend** — chamar sempre via proxy `/api/ai/*`; as chaves vivem só no backend.
+- **Não fazer hard-delete de Investment/Goal/Subscription** — usar soft-delete (`ativo = false`), como já fazem os controllers.
+- **Não permitir `valorAtual` negativo em cofrinho** — uma retirada nunca pode exceder o saldo acumulado.
 
 ---
 
 ## Backlog ativo
 
-Baseado nos `// TODO:` encontrados no código-fonte:
+Concluído desde a última revisão deste guia:
 
-- [ ] `editarAporte` e `removerAporte` no `FinanceContext` — implementar e expor para uso na página Relatórios (`FinanceContext.jsx:128`)
-- [ ] Gráfico cumulativo de investimentos e tabela de aportes na página Relatórios (`Dashboard.jsx` — seção `InvestmentPanel`)
-- [ ] Score de saúde financeira (não há TODO mas é mencionado como feature planejada)
-- [ ] Configurações de usuário — tela de Configurações retorna `alert('Configurações em breve!')` nos dois sidebars
-- [ ] **AIAdvisor: adicionar histórico de conversa** — cada chamada à API deve incluir as mensagens anteriores em `contents[]` para manter contexto entre turnos. Ver `AIAdvisor.jsx:362` e `docs/superpowers/specs/2026-05-19-frontend-polish-review.md` (BLOQUEADOR 1)
+- [x] Página **Investimentos** com carteira por tipo, cofrinhos (metas) e evolução patrimonial
+- [x] Página **Configurações** funcional (metas, categorias, tema, export, conta)
+- [x] Backend de **Investimentos** e **Cofrinhos** (`investmentController`/`goalController`) com CRUD, soft-delete e testes
+- [x] **Assinaturas** recorrentes (model, controller, painel, lançamento de cobrança)
+- [x] **Gráfico de investimentos** e tabela de aportes na página Relatórios (`GraficoInvestimentos.jsx`)
+- [x] **Proxy de IA no backend** (`/api/ai/*`) escondendo as API keys, com rate-limit por usuário
+
+Pendente:
+
+- [ ] Cobertura de testes para `subscriptionController` e `walletController` (criar suítes de domínio)
+- [ ] Score de saúde financeira (feature planejada)
+- [ ] **AIAdvisor: adicionar histórico de conversa** — cada chamada à API deve incluir as mensagens anteriores em `contents[]` para manter contexto entre turnos. Ver `AIAdvisor.jsx` e `docs/superpowers/specs/2026-05-19-frontend-polish-review.md` (BLOQUEADOR 1)

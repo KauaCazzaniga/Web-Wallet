@@ -1,10 +1,11 @@
-// Componente: ForgotPassword
-// Responsabilidade: fluxo de redefinição de senha por código em duas etapas
-//   (1) digitar e-mail → recebe código; (2) digitar código + nova senha
-// Depende de: AuthContext (forgotPassword, resetPassword), ThemeContext, AuthForm styled-components
+// Componente: VerifyEmail
+// Responsabilidade: verificação de e-mail por código em duas etapas
+//   (1) confirmar/digitar e-mail → recebe código; (2) digitar o código de 6 dígitos
+//   Mesmo padrão da tela de redefinição de senha (ForgotPassword).
+// Depende de: AuthContext (verifyEmail, resendVerification), ThemeContext, AuthForm styled-components
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Wallet, Mail, Lock, KeyRound, Loader2, Moon, SunMedium } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, Wallet, Mail, KeyRound, Loader2, Moon, SunMedium } from 'lucide-react';
 
 import { AuthContext } from '../contexts/AuthContext';
 import { ThemeContext } from '../contexts/ThemeContext';
@@ -14,30 +15,34 @@ import {
   ErrorMessage, Footer, ThemeButton, BackLink,
 } from '@/components/ui/AuthForm/index.js';
 
-export default function ForgotPassword() {
+export default function VerifyEmail() {
   const navigate = useNavigate();
-  const { forgotPassword, resetPassword } = useContext(AuthContext);
+  const location = useLocation();
+  const { verifyEmail, resendVerification } = useContext(AuthContext);
   const { isDark, toggleTheme } = useContext(ThemeContext);
 
-  const [step, setStep] = useState('email'); // 'email' | 'code'
-  const [email, setEmail] = useState('');
+  // Quando chega vindo do cadastro, o e-mail vem no state e o código já foi enviado.
+  const emailFromState = location.state?.email || '';
+
+  const [step, setStep] = useState(emailFromState ? 'code' : 'email');
+  const [email, setEmail] = useState(emailFromState);
   const [code, setCode] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
+  const [info, setInfo] = useState(
+    emailFromState ? 'Enviamos um código de 6 dígitos para o seu e-mail. Verifique sua caixa de entrada.' : ''
+  );
   const [isLoading, setIsLoading] = useState(false);
 
-  // Etapa 1 — solicita o envio do código de verificação
+  // Etapa 1 — solicita (ou reenvia) o código de verificação
   const handleRequestCode = async (e) => {
     e.preventDefault();
     setError('');
     setInfo('');
     setIsLoading(true);
     try {
-      await forgotPassword(email);
+      await resendVerification(email);
       setStep('code');
-      setInfo('Se o e-mail estiver cadastrado, enviamos um código de 6 dígitos. Verifique sua caixa de entrada.');
+      setInfo('Se a conta existir e ainda não estiver verificada, enviamos um código de 6 dígitos.');
     } catch {
       setError('Ocorreu um erro no servidor. Tente mais tarde.');
     } finally {
@@ -45,8 +50,8 @@ export default function ForgotPassword() {
     }
   };
 
-  // Etapa 2 — valida o código e redefine a senha
-  const handleResetPassword = async (e) => {
+  // Etapa 2 — valida o código e ativa a conta
+  const handleVerify = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -54,19 +59,11 @@ export default function ForgotPassword() {
       setError('O código deve ter 6 dígitos.');
       return;
     }
-    if (newPassword.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError('As senhas não coincidem.');
-      return;
-    }
 
     setIsLoading(true);
     try {
-      await resetPassword(email, code.trim(), newPassword);
-      navigate('/login', { replace: true, state: { message: 'Senha redefinida com sucesso! Faça login.' } });
+      await verifyEmail(email, code.trim());
+      navigate('/login', { replace: true, state: { message: 'E-mail verificado com sucesso! Faça login.' } });
     } catch (err) {
       const msg = err?.response?.data?.error;
       setError(msg || 'Código inválido ou expirado. Solicite um novo código.');
@@ -75,13 +72,13 @@ export default function ForgotPassword() {
     }
   };
 
-  // Reenviar código (volta a chamar forgotPassword sem trocar de etapa)
+  // Reenviar código (sem trocar de etapa)
   const handleResend = async () => {
     setError('');
     setInfo('');
     setIsLoading(true);
     try {
-      await forgotPassword(email);
+      await resendVerification(email);
       setInfo('Reenviamos o código para o seu e-mail.');
     } catch {
       setError('Não foi possível reenviar o código. Tente mais tarde.');
@@ -105,7 +102,7 @@ export default function ForgotPassword() {
         </IconHeader>
         <Title>Waltrix</Title>
         <Subtitle $dark={isDark}>
-          {step === 'email' ? 'Redefinição de senha' : 'Digite o código enviado'}
+          {step === 'email' ? 'Verificação de e-mail' : 'Digite o código enviado'}
         </Subtitle>
 
         {step === 'email' ? (
@@ -130,7 +127,7 @@ export default function ForgotPassword() {
             </Button>
           </Form>
         ) : (
-          <Form onSubmit={handleResetPassword}>
+          <Form onSubmit={handleVerify}>
             {info && (
               <Footer $dark={isDark} style={{ marginTop: 0, textAlign: 'center' }}>
                 {info}
@@ -151,35 +148,11 @@ export default function ForgotPassword() {
                 required
               />
             </InputGroup>
-            <InputGroup>
-              <IconWrapper><Lock size={20} /></IconWrapper>
-              <Input
-                $dark={isDark}
-                type="password"
-                placeholder="Nova senha (mín. 6 caracteres)"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                disabled={isLoading}
-                required
-              />
-            </InputGroup>
-            <InputGroup>
-              <IconWrapper><Lock size={20} /></IconWrapper>
-              <Input
-                $dark={isDark}
-                type="password"
-                placeholder="Confirmar nova senha"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                disabled={isLoading}
-                required
-              />
-            </InputGroup>
             {error && <ErrorMessage>{error}</ErrorMessage>}
             <Button type="submit" disabled={isLoading}>
               {isLoading
-                ? <><Loader2 size={20} className="animate-spin" />Redefinindo...</>
-                : 'Redefinir senha'}
+                ? <><Loader2 size={20} className="animate-spin" />Verificando...</>
+                : 'Verificar e-mail'}
             </Button>
             <Footer $dark={isDark} style={{ marginTop: '0.5rem', textAlign: 'center' }}>
               Não recebeu?
@@ -191,7 +164,7 @@ export default function ForgotPassword() {
         )}
 
         <Footer $dark={isDark}>
-          Lembrou a senha?
+          Já verificou?
           <a href="/login">Voltar ao login</a>
         </Footer>
       </AuthBox>

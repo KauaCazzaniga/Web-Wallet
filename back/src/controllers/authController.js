@@ -2,13 +2,22 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const sgMail = require('@sendgrid/mail');
 const connectDB = require('../config/database');
-
-// --- RESEND / EMAIL VERIFICATION (desativado temporariamente) ---
-// const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/emailService');
+const emailService = require('../utils/emailService');
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
+
+// Máximo de tentativas de código (reset de senha e verificação de e-mail) antes de exigir novo envio
+const MAX_CODE_ATTEMPTS = 5;
+
+// Validade dos códigos
+const RESET_CODE_TTL_MS = 15 * 60 * 1000;       // 15 min — reset de senha
+const VERIFY_CODE_TTL_MS = 24 * 60 * 60 * 1000; // 24 h — verificação de e-mail no cadastro
+
+// Gera um código numérico de 6 dígitos (000000–999999) para verificação/reset
+const gerarCodigoVerificacao = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+
+const hashCodigo = (codigo) => crypto.createHash('sha256').update(String(codigo)).digest('hex');
 
 const generateToken = (id) => {
     if (!process.env.JWT_SECRET) {
@@ -27,37 +36,58 @@ exports.register = async (req, res) => {
             return res.status(400).json({ error: 'Nome, e-mail e senha sao obrigatorios.' });
         }
 
-        if (await User.findOne({ email: normalizedEmail })) {
-            return res.status(400).json({ error: 'Usuario ja cadastrado.' });
+        const existente = await User.findOne({ email: normalizedEmail });
+        if (existente) {
+            // Conta já verificada → não dá para recadastrar; peça login.
+            if (existente.emailVerified) {
+                return res.status(400).json({ error: 'Usuario ja cadastrado.' });
+            }
+            // Conta existe mas nunca foi verificada → reenvia o código e leva à verificação,
+            // em vez de um beco sem saída. (emailVerified não é select:false, leitura é direta.)
+            const codigoReenvio = gerarCodigoVerificacao();
+            existente.emailVerificationToken = hashCodigo(codigoReenvio);
+            existente.emailVerificationExpires = new Date(Date.now() + VERIFY_CODE_TTL_MS);
+            existente.emailVerificationAttempts = 0;
+            await existente.save({ validateBeforeSave: false });
+
+            try {
+                await emailService.sendVerificationEmail({ to: existente.email, name: existente.name, code: codigoReenvio });
+            } catch (emailErr) {
+                console.error('Falha ao reenviar e-mail de verificação:', emailErr.message);
+            }
+
+            return res.status(200).json({
+                needsVerification: true,
+                email: existente.email,
+                message: 'Esta conta já existe mas não foi verificada. Enviamos um novo código para o seu e-mail.',
+            });
         }
 
-        // --- RESEND: gerar token de verificação e enviar e-mail (desativado) ---
-        // const rawToken = crypto.randomBytes(32).toString('hex');
-        // const verificationHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-        // const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        // const verifyUrl = `${frontendUrl}/verify-email?token=${rawToken}`;
+        const codigo = gerarCodigoVerificacao();
 
         const user = await User.create({
             name,
             email: normalizedEmail,
             password,
-            // emailVerified: false,
-            // emailVerificationToken: verificationHash,
-            // emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            emailVerified: false,
+            emailVerificationToken: hashCodigo(codigo),
+            emailVerificationExpires: new Date(Date.now() + VERIFY_CODE_TTL_MS),
+            emailVerificationAttempts: 0,
         });
 
-        // try {
-        //     await sendVerificationEmail({ to: user.email, name: user.name, verifyUrl });
-        // } catch (emailErr) {
-        //     console.error('Falha ao enviar e-mail de verificação:', emailErr.message);
-        // }
+        // O cadastro não falha se o e-mail não sair — o usuário pode usar "reenviar código"
+        // na tela de verificação. Apenas registramos a falha.
+        try {
+            await emailService.sendVerificationEmail({ to: user.email, name: user.name, code: codigo });
+        } catch (emailErr) {
+            console.error('Falha ao enviar e-mail de verificação:', emailErr.message);
+        }
 
         user.password = undefined;
 
         return res.status(201).json({
             user,
-            token: generateToken(user._id),
-            // message: 'Conta criada! Verifique seu e-mail para ativar o acesso.',
+            message: 'Conta criada! Enviamos um código de verificação para o seu e-mail.',
         });
     } catch (err) {
         console.error('Erro no registro:', err);
@@ -85,10 +115,9 @@ exports.login = async (req, res) => {
             return res.status(400).json({ error: 'Senha invalida.' });
         }
 
-        // --- RESEND: bloquear login até verificar e-mail (desativado) ---
-        // if (!user.emailVerified) {
-        //     return res.status(403).json({ error: 'E-mail nao verificado. Confira sua caixa de entrada.' });
-        // }
+        if (!user.emailVerified) {
+            return res.status(403).json({ error: 'E-mail nao verificado. Confira sua caixa de entrada.' });
+        }
 
         user.password = undefined;
 
@@ -102,38 +131,100 @@ exports.login = async (req, res) => {
     }
 };
 
-// --- RESEND: handler de verificação de e-mail (desativado) ---
-// exports.verifyEmail = async (req, res) => {
-//     try {
-//         await connectDB();
-//         const { token } = req.query;
-//
-//         if (!token) {
-//             return res.status(400).json({ error: 'Token de verificacao ausente.' });
-//         }
-//
-//         const hash = crypto.createHash('sha256').update(token).digest('hex');
-//
-//         const user = await User.findOne({
-//             emailVerificationToken: hash,
-//             emailVerificationExpires: { $gt: Date.now() },
-//         }).select('+emailVerificationToken +emailVerificationExpires');
-//
-//         if (!user) {
-//             return res.status(400).json({ error: 'Token invalido ou expirado.' });
-//         }
-//
-//         user.emailVerified = true;
-//         user.emailVerificationToken = undefined;
-//         user.emailVerificationExpires = undefined;
-//         await user.save({ validateBeforeSave: false });
-//
-//         return res.json({ message: 'E-mail verificado com sucesso! Voce ja pode fazer login.' });
-//     } catch (err) {
-//         console.error('Erro no verifyEmail:', err);
-//         return res.status(500).json({ error: 'Erro ao verificar e-mail.' });
-//     }
-// };
+exports.verifyEmail = async (req, res) => {
+    try {
+        await connectDB();
+        const { email, code } = req.body;
+
+        if (!email || !code) {
+            return res.status(400).json({ error: 'E-mail e codigo sao obrigatorios.' });
+        }
+
+        const normalizedEmail = normalizeEmail(email);
+        const user = await User.findOne({ email: normalizedEmail })
+            .select('+emailVerificationToken +emailVerificationExpires +emailVerificationAttempts');
+
+        if (!user) {
+            return res.status(400).json({ error: 'Codigo invalido ou expirado.' });
+        }
+
+        // Já verificado → idempotente, responde sucesso sem erro
+        if (user.emailVerified) {
+            return res.json({ message: 'E-mail ja verificado. Voce ja pode fazer login.' });
+        }
+
+        if (!user.emailVerificationToken || !user.emailVerificationExpires) {
+            return res.status(400).json({ error: 'Codigo invalido ou expirado.' });
+        }
+
+        // Expirado → limpa o código e pede um novo
+        if (user.emailVerificationExpires.getTime() < Date.now()) {
+            user.emailVerificationToken = undefined;
+            user.emailVerificationExpires = undefined;
+            user.emailVerificationAttempts = undefined;
+            await user.save({ validateBeforeSave: false });
+            return res.status(400).json({ error: 'Codigo invalido ou expirado.' });
+        }
+
+        // Excedeu o limite de tentativas → exige novo envio
+        if ((user.emailVerificationAttempts || 0) >= MAX_CODE_ATTEMPTS) {
+            return res.status(429).json({ error: 'Muitas tentativas. Solicite um novo codigo.' });
+        }
+
+        // Comparação em tempo constante (hashes de tamanho fixo)
+        const fornecido = Buffer.from(hashCodigo(code), 'hex');
+        const armazenado = Buffer.from(user.emailVerificationToken, 'hex');
+        const confere = fornecido.length === armazenado.length
+            && crypto.timingSafeEqual(fornecido, armazenado);
+
+        if (!confere) {
+            user.emailVerificationAttempts = (user.emailVerificationAttempts || 0) + 1;
+            await user.save({ validateBeforeSave: false });
+            return res.status(400).json({ error: 'Codigo invalido ou expirado.' });
+        }
+
+        user.emailVerified = true;
+        user.emailVerificationToken = undefined;
+        user.emailVerificationExpires = undefined;
+        user.emailVerificationAttempts = undefined;
+        await user.save({ validateBeforeSave: false });
+
+        return res.json({ message: 'E-mail verificado com sucesso! Voce ja pode fazer login.' });
+    } catch (err) {
+        console.error('Erro no verifyEmail:', err);
+        return res.status(500).json({ error: 'Erro ao verificar e-mail.' });
+    }
+};
+
+exports.resendVerification = async (req, res) => {
+    try {
+        await connectDB();
+        const { email } = req.body;
+        const normalizedEmail = normalizeEmail(email);
+        const user = await User.findOne({ email: normalizedEmail });
+
+        // Resposta genérica (anti-enumeration): não revela se o e-mail existe nem se já foi verificado
+        const respostaGenerica = { message: 'Se o e-mail existir e ainda nao tiver sido verificado, enviaremos um novo codigo.' };
+
+        if (!user || user.emailVerified) {
+            return res.json(respostaGenerica);
+        }
+
+        const codigo = gerarCodigoVerificacao();
+
+        user.emailVerificationToken = hashCodigo(codigo);
+        user.emailVerificationExpires = new Date(Date.now() + VERIFY_CODE_TTL_MS);
+        user.emailVerificationAttempts = 0;
+        await user.save({ validateBeforeSave: false });
+
+        await emailService.sendVerificationEmail({ to: user.email, name: user.name, code: codigo });
+
+        return res.json(respostaGenerica);
+    } catch (err) {
+        console.error('Erro no resendVerification:', err);
+        return res.status(500).json({ error: 'Erro ao reenviar codigo.' });
+    }
+};
 
 exports.forgotPassword = async (req, res) => {
     try {
@@ -142,38 +233,23 @@ exports.forgotPassword = async (req, res) => {
         const normalizedEmail = normalizeEmail(email);
         const user = await User.findOne({ email: normalizedEmail });
 
+        // Resposta genérica (anti-enumeration): não revelar se o e-mail existe
+        const respostaGenerica = { message: 'Se o e-mail existir, voce recebera um codigo em breve.' };
+
         if (!user) {
-            return res.json({ message: 'Se o e-mail existir, voce recebera um link em breve.' });
+            return res.json(respostaGenerica);
         }
 
-        const rawToken = crypto.randomBytes(32).toString('hex');
-        const hash = crypto.createHash('sha256').update(rawToken).digest('hex');
+        const codigo = gerarCodigoVerificacao();
 
-        user.resetPasswordToken = hash;
-        user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
+        user.resetPasswordToken = hashCodigo(codigo);
+        user.resetPasswordExpires = new Date(Date.now() + RESET_CODE_TTL_MS);
+        user.resetPasswordAttempts = 0;
         await user.save({ validateBeforeSave: false });
 
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        const resetLink = `${frontendUrl}/reset-password?token=${rawToken}`;
+        await emailService.sendPasswordResetEmail({ to: user.email, name: user.name, code: codigo });
 
-        // --- RESEND (desativado) ---
-        // await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl: resetLink });
-
-        // --- SendGrid (ativo) ---
-        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-        await sgMail.send({
-            to: user.email,
-            from: process.env.SENDGRID_FROM_EMAIL,
-            subject: 'Web-Wallet - Redefinicao de senha',
-            html: `
-                <p>Ola, ${user.name}!</p>
-                <p>Clique no link abaixo para redefinir sua senha. O link expira em <strong>15 minutos</strong>.</p>
-                <p><a href="${resetLink}">${resetLink}</a></p>
-                <p>Se voce nao solicitou a redefinicao, ignore este e-mail.</p>
-            `,
-        });
-
-        return res.json({ message: 'Se o e-mail existir, voce recebera um link em breve.' });
+        return res.json(respostaGenerica);
     } catch (err) {
         console.error('Erro no forgotPassword:', err);
         return res.status(500).json({ error: 'Erro ao processar solicitacao.' });
@@ -183,26 +259,51 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
     try {
         await connectDB();
-        const { token, newPassword } = req.body;
+        const { email, code, newPassword } = req.body;
 
-        if (!token || !newPassword) {
-            return res.status(400).json({ error: 'Token e nova senha sao obrigatorios.' });
+        if (!email || !code || !newPassword) {
+            return res.status(400).json({ error: 'E-mail, codigo e nova senha sao obrigatorios.' });
         }
 
-        const hash = crypto.createHash('sha256').update(token).digest('hex');
+        const normalizedEmail = normalizeEmail(email);
+        const user = await User.findOne({ email: normalizedEmail })
+            .select('+resetPasswordToken +resetPasswordExpires +resetPasswordAttempts');
 
-        const user = await User.findOne({
-            resetPasswordToken: hash,
-            resetPasswordExpires: { $gt: Date.now() },
-        }).select('+resetPasswordToken +resetPasswordExpires');
+        // Código inexistente ou já consumido → mensagem genérica de inválido/expirado
+        if (!user || !user.resetPasswordToken || !user.resetPasswordExpires) {
+            return res.status(400).json({ error: 'Codigo invalido ou expirado.' });
+        }
 
-        if (!user) {
-            return res.status(400).json({ error: 'Token invalido ou expirado.' });
+        // Expirado → limpa o código e pede um novo
+        if (user.resetPasswordExpires.getTime() < Date.now()) {
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpires = undefined;
+            user.resetPasswordAttempts = undefined;
+            await user.save({ validateBeforeSave: false });
+            return res.status(400).json({ error: 'Codigo invalido ou expirado.' });
+        }
+
+        // Excedeu o limite de tentativas → exige novo envio
+        if ((user.resetPasswordAttempts || 0) >= MAX_CODE_ATTEMPTS) {
+            return res.status(429).json({ error: 'Muitas tentativas. Solicite um novo codigo.' });
+        }
+
+        // Comparação em tempo constante (hashes de tamanho fixo)
+        const fornecido = Buffer.from(hashCodigo(code), 'hex');
+        const armazenado = Buffer.from(user.resetPasswordToken, 'hex');
+        const confere = fornecido.length === armazenado.length
+            && crypto.timingSafeEqual(fornecido, armazenado);
+
+        if (!confere) {
+            user.resetPasswordAttempts = (user.resetPasswordAttempts || 0) + 1;
+            await user.save({ validateBeforeSave: false });
+            return res.status(400).json({ error: 'Codigo invalido ou expirado.' });
         }
 
         user.password = newPassword;
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
+        user.resetPasswordAttempts = undefined;
         await user.save();
 
         return res.json({ message: 'Senha redefinida com sucesso.' });
