@@ -174,7 +174,7 @@ Web-Wallet/
     ├── utils/
     │   ├── validators.js           # Funções puras de validação (competencia, valorPositivo, corHex, etc.)
     │   ├── emailService.js         # Envio de e-mail (Resend) — código de verificação de conta e código de reset de senha
-    │   └── emailTemplates.js       # Templates HTML dos e-mails
+    │   └── emailTemplates.js       # Templates HTML dos e-mails — identidade "Charged Quiet" (raio da marca, paleta violeta→ciano), tabela + estilos inline, logo PNG hospedado via EMAIL_LOGO_URL
     └── models/
         ├── User.js                 # name, email, password (hash bcrypt), resetPasswordToken/Expires/Attempts, emailVerified/Token/Expires
         ├── Wallet.js               # usuario_id, competencia "YYYY-MM", resumo, transacoes[], limites_gastos (Map)
@@ -312,6 +312,17 @@ de fim de mês** (31/jan + 1 mês → 28/fev, nunca 03/mar). Soft-delete.
 - E-mail via `utils/emailService.js` (**Resend**), template `passwordResetEmail({ name, code })`
   em `utils/emailTemplates.js`. O cliente Resend é construído de forma **lazy** (`getResend()`),
   para não quebrar no import quando `RESEND_API_KEY` está ausente (ex.: testes).
+
+> **Design dos e-mails ("Charged Quiet")** — `emailTemplates.js` usa a identidade visual da
+> marca: o **raio** (logo), fundo "vault" escuro e a paleta de voltagem **violeta `#7e14ff` →
+> ciano `#47bfff`**. HTML seguro para clientes de e-mail (layout em `<table>`, estilos inline,
+> sem SVG inline nem `<style>`); efeitos não universais (gradient/box-shadow/text-shadow)
+> degradam sobre cores sólidas. O raio é um **PNG hospedado** em `front/public/email-logo.png`
+> (servido em `https://www.waltrix.com.br/email-logo.png`), com URL configurável via
+> `EMAIL_LOGO_URL`. `baseLayout({ content, ref, preheader })` gera cabeçalho (raio + wordmark +
+> marcador de referência), fio carregado (hairline em gradiente), corpo, e rodapé; helpers
+> `codeBlock(code)` (dígitos grandes em mono, `"284 913"`) e `expiryChip(prazo)`. Mockups e o
+> gerador de PNG ficam em `design/email/` (PHILOSOPHY.md, render.py, generate_logo.py).
 
 ### AI proxy (`/api/ai/{gemini,groq,mistral}`)
 Proxy server-side que injeta as API keys (`GEMINI_API_KEY`, `GROQ_API_KEY`, `MISTRAL_API_KEY`)
