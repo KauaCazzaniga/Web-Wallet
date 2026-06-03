@@ -28,7 +28,8 @@ export default function Register() {
     try {
       const result = await register(name, email, password);
       if (result.success) {
-        navigate('/verify-email', { state: { email: email.trim() } });
+        // O backend já enviou o código no cadastro → a tela de verificação abre direto na etapa de código.
+        navigate('/verify-email', { state: { email: email.trim(), codeSent: true } });
       } else {
         setError(result.error || 'Erro ao cadastrar. Tente outro e-mail.');
       }

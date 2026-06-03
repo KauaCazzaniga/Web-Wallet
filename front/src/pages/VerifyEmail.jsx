@@ -21,15 +21,19 @@ export default function VerifyEmail() {
   const { verifyEmail, resendVerification } = useContext(AuthContext);
   const { isDark, toggleTheme } = useContext(ThemeContext);
 
-  // Quando chega vindo do cadastro, o e-mail vem no state e o código já foi enviado.
+  // O e-mail pode chegar no state vindo do cadastro OU do link "Verificar e-mail agora" do login.
+  // Só pulamos direto para a etapa de código quando um código REALMENTE foi enviado — isto é,
+  // vindo do cadastro (`codeSent: true`). Vindo do login nenhum código foi disparado, então
+  // começamos na etapa de envio (com o e-mail pré-preenchido) para o usuário pedir o código.
   const emailFromState = location.state?.email || '';
+  const codeAlreadySent = location.state?.codeSent === true;
 
-  const [step, setStep] = useState(emailFromState ? 'code' : 'email');
+  const [step, setStep] = useState(codeAlreadySent ? 'code' : 'email');
   const [email, setEmail] = useState(emailFromState);
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState(
-    emailFromState ? 'Enviamos um código de 6 dígitos para o seu e-mail. Verifique sua caixa de entrada.' : ''
+    codeAlreadySent ? 'Enviamos um código de 6 dígitos para o seu e-mail. Verifique sua caixa de entrada.' : ''
   );
   const [isLoading, setIsLoading] = useState(false);
 

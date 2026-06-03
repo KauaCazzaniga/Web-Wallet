@@ -51,11 +51,22 @@ describe('VerifyEmail', () => {
     expect(screen.getByRole('button', { name: /enviar código/i })).toBeInTheDocument();
   });
 
-  it('vindo do cadastro (e-mail no state), já mostra o campo de código', () => {
-    mockLocationState = { email: 'novo@test.com' };
+  it('vindo do cadastro (e-mail no state + codeSent), já mostra o campo de código', () => {
+    mockLocationState = { email: 'novo@test.com', codeSent: true };
     renderPage();
     expect(screen.getByPlaceholderText(/código de 6 dígitos/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /verificar/i })).toBeInTheDocument();
+  });
+
+  it('vindo do login (e-mail no state, sem codeSent), começa na etapa de envio com o e-mail pré-preenchido', () => {
+    mockLocationState = { email: 'antigo@test.com' };
+    renderPage();
+    // Nenhum código foi enviado pelo login → deve oferecer o input/botão de envio, não o de código
+    const emailInput = screen.getByPlaceholderText(/e-mail cadastrado/i);
+    expect(emailInput).toBeInTheDocument();
+    expect(emailInput).toHaveValue('antigo@test.com');
+    expect(screen.getByRole('button', { name: /enviar código/i })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/código de 6 dígitos/i)).not.toBeInTheDocument();
   });
 
   it('avança para a etapa de código após enviar o e-mail', async () => {
@@ -70,7 +81,7 @@ describe('VerifyEmail', () => {
   });
 
   it('exibe erro client se o código não tem 6 dígitos', async () => {
-    mockLocationState = { email: 'novo@test.com' };
+    mockLocationState = { email: 'novo@test.com', codeSent: true };
     renderPage();
 
     fireEvent.change(screen.getByPlaceholderText(/código de 6 dígitos/i), { target: { value: '12' } });
@@ -81,7 +92,7 @@ describe('VerifyEmail', () => {
   });
 
   it('verifica e redireciona para /login em sucesso', async () => {
-    mockLocationState = { email: 'novo@test.com' };
+    mockLocationState = { email: 'novo@test.com', codeSent: true };
     mockVerifyEmail.mockResolvedValue({ message: 'ok' });
     renderPage();
 
@@ -95,7 +106,7 @@ describe('VerifyEmail', () => {
   });
 
   it('exibe erro da API quando o código é inválido', async () => {
-    mockLocationState = { email: 'novo@test.com' };
+    mockLocationState = { email: 'novo@test.com', codeSent: true };
     mockVerifyEmail.mockRejectedValue({
       response: { data: { error: 'Codigo invalido ou expirado.' } },
     });

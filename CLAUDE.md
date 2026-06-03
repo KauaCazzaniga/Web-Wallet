@@ -89,7 +89,7 @@ Web-Wallet/
 │   │   │   ├── Login.jsx           # Formulário de autenticação
 │   │   │   ├── Register.jsx        # Formulário de cadastro
 │   │   │   ├── ForgotPassword.jsx  # Redefinição de senha em 2 etapas: e-mail → código + nova senha
-│   │   │   ├── VerifyEmail.jsx      # Verificação de e-mail em 2 etapas: e-mail → código (mesmo padrão)
+│   │   │   ├── VerifyEmail.jsx      # Verificação de e-mail em 2 etapas: e-mail → código. Abre na etapa de código só com `location.state.codeSent === true` (vindo do cadastro, que já enviou o código); vindo do login (só `{ email }`) abre na etapa de envio com o e-mail pré-preenchido para o usuário pedir o código
 │   │   │   └── Index.jsx           # Landing page pública
 │   │   ├── components/
 │   │   │   ├── ImportButton.jsx    # Botão que abre o file picker para PDF
@@ -296,8 +296,13 @@ de fim de mês** (31/jan + 1 mês → 28/fev, nunca 03/mar). Soft-delete.
   expiração e tentativas, e marca `emailVerified = true` limpando os campos de verificação.
 - `resendVerification` (rate-limit) regenera o código e reenvia; resposta genérica
   (anti-enumeration) se a conta não existir ou já estiver verificada.
-- `login` retorna **403** enquanto `emailVerified` for falso; o frontend oferece link para
-  `/verify-email` nesse caso.
+- `login` retorna **403** enquanto `emailVerified` for falso; o frontend (Login) oferece o link
+  "Verificar e-mail agora" para `/verify-email` (passando só `{ email }`, **sem** `codeSent`,
+  porque o login **não** dispara o envio de código). A tela de verificação então abre na **etapa
+  de envio** com o e-mail pré-preenchido — o usuário (ex.: conta antiga, pré-verificação) clica
+  "Enviar código" para receber o código de fato, em vez de cair numa tela de código sem ter
+  recebido nada. Apenas o **cadastro** navega com `{ email, codeSent: true }`, abrindo direto na
+  etapa de código (o `register` já enviou).
 
 **Redefinição de senha por código (não por link):**
 - `forgotPassword` (rate-limit **5/15 min por IP**) gera um **código numérico de 6 dígitos**,
@@ -670,7 +675,7 @@ cd back/src && npm run test  # backend  — Vitest (controllers + validators de 
 | `src/pages/Login.test.jsx` | Campos, toggle de senha, submit, redirecionamento, erro |
 | `src/pages/Dashboard.test.jsx` | Render integrado e fluxos principais do Dashboard |
 | `src/pages/ForgotPassword.test.jsx` | Fluxo de 2 etapas: envio do e-mail → código + nova senha, validações e redirect |
-| `src/pages/VerifyEmail.test.jsx` | Verificação por código em 2 etapas: vindo do cadastro (e-mail no state) ou digitando e-mail, validações e redirect |
+| `src/pages/VerifyEmail.test.jsx` | Verificação por código em 2 etapas: vindo do cadastro (`{ email, codeSent: true }` → etapa de código), vindo do login (`{ email }` sem codeSent → etapa de envio pré-preenchida) ou digitando e-mail, validações e redirect |
 | `src/services/api.test.js` | `normalizeApiBaseUrl` — origin fallback, URL com /api, edge cases |
 | `src/utils/categorizador.test.js` | sugerirCategoria, gerarChaveTransacao, prepararTransacoesImportadas |
 | `src/utils/relatorioCalc.test.js` | processarMeses, formatação, intervalos de meses |
